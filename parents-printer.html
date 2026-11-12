@@ -2,64 +2,67 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Parent Printer 標籤列印端</title>
 <link rel="stylesheet" href="css/style.css">
-<style>
-.dot{width:14px;height:14px;border-radius:50%;background:#dc2626;display:inline-block;flex:none}
-.dot.on{background:#16a34a;box-shadow:0 0 8px #16a34a}
-.log{background:#0b1220;color:#4ade80;font-family:ui-monospace,monospace;font-size:14px;border-radius:12px;padding:12px;height:240px;overflow:auto}
-.log div{padding:2px 0;border-bottom:1px solid #1e293b}
-.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
-.g label{font-weight:700;font-size:14px;display:block;margin-bottom:4px}
-.g input{width:100%;box-sizing:border-box}
-.scan-box{background:#e0f2fe;border:2px dashed #0284c7;border-radius:16px;padding:18px;text-align:center;font-size:17px;font-weight:800;color:#0369a1;line-height:1.5}
-.search-item{background:#fff;border:1px solid #d2d2d7;border-radius:12px;padding:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
-.mini{padding:6px 12px!important;font-size:13px!important;min-width:0!important}
-/* 真實尺寸預覽 1:1 */
-#prev{border:1px dashed #94a3b8;background:#fff;box-sizing:border-box;overflow:hidden;text-align:center;
-  font-family:'Microsoft JhengHei','微軟正黑體',sans-serif;color:#000}
-#prev .p-en{font-weight:600;line-height:1.25;word-break:break-word;overflow-wrap:anywhere}
-#prev .p-zh{font-weight:800;line-height:1.2;word-break:break-word;overflow-wrap:anywhere;margin-top:1.5mm}
-</style>
 <style id="labelCss"></style>
 </head><body>
-<div class="topbar"><span>🏷️ Parent Printer 標籤列印端</span><span class="chip" id="countChip">Queue 隊列：0</span></div>
+<div class="topbar"><span>🏷️ Parent Printer</span><span class="chip" id="stationChip">未綁定 Not bound</span></div>
 <div class="admin-wrap">
 
-  <div class="card">
-    <h3>Status 狀態</h3>
-    <div class="row" style="align-items:center"><span class="dot" id="dot"></span><b id="statusText" style="font-size:18px">等待連線 Connecting…</b></div>
-    <div class="row" style="margin-top:12px">
-      <button id="btnTest" class="btn-amber">Test Print 測試列印</button>
-      <button id="btnClear" class="btn-gray">Clear Queue 清空隊列</button>
+  <div class="card" id="bindCard">
+    <h3>Station Setup 站點綁定</h3>
+    <div class="bind-box">
+      <p class="muted" style="margin-top:0">輸入此電腦的 Station Token（例如 LAB1）。綁定後會記住，重開自動連線。</p>
+      <div class="g" style="margin-top:10px">
+        <div><label>Station Token</label><input id="bToken" placeholder="e.g. LAB1" style="text-transform:uppercase"></div>
+        <div><label>New Station Name（建立新站時填）</label><input id="bName" placeholder="e.g. 一樓大堂"></div>
+      </div>
+      <div class="row">
+        <button id="btnBind">Bind 綁定站點</button>
+        <button id="btnCreate" class="btn-amber">Create & Bind 建立並綁定</button>
+      </div>
+      <p class="muted" id="bindMsg" style="margin-top:8px"></p>
     </div>
   </div>
 
-  <div class="card">
-    <h3>Label Settings 標籤設定（60 × 60 mm）</h3>
-    <div class="g">
-      <div><label>Width 寬 (mm)</label><input id="sW" type="number" min="20" max="200" value="60"></div>
-      <div><label>Height 高 (mm)</label><input id="sH" type="number" min="20" max="200" value="60"></div>
-      <div><label>Top 上留白 (mm)</label><input id="sTop" type="number" min="0" max="100" step="0.1" value="26"></div>
-      <div><label>Side 左右留白 (mm)</label><input id="sSide" type="number" min="0" max="30" step="0.1" value="2"></div>
-      <div><label>EN 英文字級 (px) 次</label><input id="sEn" type="number" min="6" max="60" value="12"></div>
-      <div><label>ZH 中文字級 (px) 主</label><input id="sZh" type="number" min="8" max="90" value="30"></div>
+  <div id="mainArea" style="display:none">
+    <div class="card">
+      <h3>Status 狀態</h3>
+      <div class="row" style="align-items:center"><span class="dot" id="dot"></span><b id="statusText" style="font-size:18px">等待連線 Connecting…</b></div>
+      <div class="row" style="margin-top:12px">
+        <span class="chip" id="queueChip">Queue 隊列：0</span>
+        <button id="btnTest" class="btn-amber">Test Print 測試列印</button>
+        <button id="btnClear" class="btn-gray">Clear Queue 清空本站隊列</button>
+        <button id="btnUnbind" class="btn-gray">Change Station 更換站點</button>
+      </div>
     </div>
-    <div class="row"><button id="btnSaveCfg">Save Settings 儲存設定</button></div>
-    <p class="muted" style="margin-top:10px">1:1 預覽 Preview（實際尺寸）：</p>
-    <div id="prev"><div class="p-en">Parent of 3A 15 CHAN TAI MAN</div><div class="p-zh">陳大文家長</div></div>
-  </div>
 
-  <div class="card">
-    <h3>Card Scan 刷卡（本機亦可用）</h3>
-    <div class="scan-box" id="scanBox">✅ 準備就緒，請直接刷卡 Ready to scan</div>
-  </div>
+    <div class="card">
+      <h3>Label Settings 本站標籤設定</h3>
+      <div class="g">
+        <div><label>Width 寬 (mm)</label><input id="sW" type="number" min="20" max="200" value="60"></div>
+        <div><label>Height 高 (mm)</label><input id="sH" type="number" min="20" max="200" value="60"></div>
+        <div><label>Top 上留白 (mm)</label><input id="sTop" type="number" min="0" max="100" step="0.1" value="26"></div>
+        <div><label>Side 左右留白 (mm)</label><input id="sSide" type="number" min="0" max="30" step="0.1" value="2"></div>
+        <div><label>EN 英文字級 (px) 次</label><input id="sEn" type="number" min="6" max="60" value="12"></div>
+        <div><label>ZH 中文字級 (px) 主</label><input id="sZh" type="number" min="8" max="90" value="30"></div>
+      </div>
+      <div class="row"><button id="btnSaveCfg">Save Settings 儲存設定</button></div>
+      <p class="muted" style="margin-top:10px">1:1 預覽 Preview：</p>
+      <div id="prev"><div class="p-en">Parent of 3A 15 CHAN TAI MAN</div><div class="p-zh">陳大文家長</div></div>
+    </div>
 
-  <div class="card">
-    <h3>Manual Search 手動搜尋列印</h3>
-    <input type="text" id="q" placeholder="輸入 姓名 / 班別 / 班號 / 卡號 …">
-    <div id="res"></div>
-  </div>
+    <div class="card">
+      <h3>Card Scan 刷卡（本機亦可用）</h3>
+      <div class="scan-box" id="scanBox">✅ 準備就緒，請直接刷卡 Ready to scan</div>
+    </div>
 
-  <div class="card"><h3>Print Log 列印記錄</h3><div class="log" id="log"></div></div>
+    <div class="card">
+      <h3>Manual Search 手動搜尋列印</h3>
+      <input type="text" id="q" placeholder="輸入 姓名 / 班別 / 班號 / 卡號 …">
+      <div id="res"></div>
+    </div>
+
+    <div class="card"><h3>Print Log 列印記錄</h3><div class="log" id="log"></div></div>
+  </div>
 </div>
 
 <div id="printArea"></div>
@@ -82,172 +85,187 @@ const rootRef = firebase.database().ref('parents');
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const toast = m => { const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); };
+const toast = m => { const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400); };
 const normCard = v => String(v==null?'':v).trim().replace(/^0+/,'').toUpperCase();
 function log(m){ const d=document.createElement('div'); d.textContent=`[${new Date().toLocaleTimeString()}] ${m}`; $('log').prepend(d); }
 
-/* 預設：60x60mm、上留白 26mm、左右 2mm、中文主 30px、英文次 12px */
-const DEF = { ver:3, w:60, h:60, topMm:26, sideMm:2, enSize:12, zhSize:30 };
-let CFG = Object.assign({}, DEF);
+const DEF = { w:60, h:60, topMm:26, sideMm:2, enSize:12, zhSize:30 };
+const LS='parentStationToken';
+let CFG=Object.assign({},DEF), stationKey=null, station=null, started=false;
 let students={}, byCard={};
 const jobs=[], seen={}; let printing=false;
 
-/* ===== 動態列印樣式 + 預覽 ===== */
+/* ===== 列印樣式：display:none 隔離 + static 定位 + 無強制分頁 → 只印 1 頁 ===== */
 function applyCss(){
   $('labelCss').textContent = `
   #printArea{display:none}
   @media print{
-    @page{ size:${CFG.w}mm ${CFG.h}mm !important; margin:0 !important; }
-    body *{visibility:hidden}
-    #printArea,#printArea *{visibility:visible}
-    #printArea{display:block!important;position:absolute!important;left:0!important;top:0!important;
+    @page{ size:${CFG.w}mm ${CFG.h}mm; margin:0; }
+    html,body{margin:0!important;padding:0!important;background:#fff!important;height:auto!important;min-height:0!important}
+    body>*:not(#printArea){display:none!important}
+    #printArea{
+      display:block!important;position:static!important;left:auto!important;top:auto!important;
+      transform:none!important;margin:0!important;
       width:${CFG.w}mm!important;height:${CFG.h}mm!important;
-      padding:${CFG.topMm}mm ${CFG.sideMm}mm 0 ${CFG.sideMm}mm!important;margin:0!important;
+      padding:${CFG.topMm}mm ${CFG.sideMm}mm 0 ${CFG.sideMm}mm!important;
       box-sizing:border-box;overflow:hidden;background:#fff;color:#000;text-align:center;
       font-family:'Microsoft JhengHei','微軟正黑體',sans-serif;
-      page-break-after:always!important;break-after:page!important;}
+    }
     #printArea .label-wrap{display:flex;flex-direction:column;justify-content:flex-start;align-items:center;width:100%}
-    #printArea .label-en{font-size:${CFG.enSize}px!important;font-weight:600;line-height:1.25;
-      word-break:break-word;overflow-wrap:anywhere;white-space:normal}
-    #printArea .label-zh{font-size:${CFG.zhSize}px!important;font-weight:800;line-height:1.2;margin-top:1.5mm;
-      word-break:break-word;overflow-wrap:anywhere;white-space:normal}
+    #printArea .label-en{font-size:${CFG.enSize}px!important;font-weight:600;line-height:1.25;word-break:break-word;overflow-wrap:anywhere}
+    #printArea .label-zh{font-size:${CFG.zhSize}px!important;font-weight:800;line-height:1.2;margin-top:1.5mm;word-break:break-word;overflow-wrap:anywhere}
   }`;
-  const p = $('prev');
-  p.style.width = CFG.w+'mm'; p.style.height = CFG.h+'mm';
-  p.style.padding = `${CFG.topMm}mm ${CFG.sideMm}mm 0 ${CFG.sideMm}mm`;
-  p.querySelector('.p-en').style.fontSize = CFG.enSize+'px';
-  p.querySelector('.p-zh').style.fontSize = CFG.zhSize+'px';
+  const p=$('prev');
+  p.style.width=CFG.w+'mm'; p.style.height=CFG.h+'mm';
+  p.style.padding=`${CFG.topMm}mm ${CFG.sideMm}mm 0 ${CFG.sideMm}mm`;
+  p.querySelector('.p-en').style.fontSize=CFG.enSize+'px';
+  p.querySelector('.p-zh').style.fontSize=CFG.zhSize+'px';
 }
-rootRef.child('settings').on('value', s => {
-  const v = s.val()||{};
-  CFG = (v.ver === DEF.ver)
-      ? { ver:DEF.ver, w:+v.w||DEF.w, h:+v.h||DEF.h, topMm:(v.topMm!=null?+v.topMm:DEF.topMm),
-          sideMm:(v.sideMm!=null?+v.sideMm:DEF.sideMm), enSize:+v.enSize||DEF.enSize, zhSize:+v.zhSize||DEF.zhSize }
-      : Object.assign({}, DEF);
-  $('sW').value=CFG.w; $('sH').value=CFG.h; $('sTop').value=CFG.topMm; $('sSide').value=CFG.sideMm;
-  $('sEn').value=CFG.enSize; $('sZh').value=CFG.zhSize;
-  applyCss();
-});
-$('btnSaveCfg').onclick = async () => {
-  await rootRef.child('settings').set({
-    ver:DEF.ver, w:+$('sW').value||DEF.w, h:+$('sH').value||DEF.h,
-    topMm:+$('sTop').value||0, sideMm:+$('sSide').value||0,
-    enSize:+$('sEn').value||DEF.enSize, zhSize:+$('sZh').value||DEF.zhSize
-  });
-  toast('✅ 設定已儲存 Saved');
-};
 applyCss();
 
+/* ===== 站點綁定 ===== */
+async function findToken(t){
+  const all=(await rootRef.child('stations').once('value')).val()||{};
+  return Object.entries(all).find(([k,v])=>String(v.token||'').toUpperCase()===t);
+}
+$('btnBind').onclick=async()=>{
+  const t=$('bToken').value.trim().toUpperCase();
+  if(!t) return $('bindMsg').textContent='⚠️ 請輸入 Token';
+  const hit=await findToken(t);
+  if(!hit) return $('bindMsg').textContent='❌ 找不到此 Token，可按「建立並綁定」新增。';
+  localStorage.setItem(LS,t); bindStation(hit[0]);
+};
+$('btnCreate').onclick=async()=>{
+  const t=$('bToken').value.trim().toUpperCase(), n=$('bName').value.trim();
+  if(!t||!n) return $('bindMsg').textContent='⚠️ 請輸入 Token 及名稱';
+  if(await findToken(t)) return $('bindMsg').textContent='⚠️ Token 已存在，請直接綁定';
+  const ref=await rootRef.child('stations').push({name:n,token:t,settings:DEF,createdAt:Date.now(),lastSeen:Date.now()});
+  localStorage.setItem(LS,t); bindStation(ref.key);
+};
+$('btnUnbind').onclick=()=>{ if(confirm('解除本站綁定？')){ localStorage.removeItem(LS); location.reload(); } };
+
+function bindStation(key){
+  stationKey=key; $('bindCard').style.display='none'; $('mainArea').style.display='block';
+  if(started) return; started=true;
+  rootRef.child('stations/'+key).on('value',s=>{
+    station=s.val();
+    if(!station){ toast('站點已被刪除'); localStorage.removeItem(LS); setTimeout(()=>location.reload(),1500); return; }
+    const v=station.settings||{};
+    CFG={ w:+v.w||DEF.w, h:+v.h||DEF.h, topMm:(v.topMm!=null?+v.topMm:DEF.topMm),
+          sideMm:(v.sideMm!=null?+v.sideMm:DEF.sideMm), enSize:+v.enSize||DEF.enSize, zhSize:+v.zhSize||DEF.zhSize };
+    $('sW').value=CFG.w; $('sH').value=CFG.h; $('sTop').value=CFG.topMm; $('sSide').value=CFG.sideMm;
+    $('sEn').value=CFG.enSize; $('sZh').value=CFG.zhSize;
+    $('stationChip').textContent=`🖨️ ${station.name} (${station.token})`;
+    applyCss();
+  });
+  rootRef.child('queues/'+key).on('value',snap=>{
+    const all=snap.val()||{};
+    Object.keys(all).forEach(k=>{ const j=all[k]; if(j&&!j.done&&!seen[k]) enqueue(k,j); });
+  });
+  const beat=()=>rootRef.child('stations/'+key+'/lastSeen').set(Date.now());
+  beat(); setInterval(beat,20000);
+  log('⚙️ 站點已綁定 Station bound');
+}
+(async()=>{ const t=localStorage.getItem(LS); if(t){ const hit=await findToken(t); if(hit) bindStation(hit[0]); } })();
+
+$('btnSaveCfg').onclick=async()=>{
+  if(!stationKey) return;
+  await rootRef.child('stations/'+stationKey+'/settings').set({
+    w:+$('sW').value||DEF.w, h:+$('sH').value||DEF.h, topMm:+$('sTop').value||0,
+    sideMm:+$('sSide').value||0, enSize:+$('sEn').value||DEF.enSize, zhSize:+$('sZh').value||DEF.zhSize
+  });
+  toast('✅ 本站設定已儲存');
+};
+
 /* ===== 學生資料 ===== */
-rootRef.child('students').on('value', s => {
-  students = s.val()||{}; byCard={};
+rootRef.child('students').on('value',s=>{
+  students=s.val()||{}; byCard={};
   Object.entries(students).forEach(([k,v])=>{ if(v.cardId) byCard[normCard(v.cardId)]=k; });
   doSearch();
 });
 
-/* ===== 連線狀態 ===== */
-firebase.database().ref('.info/connected').on('value', s => {
-  if(s.val()===true){
-    $('dot').classList.add('on'); $('statusText').textContent='✅ 已連線・監控標籤隊列中 Online & watching';
-    rootRef.child('printQueue').on('value', snap => {
-      const all = snap.val()||{};
-      Object.keys(all).forEach(k => { const j=all[k]; if(j && !j.done && !seen[k]) enqueue(k,j); });
-    });
-  } else {
-    $('dot').classList.remove('on'); $('statusText').textContent='⏳ 等待連線 Connecting…';
-  }
+/* ===== 連線 ===== */
+firebase.database().ref('.info/connected').on('value',s=>{
+  if(s.val()===true){ $('dot').classList.add('on'); $('statusText').textContent='✅ 已連線・監控本站隊列 Online'; }
+  else{ $('dot').classList.remove('on'); $('statusText').textContent='⏳ 等待連線 Connecting…'; }
 });
 
-function updateCount(){ $('countChip').textContent = 'Queue 隊列：' + jobs.length; }
+function updateCount(){ $('queueChip').textContent='Queue 隊列：'+jobs.length; }
 function enqueue(k,j){
   if(seen[k]) return; seen[k]=1;
   jobs.push(Object.assign({key:k},j)); updateCount();
-  log('📥 收到任務 Job: ' + (j.nameEn||'?'));
-  processJobs();
+  log('📥 收到任務 Job: '+(j.nameEn||'?')); processJobs();
 }
-
-/* ===== 標籤內容：英文為次(上、細)、中文為主(下、大) ===== */
 function labelHTML(j){
-  const line1 = 'Parent of ' + [j.cls, j.classNo, j.nameEn].filter(x=>x&&String(x).trim()).join(' ');
-  const line2 = (j.nameZh||'') + '家長';
-  return `<div class="label-wrap"><div class="label-en">${esc(line1)}</div><div class="label-zh">${esc(line2)}</div></div>`;
+  const l1='Parent of '+[j.cls,j.classNo,j.nameEn].filter(x=>x&&String(x).trim()).join(' ');
+  return `<div class="label-wrap"><div class="label-en">${esc(l1)}</div><div class="label-zh">${esc((j.nameZh||'')+'家長')}</div></div>`;
 }
-
-/* ===== 流水線：印前 2 秒 ➜ 印 ➜ 印後 2 秒 ===== */
 async function processJobs(){
   if(printing) return; printing=true;
   while(jobs.length){
-    const j = jobs.shift(); updateCount();
-    await rootRef.child('printQueue/'+j.key).remove().catch(()=>{});
-    log('⏳ 準備列印 Preparing (2s)… ' + (j.nameEn||''));
-    $('printArea').innerHTML = labelHTML(j);
+    const j=jobs.shift(); updateCount();
+    await rootRef.child('queues/'+stationKey+'/'+j.key).remove().catch(()=>{});
+    log('⏳ 準備列印 (2s)… '+(j.nameEn||''));
+    $('printArea').innerHTML=labelHTML(j);
     await new Promise(r=>setTimeout(r,2000));
-    const copies = Math.max(1, j.copies||1);
-    for(let i=0;i<copies;i++){
-      window.print();
-      log(`✅ ${j.nameEn||'LABEL'} 第 ${i+1}/${copies} 張已發送 Sent`);
-      if(i<copies-1) await new Promise(r=>setTimeout(r,2000));
+    const c=Math.max(1,j.copies||1);
+    for(let i=0;i<c;i++){
+      window.print(); log(`✅ ${j.nameEn||'LABEL'} ${i+1}/${c} 已發送`);
+      if(i<c-1) await new Promise(r=>setTimeout(r,2000));
     }
     await new Promise(r=>setTimeout(r,2000));
   }
   printing=false;
 }
+function pushJob(s){
+  return rootRef.child('queues/'+stationKey).push({type:'label',cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',copies:1,createdAt:Date.now(),done:false});
+}
 
-/* ===== 本機刷卡 ===== */
-let buf='', last=0;
-document.addEventListener('keydown', e => {
+/* ===== 刷卡 ===== */
+let buf='',last=0;
+document.addEventListener('keydown',e=>{
   const a=document.activeElement;
-  if(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return;
+  if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)) return;
+  if(!stationKey) return;
   const now=Date.now(); if(now-last>120) buf=''; last=now;
   if(e.key==='Enter'||e.key==='Tab'){ if(buf.length>=4){ e.preventDefault(); scan(buf); } buf=''; }
   else if(e.key.length===1){ buf+=e.key; }
 });
 async function scan(code){
-  const box=$('scanBox'); const k=byCard[normCard(code)];
-  if(k){
-    const s=students[k];
-    box.style.background='#bbf7d0'; box.style.color='#14532d';
-    box.innerHTML=`✅ ${esc(s.nameEn)} — 已送入列印`;
-    await rootRef.child('printQueue').push({type:'label',cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',copies:1,createdAt:Date.now(),done:false});
-  } else {
-    box.style.background='#fecaca'; box.style.color='#7f1d1d';
-    box.innerHTML=`❌ 未登記卡號 Unregistered: ${esc(code)}`;
-  }
+  const box=$('scanBox'), k=byCard[normCard(code)];
+  if(k){ const s=students[k];
+    box.style.background='#bbf7d0'; box.style.color='#14532d'; box.innerHTML=`✅ ${esc(s.nameEn)} — 已送入本站列印`;
+    await pushJob(s);
+  }else{ box.style.background='#fecaca'; box.style.color='#7f1d1d'; box.innerHTML=`❌ 未登記卡號: ${esc(code)}`; }
   setTimeout(()=>{ box.style.background='#e0f2fe'; box.style.color='#0369a1'; box.innerHTML='✅ 準備就緒，請直接刷卡 Ready to scan'; },3500);
 }
 
-/* ===== 手動搜尋 ===== */
-$('q').addEventListener('input', doSearch);
+/* ===== 搜尋 ===== */
+$('q').addEventListener('input',doSearch);
 function doSearch(){
   const q=$('q').value.trim().toLowerCase();
   if(!q){ $('res').innerHTML=''; return; }
   const hits=Object.entries(students).filter(([k,s])=>
     [s.nameEn,s.nameZh,s.cls,s.classNo,s.cardId].some(v=>String(v||'').toLowerCase().includes(q))).slice(0,30);
-  $('res').innerHTML = hits.map(([k,s])=>`<div class="search-item">
+  $('res').innerHTML=hits.map(([k,s])=>`<div class="search-item">
     <div><b>${esc(s.nameEn)}</b> ／ ${esc(s.nameZh)} <span class="muted">${esc(s.cls||'')} ${esc(s.classNo||'')}</span></div>
-    <button class="btn-amber mini" onclick="pOne('${k}')">Print 列印</button></div>`).join('')
-    || '<p class="muted">No match 無匹配結果</p>';
+    <button class="btn-amber mini" onclick="pOne('${k}')">Print 列印</button></div>`).join('')||'<p class="muted">No match</p>';
 }
-window.pOne = async k => {
-  const s=students[k]; if(!s) return;
+window.pOne=async k=>{
+  const s=students[k]; if(!s||!stationKey) return;
   if(!confirm(`Print label for ${s.nameEn}?`)) return;
-  await rootRef.child('printQueue').push({type:'label',cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',copies:1,createdAt:Date.now(),done:false});
-  toast('✅ 已排隊 Queued');
+  await pushJob(s); toast('✅ 已排隊');
 };
 
-/* ===== 測試 / 清空 ===== */
-$('btnTest').onclick = async () => {
-  if(!confirm('Test print a sample label?\n測試列印樣本標籤？')) return;
-  $('printArea').innerHTML = labelHTML({cls:'3A',classNo:'15',nameEn:'CHAN TAI MAN',nameZh:'陳大文'});
-  await new Promise(r=>setTimeout(r,2000));
-  window.print(); log('✅ 測試列印已發送 Test sent');
+$('btnTest').onclick=async()=>{
+  if(!confirm('Test print a sample label?')) return;
+  $('printArea').innerHTML=labelHTML({cls:'3A',classNo:'15',nameEn:'CHAN TAI MAN',nameZh:'陳大文'});
+  await new Promise(r=>setTimeout(r,2000)); window.print(); log('✅ 測試列印已發送');
 };
-$('btnClear').onclick = async () => {
-  if(!confirm('Clear all label print queue?\n清空所有標籤列印隊列？')) return;
-  await rootRef.child('printQueue').remove();
-  jobs.length=0; for(const k in seen) delete seen[k];
-  updateCount(); log('隊列已清空 Queue cleared');
+$('btnClear').onclick=async()=>{
+  if(!confirm('清空本站隊列？')) return;
+  await rootRef.child('queues/'+stationKey).remove();
+  jobs.length=0; for(const k in seen) delete seen[k]; updateCount(); log('隊列已清空');
 };
-log('⚙️ 系統就緒 System ready (60×60mm)');
 </script>
 </body></html>
