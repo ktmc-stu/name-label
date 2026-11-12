@@ -13,9 +13,11 @@
 .scan-box{background:#e0f2fe;border:2px dashed #0284c7;border-radius:16px;padding:18px;text-align:center;font-size:17px;font-weight:800;color:#0369a1;line-height:1.5}
 .search-item{background:#fff;border:1px solid #d2d2d7;border-radius:12px;padding:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
 .mini{padding:6px 12px!important;font-size:13px!important;min-width:0!important}
-.preview{border:1px dashed #94a3b8;border-radius:8px;padding:10px;text-align:center;background:#fff}
-.preview .p-en{font-weight:700}
-.preview .p-zh{font-weight:800;margin-top:6px}
+/* 真實尺寸預覽 1:1 */
+#prev{border:1px dashed #94a3b8;background:#fff;box-sizing:border-box;overflow:hidden;text-align:center;
+  font-family:'Microsoft JhengHei','微軟正黑體',sans-serif;color:#000}
+#prev .p-en{font-weight:600;line-height:1.25;word-break:break-word;overflow-wrap:anywhere}
+#prev .p-zh{font-weight:800;line-height:1.2;word-break:break-word;overflow-wrap:anywhere;margin-top:1.5mm}
 </style>
 <style id="labelCss"></style>
 </head><body>
@@ -32,16 +34,18 @@
   </div>
 
   <div class="card">
-    <h3>Label Settings 標籤設定</h3>
+    <h3>Label Settings 標籤設定（60 × 60 mm）</h3>
     <div class="g">
-      <div><label>Width 寬 (mm)</label><input id="sW" type="number" min="20" max="200" value="80"></div>
-      <div><label>Height 高 (mm)</label><input id="sH" type="number" min="15" max="200" value="50"></div>
-      <div><label>EN 字級 (px)</label><input id="sEn" type="number" min="8" max="60" value="18"></div>
-      <div><label>ZH 字級 (px)</label><input id="sZh" type="number" min="8" max="80" value="26"></div>
+      <div><label>Width 寬 (mm)</label><input id="sW" type="number" min="20" max="200" value="60"></div>
+      <div><label>Height 高 (mm)</label><input id="sH" type="number" min="20" max="200" value="60"></div>
+      <div><label>Top 上留白 (mm)</label><input id="sTop" type="number" min="0" max="100" step="0.1" value="26"></div>
+      <div><label>Side 左右留白 (mm)</label><input id="sSide" type="number" min="0" max="30" step="0.1" value="2"></div>
+      <div><label>EN 英文字級 (px) 次</label><input id="sEn" type="number" min="6" max="60" value="12"></div>
+      <div><label>ZH 中文字級 (px) 主</label><input id="sZh" type="number" min="8" max="90" value="30"></div>
     </div>
     <div class="row"><button id="btnSaveCfg">Save Settings 儲存設定</button></div>
-    <p class="muted" style="margin-top:8px">預覽 Preview：</p>
-    <div class="preview" id="prev"><div class="p-en">Parent of 3A 15 CHAN TAI MAN</div><div class="p-zh">陳大文家長</div></div>
+    <p class="muted" style="margin-top:10px">1:1 預覽 Preview（實際尺寸）：</p>
+    <div id="prev"><div class="p-en">Parent of 3A 15 CHAN TAI MAN</div><div class="p-zh">陳大文家長</div></div>
   </div>
 
   <div class="card">
@@ -82,11 +86,13 @@ const toast = m => { const t=$('toast'); t.textContent=m; t.classList.add('show'
 const normCard = v => String(v==null?'':v).trim().replace(/^0+/,'').toUpperCase();
 function log(m){ const d=document.createElement('div'); d.textContent=`[${new Date().toLocaleTimeString()}] ${m}`; $('log').prepend(d); }
 
-let CFG = { w:80, h:50, enSize:18, zhSize:26 };
+/* 預設：60x60mm、上留白 26mm、左右 2mm、中文主 30px、英文次 12px */
+const DEF = { ver:3, w:60, h:60, topMm:26, sideMm:2, enSize:12, zhSize:30 };
+let CFG = Object.assign({}, DEF);
 let students={}, byCard={};
 const jobs=[], seen={}; let printing=false;
 
-/* ===== 動態列印樣式 ===== */
+/* ===== 動態列印樣式 + 預覽 ===== */
 function applyCss(){
   $('labelCss').textContent = `
   #printArea{display:none}
@@ -95,25 +101,39 @@ function applyCss(){
     body *{visibility:hidden}
     #printArea,#printArea *{visibility:visible}
     #printArea{display:block!important;position:absolute!important;left:0!important;top:0!important;
-      width:${CFG.w}mm!important;height:${CFG.h}mm!important;padding:3mm!important;margin:0!important;
-      box-sizing:border-box;background:#fff;color:#000;text-align:center;
+      width:${CFG.w}mm!important;height:${CFG.h}mm!important;
+      padding:${CFG.topMm}mm ${CFG.sideMm}mm 0 ${CFG.sideMm}mm!important;margin:0!important;
+      box-sizing:border-box;overflow:hidden;background:#fff;color:#000;text-align:center;
       font-family:'Microsoft JhengHei','微軟正黑體',sans-serif;
       page-break-after:always!important;break-after:page!important;}
-    #printArea .label-wrap{display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;height:100%;gap:2mm}
-    #printArea .label-en{font-size:${CFG.enSize}px!important;font-weight:700;line-height:1.25;word-break:break-word;overflow-wrap:anywhere}
-    #printArea .label-zh{font-size:${CFG.zhSize}px!important;font-weight:800;line-height:1.25;word-break:break-word;overflow-wrap:anywhere}
+    #printArea .label-wrap{display:flex;flex-direction:column;justify-content:flex-start;align-items:center;width:100%}
+    #printArea .label-en{font-size:${CFG.enSize}px!important;font-weight:600;line-height:1.25;
+      word-break:break-word;overflow-wrap:anywhere;white-space:normal}
+    #printArea .label-zh{font-size:${CFG.zhSize}px!important;font-weight:800;line-height:1.2;margin-top:1.5mm;
+      word-break:break-word;overflow-wrap:anywhere;white-space:normal}
   }`;
-  $('prev').querySelector('.p-en').style.fontSize = CFG.enSize+'px';
-  $('prev').querySelector('.p-zh').style.fontSize = CFG.zhSize+'px';
+  const p = $('prev');
+  p.style.width = CFG.w+'mm'; p.style.height = CFG.h+'mm';
+  p.style.padding = `${CFG.topMm}mm ${CFG.sideMm}mm 0 ${CFG.sideMm}mm`;
+  p.querySelector('.p-en').style.fontSize = CFG.enSize+'px';
+  p.querySelector('.p-zh').style.fontSize = CFG.zhSize+'px';
 }
 rootRef.child('settings').on('value', s => {
   const v = s.val()||{};
-  CFG = { w:+v.w||80, h:+v.h||50, enSize:+v.enSize||18, zhSize:+v.zhSize||26 };
-  $('sW').value=CFG.w; $('sH').value=CFG.h; $('sEn').value=CFG.enSize; $('sZh').value=CFG.zhSize;
+  CFG = (v.ver === DEF.ver)
+      ? { ver:DEF.ver, w:+v.w||DEF.w, h:+v.h||DEF.h, topMm:(v.topMm!=null?+v.topMm:DEF.topMm),
+          sideMm:(v.sideMm!=null?+v.sideMm:DEF.sideMm), enSize:+v.enSize||DEF.enSize, zhSize:+v.zhSize||DEF.zhSize }
+      : Object.assign({}, DEF);
+  $('sW').value=CFG.w; $('sH').value=CFG.h; $('sTop').value=CFG.topMm; $('sSide').value=CFG.sideMm;
+  $('sEn').value=CFG.enSize; $('sZh').value=CFG.zhSize;
   applyCss();
 });
 $('btnSaveCfg').onclick = async () => {
-  await rootRef.child('settings').set({ w:+$('sW').value||80, h:+$('sH').value||50, enSize:+$('sEn').value||18, zhSize:+$('sZh').value||26 });
+  await rootRef.child('settings').set({
+    ver:DEF.ver, w:+$('sW').value||DEF.w, h:+$('sH').value||DEF.h,
+    topMm:+$('sTop').value||0, sideMm:+$('sSide').value||0,
+    enSize:+$('sEn').value||DEF.enSize, zhSize:+$('sZh').value||DEF.zhSize
+  });
   toast('✅ 設定已儲存 Saved');
 };
 applyCss();
@@ -146,7 +166,7 @@ function enqueue(k,j){
   processJobs();
 }
 
-/* ===== 標籤內容 ===== */
+/* ===== 標籤內容：英文為次(上、細)、中文為主(下、大) ===== */
 function labelHTML(j){
   const line1 = 'Parent of ' + [j.cls, j.classNo, j.nameEn].filter(x=>x&&String(x).trim()).join(' ');
   const line2 = (j.nameZh||'') + '家長';
@@ -228,6 +248,6 @@ $('btnClear').onclick = async () => {
   jobs.length=0; for(const k in seen) delete seen[k];
   updateCount(); log('隊列已清空 Queue cleared');
 };
-log('⚙️ 系統就緒 System ready');
+log('⚙️ 系統就緒 System ready (60×60mm)');
 </script>
 </body></html>
