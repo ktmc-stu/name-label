@@ -3,53 +3,116 @@
 <title>Parent Label 家長標籤遙控端</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
-.wrap{max-width:1080px;margin:18px auto;padding:0 16px;display:grid;gap:16px}
-.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
-.g label{font-weight:700;font-size:14px;display:block;margin-bottom:4px}
-.g input{width:100%;box-sizing:border-box}
-.scan-box{background:#e0f2fe;border:2px dashed #0284c7;border-radius:16px;padding:22px;text-align:center;font-size:18px;font-weight:800;color:#0369a1;line-height:1.5}
-.search-res{margin-top:10px;display:grid;gap:8px}
-.search-item{background:#fff;border:1px solid #d2d2d7;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.search-item b{font-size:16px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{border:1px solid #e8e8ed;padding:8px;text-align:left}
-.btn-red{background:#ff3b30!important;color:#fff!important}
-.mini{padding:6px 12px!important;font-size:13px!important;min-width:0!important}
+/* ===== Remote-specific polish ===== */
+.station-dock{
+  position:sticky;top:48px;z-index:9000;
+  background:linear-gradient(120deg,#0f172a,#1e293b 60%,#132a44);
+  color:#fff;padding:14px clamp(14px,4vw,26px);
+  box-shadow:0 10px 30px rgba(12,20,36,.22);
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.dock-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:1080px;margin:0 auto}
+.dock-label{font-weight:800;font-size:15px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.dock-row select{
+  min-width:240px;flex:1 1 240px;font-size:16px;font-weight:700;
+  background:#fff;color:#0f172a;border:0;border-radius:999px;padding:10px 18px;min-height:44px;
+}
+.dock-meta{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700}
+.dock-meta .pill{font-size:12px}
+.dock-hint{max-width:1080px;margin:8px auto 0;font-size:12px;color:rgba(255,255,255,.72)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;max-width:1080px;margin:10px auto 0}
+.st-chip{
+  display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.1);color:#fff;border-radius:999px;padding:7px 13px;
+  font-size:13px;font-weight:700;cursor:pointer;min-width:0;transition:.18s;
+}
+.st-chip:hover{background:rgba(255,255,255,.2);transform:translateY(-1px)}
+.st-chip.active{background:#fff;color:#0f172a;border-color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.st-chip .dot{width:9px;height:9px;border-radius:50%;background:#f87171;flex:none}
+.st-chip.on .dot{background:#4ade80;box-shadow:0 0 8px rgba(74,222,128,.8)}
+.st-chip .tk{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;opacity:.8}
+.st-chip .q{background:rgba(0,0,0,.25);border-radius:999px;padding:1px 7px;font-size:11px}
+.st-chip.active .q{background:#e2e8f0;color:#0f172a}
+.scan-box{position:relative;overflow:hidden}
+.scan-box::after{content:"";position:absolute;left:0;right:0;height:30px;top:-40px;
+  background:linear-gradient(180deg,transparent,rgba(2,132,199,.18),transparent);animation:scanmove 3.2s linear infinite}
+@keyframes scanmove{0%{top:-40px}100%{top:120%}}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}.dock-row select{min-width:160px}}
+.statline{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.statline .tag{font-size:13px;padding:6px 12px}
+.help{background:#eef6ff;border:1px solid #b9d9f7;border-radius:12px;padding:12px 14px;font-size:13px;color:#0b46c8;line-height:1.6}
 </style>
 </head><body>
-<div class="topbar"><span>🏷️ Parent Label 家長標籤</span><span class="chip" id="topChip">—</span></div>
+<div class="topbar"><span>🏷️ Parent Label 家長標籤遙控端</span><span class="chip" id="topChip">—</span></div>
+
+<!-- ===== 站點選擇（固定置頂，永遠可见） ===== -->
+<div class="station-dock">
+  <div class="dock-row">
+    <span class="dock-label">🖨️ 送至 Send to</span>
+    <select id="stationSel"><option value="">— 選擇列印站 Select station —</option></select>
+    <span class="dock-meta"><span class="pill off" id="onlinePill">未選擇</span><span id="queueInfo">queue 0</span></span>
+  </div>
+  <div class="chips" id="stationChips"></div>
+  <div class="dock-hint">選擇後會記住；之後每次刷卡／手動列印都送到此站，直到你再切換。 Your choice is remembered until changed.</div>
+</div>
+
 <div class="wrap">
 
   <div class="card">
     <h3>Card Scan 刷卡區</h3>
     <div class="scan-box" id="scanBox">✅ 準備就緒，請直接刷卡<br>Ready — just swipe the card</div>
-    <p class="muted" style="margin-top:8px">刷卡器為鍵盤模式，無需點擊任何欄位，系統自動捕捉卡號並匹配列印。</p>
+    <div class="statline">
+      <span class="tag" id="lastScan">Last scan: —</span>
+      <span class="tag" id="sentCount">Sent 已送：0</span>
+    </div>
+    <p class="muted" style="margin-top:10px">刷卡器為鍵盤模式，無需點擊任何欄位；系統自動捕捉卡號、匹配學生、送到上方選定的列印站。</p>
   </div>
 
   <div class="card">
     <h3>Manual Search 手動搜尋</h3>
     <input type="text" id="q" placeholder="輸入 姓名 / 班別 / 班號 / 卡號 …">
-    <div class="search-res" id="res"></div>
+    <div id="res"></div>
+    <div class="help" id="bindHelp" style="display:none;margin-top:10px"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>Stations 站點管理</h3>
+      <div class="g">
+        <div><label>Station Name 名稱</label><input id="nsName" placeholder="e.g. 一樓大堂"></div>
+        <div><label>Station Token</label><input id="nsToken" placeholder="e.g. LOBBY1" style="text-transform:uppercase"></div>
+      </div>
+      <div class="row"><button id="btnAddStation">Add Station 新增站點</button></div>
+      <div style="overflow:auto;margin-top:12px"><table>
+        <thead><tr><th>Name</th><th>Token</th><th>Label</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="stBody"></tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <h3>Database 學生資料庫</h3>
+      <p class="muted">Excel 表頭：Card ID, Class, Class No, English Name, Chinese Name（相同卡號自動覆蓋）</p>
+      <div class="row" style="margin-top:6px">
+        <input type="file" id="fExcel" accept=".xlsx,.xls,.csv" style="flex:1">
+        <button class="btn-gray" id="btnTpl">Template</button>
+      </div>
+      <p class="muted" id="impMsg" style="margin-top:8px"></p>
+      <hr>
+      <div class="g">
+        <div><label>Card ID</label><input id="aCard"></div>
+        <div><label>Class</label><input id="aCls" placeholder="3A"></div>
+        <div><label>Class No</label><input id="aNo" placeholder="15"></div>
+        <div><label>English Name</label><input id="aEn"></div>
+        <div><label>Chinese Name</label><input id="aZh"></div>
+      </div>
+      <div class="row"><button id="btnAdd">Add / Update 新增或更新</button></div>
+    </div>
   </div>
 
   <div class="card">
-    <h3>Database 學生資料庫</h3>
-    <p class="muted">Excel 表頭：Card ID, Class, Class No, English Name, Chinese Name（相同卡號會自動覆蓋更新）</p>
-    <div class="row" style="margin-top:6px">
-      <input type="file" id="fExcel" accept=".xlsx,.xls,.csv" style="flex:1">
-      <button class="btn-gray" id="btnTpl">Download Template 下載模板</button>
-    </div>
-    <p class="muted" id="impMsg" style="margin-top:8px"></p>
-    <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
-    <div class="g">
-      <div><label>Card ID 卡號</label><input id="aCard"></div>
-      <div><label>Class 班別</label><input id="aCls" placeholder="3A"></div>
-      <div><label>Class No 班號</label><input id="aNo" placeholder="15"></div>
-      <div><label>English Name</label><input id="aEn" placeholder="CHAN TAI MAN"></div>
-      <div><label>Chinese Name</label><input id="aZh" placeholder="陳大文"></div>
-    </div>
-    <div class="row"><button id="btnAdd">Add / Update 新增或更新</button></div>
-    <div style="overflow:auto;margin-top:14px;max-height:420px"><table>
+    <h3>Student Records 學生記錄</h3>
+    <div style="overflow:auto;max-height:460px"><table>
       <thead><tr><th>Card ID</th><th>Class</th><th>No</th><th>English</th><th>Chinese</th><th>Actions</th></tr></thead>
       <tbody id="dbBody"></tbody>
     </table></div>
@@ -74,155 +137,221 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const rootRef = firebase.database().ref('parents');
 
-const $ = id => document.getElementById(id);
-const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const toast = m => { const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400); };
-const normCard = v => String(v==null?'':v).trim().replace(/^0+/,'').toUpperCase();
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);};
+const normCard=v=>String(v==null?'':v).trim().replace(/^0+/,'').toUpperCase();
+const DEF={w:60,h:60,topMm:26,sideMm:2,enSize:12,zhSize:30};
+const LS='parentRemoteStation';
+const isOnline=st=>st&&st.lastSeen&&(Date.now()-st.lastSeen<60000);
 
-let students = {}, byCard = {}, unknownCard = null;
+let students={},byCard={},stations={},queues={},selKey=localStorage.getItem(LS)||null,unknownCard=null,sent=0;
+const queueCount=k=>Object.keys(queues[k]||{}).length;
 
-rootRef.child('students').on('value', s => {
-  students = s.val() || {};
-  byCard = {};
-  Object.entries(students).forEach(([k,v]) => { if(v.cardId) byCard[normCard(v.cardId)] = k; });
-  $('topChip').textContent = 'Students 學生：' + Object.keys(students).length;
-  renderDB(); doSearch();
+/* ===== Station dock ===== */
+rootRef.child('stations').on('value',s=>{
+  stations=s.val()||{};
+  if(selKey&&!stations[selKey]){selKey=null;localStorage.removeItem(LS);}
+  renderDock();renderStations();
 });
+rootRef.child('queues').on('value',s=>{queues=s.val()||{};renderDock();renderStations();});
+setInterval(()=>{renderDock();renderStations();},15000);
 
-/* ===== 排隊列印（2 秒防 Spam） ===== */
-async function queueLabel(s, copies){
-  await new Promise(r=>setTimeout(r,2000));
-  await rootRef.child('printQueue').push({
-    type:'label', cls:s.cls||'', classNo:s.classNo||'', nameEn:s.nameEn||'', nameZh:s.nameZh||'',
-    copies: copies||1, createdAt:Date.now(), done:false
-  });
+function renderDock(){
+  const entries=Object.entries(stations);
+  const sel=$('stationSel');
+  sel.innerHTML='<option value="">— 選擇列印站 Select station —</option>'+
+    entries.map(([k,v])=>`<option value="${k}">${esc(v.name)} (${esc(v.token)})</option>`).join('');
+  sel.value=selKey||'';
+  $('stationChips').innerHTML=entries.map(([k,v])=>{
+    const on=isOnline(v),q=queueCount(k);
+    return `<button class="st-chip ${k===selKey?'active':''} ${on?'on':'off'}" data-k="${k}">
+      <span class="dot"></span><span>${esc(v.name)}</span><span class="tk">${esc(v.token)}</span><span class="q">${q}</span></button>`;
+  }).join('')||'<span style="color:rgba(255,255,255,.7);font-size:13px">尚未建立站點，請在下方「Stations 站點管理」新增。</span>';
+  const st=stations[selKey];
+  const pill=$('onlinePill');
+  if(!st){pill.textContent='未選擇 Not selected';pill.className='pill off';}
+  else if(isOnline(st)){pill.textContent='🟢 在線 Online';pill.className='pill';}
+  else{pill.textContent='🔴 離線 Offline';pill.className='pill off';}
+  $('queueInfo').textContent='queue '+(selKey?queueCount(selKey):0);
+}
+$('stationSel').onchange=function(){selectStation(this.value||null);};
+$('stationChips').onclick=e=>{const b=e.target.closest('.st-chip');if(b)selectStation(b.dataset.k);};
+function selectStation(k){
+  selKey=k&&stations[k]?k:null;
+  if(selKey){localStorage.setItem(LS,selKey);toast('✅ 已選擇站點：'+stations[selKey].name);}
+  else localStorage.removeItem(LS);
+  renderDock();
 }
 
-/* ===== 全局刷卡監聽 HID ===== */
-let buf='', last=0;
-document.addEventListener('keydown', e => {
-  const a = document.activeElement;
-  if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return;
-  const now = Date.now();
-  if (now - last > 120) buf = '';
-  last = now;
-  if (e.key === 'Enter' || e.key === 'Tab'){
-    if (buf.length >= 4){ e.preventDefault(); handleScan(buf); }
-    buf = '';
-  } else if (e.key.length === 1){ buf += e.key; }
-});
+/* ===== Station management ===== */
+function renderStations(){
+  $('stBody').innerHTML=Object.entries(stations).map(([k,v])=>{
+    const c=v.settings||DEF,q=queueCount(k);
+    return `<tr><td><b>${esc(v.name)}</b></td><td>${esc(v.token)}</td>
+      <td>${c.w||60}×${c.h||60}mm</td>
+      <td>${isOnline(v)?'🟢 Online':'🔴 Offline'}<br><span class="muted">queue ${q}</span></td>
+      <td><button class="btn-gray mini" onclick="editStation('${k}')">Edit</button>
+          <button class="btn-red mini" onclick="delStation('${k}')">Del</button></td></tr>`;
+  }).join('')||'<tr><td colspan="5" style="text-align:center">No stations 尚未建立站點</td></tr>';
+}
+$('btnAddStation').onclick=async()=>{
+  const n=$('nsName').value.trim(),t=$('nsToken').value.trim().toUpperCase();
+  if(!n||!t)return toast('請輸入名稱及 Token');
+  if(Object.values(stations).some(v=>String(v.token||'').toUpperCase()===t))return toast('⚠️ Token 已存在');
+  const ref=await rootRef.child('stations').push({name:n,token:t,settings:DEF,createdAt:Date.now(),lastSeen:0});
+  $('nsName').value='';$('nsToken').value='';
+  selectStation(ref.key);
+  toast('✅ 站點已新增並選定');
+};
+window.editStation=async k=>{
+  const v=stations[k];if(!v)return;
+  const n=prompt('Station name 站點名稱：',v.name);if(n===null)return;
+  const t=prompt('Station token：',v.token);if(t===null)return;
+  const nt=t.trim().toUpperCase();
+  if(nt!==String(v.token).toUpperCase()&&Object.values(stations).some(x=>String(x.token||'').toUpperCase()===nt))return toast('⚠️ Token 已存在');
+  await rootRef.child('stations/'+k).update({name:n.trim()||v.name,token:nt||v.token});
+  toast('✅ 已更新');
+};
+window.delStation=async k=>{
+  if(!confirm('Delete this station and its queue?\n刪除此站點及其隊列？'))return;
+  await rootRef.child('stations/'+k).remove();
+  await rootRef.child('queues/'+k).remove();
+  if(selKey===k){selKey=null;localStorage.removeItem(LS);}
+  toast('已刪除');
+};
 
+/* ===== Print to selected station ===== */
+async function queueLabel(s,copies=1){
+  if(!selKey||!stations[selKey]){toast('⚠️ 請先選擇列印站 Select a station first');return false;}
+  await new Promise(r=>setTimeout(r,2000));
+  await rootRef.child('queues/'+selKey).push({
+    type:'label',cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',
+    copies,createdAt:Date.now(),done:false
+  });
+  sent++;$('sentCount').textContent='Sent 已送：'+sent;
+  return true;
+}
+
+/* ===== Card scan (HID) ===== */
+let buf='',last=0;
+document.addEventListener('keydown',e=>{
+  const a=document.activeElement;
+  if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;
+  const now=Date.now();if(now-last>120)buf='';last=now;
+  if(e.key==='Enter'||e.key==='Tab'){if(buf.length>=4){e.preventDefault();handleScan(buf);}buf='';}
+  else if(e.key.length===1)buf+=e.key;
+});
 async function handleScan(code){
-  const box = $('scanBox');
-  box.style.background='#fef08a'; box.style.borderColor='#ca8a04'; box.style.color='#854d0e';
-  box.innerHTML = `⏳ 卡號 Card: ${esc(code)}<br>匹配中 Matching…`;
-  const k = byCard[normCard(code)];
-  if (k){
-    unknownCard = null;
-    const s = students[k];
-    box.style.background='#bbf7d0'; box.style.borderColor='#16a34a'; box.style.color='#14532d';
-    box.innerHTML = `✅ ${esc(s.nameEn)}<br>${esc(s.cls||'')} ${esc(s.classNo||'')} ・ ${esc(s.nameZh||'')} — 已送入列印`;
-    await queueLabel(s,1);
-    toast('✅ 已排隊 Queued: ' + s.nameEn);
-  } else {
-    unknownCard = code;
-    box.style.background='#fecaca'; box.style.borderColor='#dc2626'; box.style.color='#7f1d1d';
-    box.innerHTML = `❌ 未登記卡號 Unregistered: ${esc(code)}<br>可在下方搜尋學生後按「綁定此卡」`;
-    toast('❌ 查無此卡號');
+  $('lastScan').textContent='Last scan: '+code;
+  const box=$('scanBox');
+  if(!selKey){box.style.background='#fecaca';box.style.color='#7f1d1d';
+    box.innerHTML='⚠️ 請先選擇列印站 Select a station first';resetScanBox();return;}
+  box.style.background='#fef08a';box.style.color='#854d0e';
+  box.innerHTML=`⏳ 卡號 ${esc(code)}<br>匹配中…`;
+  const k=byCard[normCard(code)];
+  if(k){
+    unknownCard=null;$('bindHelp').style.display='none';
+    const s=students[k];
+    const ok=await queueLabel(s,1);
+    if(ok){box.style.background='#bbf7d0';box.style.color='#14532d';
+      box.innerHTML=`✅ ${esc(s.nameEn)}<br>${esc(s.cls||'')} ${esc(s.classNo||'')} ・ ${esc(s.nameZh||'')}<br>➜ ${esc(stations[selKey].name)}`;
+      toast('✅ 已送至 '+stations[selKey].name);}
+  }else{
+    unknownCard=code;
+    box.style.background='#fecaca';box.style.color='#7f1d1d';
+    box.innerHTML=`❌ 未登記卡號 Unregistered: ${esc(code)}<br>搜尋學生後按「綁定此卡」`;
+    $('bindHelp').style.display='block';
+    $('bindHelp').innerHTML=`卡號 <b>${esc(code)}</b> 未登記。請在上方搜尋學生，然後按「綁定此卡 Bind」完成登記。`;
     doSearch();
   }
-  setTimeout(()=>{ box.style.background='#e0f2fe'; box.style.borderColor='#0284c7'; box.style.color='#0369a1';
-    box.innerHTML='✅ 準備就緒，請直接刷卡<br>Ready — just swipe the card'; }, 4000);
+  resetScanBox();
 }
+function resetScanBox(){setTimeout(()=>{const b=$('scanBox');b.style.background='#e0f2fe';b.style.color='#0369a1';
+  b.innerHTML='✅ 準備就緒，請直接刷卡<br>Ready — just swipe the card';},4000);}
 
-/* ===== 搜尋 ===== */
-$('q').addEventListener('input', doSearch);
-function doSearch(){
-  const q = $('q').value.trim().toLowerCase();
-  if(!q){ $('res').innerHTML=''; return; }
-  const hits = Object.entries(students).filter(([k,s]) =>
-    [s.nameEn,s.nameZh,s.cls,s.classNo,s.cardId].some(v => String(v||'').toLowerCase().includes(q))
-  ).slice(0,40);
-  $('res').innerHTML = hits.map(([k,s])=>`<div class="search-item">
-    <div><b>${esc(s.nameEn)}</b> ／ ${esc(s.nameZh)}<br>
-      <span class="muted">${esc(s.cls||'')} ${esc(s.classNo||'')} ・ Card ${esc(s.cardId||'—')}</span></div>
-    <div class="row" style="margin:0">
-      <button class="btn-amber mini" onclick="printOne('${k}')">Print 列印</button>
-      ${unknownCard?`<button class="btn-gray mini" onclick="bindCard('${k}')">綁定此卡 Bind</button>`:''}
-    </div></div>`).join('') || '<p class="muted">No match 無匹配結果</p>';
-}
-window.printOne = async k => {
-  const s = students[k]; if(!s) return;
-  if(!confirm(`Print label for ${s.nameEn}?\n列印 ${s.nameEn} 的家長標籤？`)) return;
-  await queueLabel(s,1); toast('✅ 已排隊 Queued');
-};
-window.bindCard = async k => {
-  if(!unknownCard) return;
-  if(!confirm(`Bind card ${unknownCard} to ${students[k].nameEn}?\n將卡號 ${unknownCard} 綁定至 ${students[k].nameEn}？`)) return;
-  await rootRef.child('students/'+k).update({ cardId: unknownCard });
-  toast('✅ 已綁定 Bound'); unknownCard=null; doSearch();
-};
-window.delOne = async k => {
-  if(!confirm('Delete this student?\n刪除此學生？')) return;
-  await rootRef.child('students/'+k).remove(); toast('Deleted 已刪除');
-};
-
-/* ===== 資料庫列表 ===== */
+/* ===== Students ===== */
+rootRef.child('students').on('value',s=>{
+  students=s.val()||{};byCard={};
+  Object.entries(students).forEach(([k,v])=>{if(v.cardId)byCard[normCard(v.cardId)]=k;});
+  $('topChip').textContent='Students 學生：'+Object.keys(students).length;
+  renderDB();doSearch();
+});
 function renderDB(){
-  const rows = Object.entries(students).sort((a,b)=>String(a[1].nameEn||'').localeCompare(String(b[1].nameEn||''))).slice(0,500);
-  $('dbBody').innerHTML = rows.map(([k,s])=>`<tr>
+  const rows=Object.entries(students).sort((a,b)=>String(a[1].nameEn||'').localeCompare(String(b[1].nameEn||''))).slice(0,500);
+  $('dbBody').innerHTML=rows.map(([k,s])=>`<tr>
     <td>${esc(s.cardId||'—')}</td><td>${esc(s.cls)}</td><td>${esc(s.classNo)}</td><td>${esc(s.nameEn)}</td><td>${esc(s.nameZh)}</td>
     <td><button class="btn-amber mini" onclick="printOne('${k}')">Print</button>
         <button class="btn-red mini" onclick="delOne('${k}')">Del</button></td></tr>`).join('')
-    || '<tr><td colspan="6" style="text-align:center">No data 暫無資料</td></tr>';
+    ||'<tr><td colspan="6" style="text-align:center">No data 暫無資料</td></tr>';
 }
-
-/* ===== 單筆新增／更新 ===== */
-$('btnAdd').onclick = async () => {
-  const rec = { cardId:$('aCard').value.trim(), cls:$('aCls').value.trim().toUpperCase(), classNo:$('aNo').value.trim(),
-                nameEn:$('aEn').value.trim(), nameZh:$('aZh').value.trim() };
-  if(!rec.nameEn && !rec.nameZh) return toast('請輸入姓名 Please enter name');
-  const k = rec.cardId ? byCard[normCard(rec.cardId)] : null;
-  if(k) await rootRef.child('students/'+k).update(rec);
-  else await rootRef.child('students').push(rec);
-  ['aCard','aCls','aNo','aEn','aZh'].forEach(id=>$(id).value='');
-  toast('✅ Saved 已儲存');
+$('q').addEventListener('input',doSearch);
+function doSearch(){
+  const q=$('q').value.trim().toLowerCase();
+  if(!q){$('res').innerHTML='';return;}
+  const hits=Object.entries(students).filter(([k,s])=>
+    [s.nameEn,s.nameZh,s.cls,s.classNo,s.cardId].some(v=>String(v||'').toLowerCase().includes(q))).slice(0,40);
+  $('res').innerHTML=hits.map(([k,s])=>`<div class="search-item">
+    <div><b>${esc(s.nameEn)}</b> ／ ${esc(s.nameZh)}<br><span class="muted">${esc(s.cls||'')} ${esc(s.classNo||'')} ・ Card ${esc(s.cardId||'—')}</span></div>
+    <div class="row" style="margin:0">
+      <button class="btn-amber mini" onclick="printOne('${k}')">Print 列印</button>
+      ${unknownCard?`<button class="btn-gray mini" onclick="bindCard('${k}')">綁定此卡 Bind</button>`:''}
+    </div></div>`).join('')||'<p class="muted">No match 無匹配結果</p>';
+}
+window.printOne=async k=>{
+  const s=students[k];if(!s)return;
+  if(!selKey)return toast('⚠️ 請先選擇列印站');
+  if(!confirm(`Print ${s.nameEn} ➜ ${stations[selKey].name}?`))return;
+  if(await queueLabel(s,1))toast('✅ 已送至 '+stations[selKey].name);
+};
+window.bindCard=async k=>{
+  if(!unknownCard)return;
+  if(!confirm(`Bind card ${unknownCard} to ${students[k].nameEn}?`))return;
+  await rootRef.child('students/'+k).update({cardId:unknownCard});
+  toast('✅ 已綁定');unknownCard=null;$('bindHelp').style.display='none';doSearch();
+};
+window.delOne=async k=>{
+  if(!confirm('Delete this student?'))return;
+  await rootRef.child('students/'+k).remove();toast('已刪除');
+};
+$('btnAdd').onclick=async()=>{
+  const rec={cardId:$('aCard').value.trim(),cls:$('aCls').value.trim().toUpperCase(),classNo:$('aNo').value.trim(),
+             nameEn:$('aEn').value.trim(),nameZh:$('aZh').value.trim()};
+  if(!rec.nameEn&&!rec.nameZh)return toast('請輸入姓名');
+  const k=rec.cardId?byCard[normCard(rec.cardId)]:null;
+  if(k)await rootRef.child('students/'+k).update(rec);else await rootRef.child('students').push(rec);
+  ['aCard','aCls','aNo','aEn','aZh'].forEach(id=>$(id).value='');toast('✅ 已儲存');
 };
 
 /* ===== Excel ===== */
-const norm = s => String(s).toLowerCase().replace(/[^a-z]/g,'');
-$('btnTpl').onclick = () => {
-  const ws = XLSX.utils.aoa_to_sheet([
-    ['Card ID','Class','Class No','English Name','Chinese Name'],
-    ['0001234567','3A','15','CHAN TAI MAN','陳大文']
-  ]);
-  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Students');
-  XLSX.writeFile(wb,'parent_label_template.xlsx');
+const norm=s=>String(s).toLowerCase().replace(/[^a-z]/g,'');
+$('btnTpl').onclick=()=>{
+  const ws=XLSX.utils.aoa_to_sheet([['Card ID','Class','Class No','English Name','Chinese Name'],['0001234567','3A','15','CHAN TAI MAN','陳大文']]);
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Students');XLSX.writeFile(wb,'parent_label_template.xlsx');
 };
-$('fExcel').addEventListener('change', function(){
-  const f=this.files[0]; if(!f) return;
+$('fExcel').addEventListener('change',function(){
+  const f=this.files[0];if(!f)return;
   const rd=new FileReader();
-  rd.onload = async e => {
+  rd.onload=async e=>{
     try{
       const wb=XLSX.read(e.target.result,{type:'array'});
       const raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
-      const list=raw.map(r=>{ const o={}; Object.keys(r).forEach(k=>o[norm(k)]=r[k]);
-        return { cardId:String(o.cardid||o.card||'').trim(), cls:String(o.class||o.form||'').trim().toUpperCase(),
-                 classNo:String(o.classno||o.no||'').trim(), nameEn:String(o.englishname||o.nameen||'').trim(),
-                 nameZh:String(o.chinesename||o.namezh||'').trim() };
+      const list=raw.map(r=>{const o={};Object.keys(r).forEach(k=>o[norm(k)]=r[k]);
+        return {cardId:String(o.cardid||o.card||'').trim(),cls:String(o.class||o.form||'').trim().toUpperCase(),
+                classNo:String(o.classno||o.no||'').trim(),nameEn:String(o.englishname||o.nameen||'').trim(),
+                nameZh:String(o.chinesename||o.namezh||'').trim()};
       }).filter(x=>x.nameEn||x.nameZh);
-      if(!list.length){ $('impMsg').textContent='⚠️ 沒有有效資料 No valid rows'; return; }
-      let add=0, upd=0;
+      if(!list.length){$('impMsg').textContent='⚠️ 沒有有效資料';return;}
+      let add=0,upd=0;
       for(const it of list){
-        const k = it.cardId ? byCard[normCard(it.cardId)] : null;
-        if(k){ await rootRef.child('students/'+k).update(it); upd++; }
-        else { const ref = await rootRef.child('students').push(it); if(it.cardId) byCard[normCard(it.cardId)]=ref.key; add++; }
+        const k=it.cardId?byCard[normCard(it.cardId)]:null;
+        if(k){await rootRef.child('students/'+k).update(it);upd++;}
+        else{const ref=await rootRef.child('students').push(it);if(it.cardId)byCard[normCard(it.cardId)]=ref.key;add++;}
       }
-      $('impMsg').textContent=`✅ 新增 ${add} 筆，更新 ${upd} 筆。 Added ${add}, updated ${upd}.`;
-      toast('✅ 匯入完成 Imported');
-    }catch(err){ $('impMsg').textContent='⚠️ '+err.message; }
+      $('impMsg').textContent=`✅ 新增 ${add} 筆，更新 ${upd} 筆。`;
+    }catch(err){$('impMsg').textContent='⚠️ '+err.message;}
   };
-  rd.readAsArrayBuffer(f); this.value='';
+  rd.readAsArrayBuffer(f);this.value='';
 });
 </script>
 </body></html>
