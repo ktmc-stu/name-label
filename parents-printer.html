@@ -1,0 +1,233 @@
+<!doctype html><html lang="zh-HK"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Parent Printer 標籤列印端</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.dot{width:14px;height:14px;border-radius:50%;background:#dc2626;display:inline-block;flex:none}
+.dot.on{background:#16a34a;box-shadow:0 0 8px #16a34a}
+.log{background:#0b1220;color:#4ade80;font-family:ui-monospace,monospace;font-size:14px;border-radius:12px;padding:12px;height:240px;overflow:auto}
+.log div{padding:2px 0;border-bottom:1px solid #1e293b}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.g label{font-weight:700;font-size:14px;display:block;margin-bottom:4px}
+.g input{width:100%;box-sizing:border-box}
+.scan-box{background:#e0f2fe;border:2px dashed #0284c7;border-radius:16px;padding:18px;text-align:center;font-size:17px;font-weight:800;color:#0369a1;line-height:1.5}
+.search-item{background:#fff;border:1px solid #d2d2d7;border-radius:12px;padding:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+.mini{padding:6px 12px!important;font-size:13px!important;min-width:0!important}
+.preview{border:1px dashed #94a3b8;border-radius:8px;padding:10px;text-align:center;background:#fff}
+.preview .p-en{font-weight:700}
+.preview .p-zh{font-weight:800;margin-top:6px}
+</style>
+<style id="labelCss"></style>
+</head><body>
+<div class="topbar"><span>🏷️ Parent Printer 標籤列印端</span><span class="chip" id="countChip">Queue 隊列：0</span></div>
+<div class="admin-wrap">
+
+  <div class="card">
+    <h3>Status 狀態</h3>
+    <div class="row" style="align-items:center"><span class="dot" id="dot"></span><b id="statusText" style="font-size:18px">等待連線 Connecting…</b></div>
+    <div class="row" style="margin-top:12px">
+      <button id="btnTest" class="btn-amber">Test Print 測試列印</button>
+      <button id="btnClear" class="btn-gray">Clear Queue 清空隊列</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Label Settings 標籤設定</h3>
+    <div class="g">
+      <div><label>Width 寬 (mm)</label><input id="sW" type="number" min="20" max="200" value="80"></div>
+      <div><label>Height 高 (mm)</label><input id="sH" type="number" min="15" max="200" value="50"></div>
+      <div><label>EN 字級 (px)</label><input id="sEn" type="number" min="8" max="60" value="18"></div>
+      <div><label>ZH 字級 (px)</label><input id="sZh" type="number" min="8" max="80" value="26"></div>
+    </div>
+    <div class="row"><button id="btnSaveCfg">Save Settings 儲存設定</button></div>
+    <p class="muted" style="margin-top:8px">預覽 Preview：</p>
+    <div class="preview" id="prev"><div class="p-en">Parent of 3A 15 CHAN TAI MAN</div><div class="p-zh">陳大文家長</div></div>
+  </div>
+
+  <div class="card">
+    <h3>Card Scan 刷卡（本機亦可用）</h3>
+    <div class="scan-box" id="scanBox">✅ 準備就緒，請直接刷卡 Ready to scan</div>
+  </div>
+
+  <div class="card">
+    <h3>Manual Search 手動搜尋列印</h3>
+    <input type="text" id="q" placeholder="輸入 姓名 / 班別 / 班號 / 卡號 …">
+    <div id="res"></div>
+  </div>
+
+  <div class="card"><h3>Print Log 列印記錄</h3><div class="log" id="log"></div></div>
+</div>
+
+<div id="printArea"></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDMBiSM4oGSDE3khRISIxtxDCJJTLaxm0",
+  authDomain: "ktmc-queue-system.firebaseapp.com",
+  databaseURL: "https://ktmc-queue-system-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "ktmc-queue-system",
+  storageBucket: "ktmc-queue-system.firebasestorage.app",
+  messagingSenderId: "1098822703041",
+  appId: "1:1098822703041:web:c010a95bf5c71c478a0140"
+};
+firebase.initializeApp(firebaseConfig);
+const rootRef = firebase.database().ref('parents');
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const toast = m => { const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); };
+const normCard = v => String(v==null?'':v).trim().replace(/^0+/,'').toUpperCase();
+function log(m){ const d=document.createElement('div'); d.textContent=`[${new Date().toLocaleTimeString()}] ${m}`; $('log').prepend(d); }
+
+let CFG = { w:80, h:50, enSize:18, zhSize:26 };
+let students={}, byCard={};
+const jobs=[], seen={}; let printing=false;
+
+/* ===== 動態列印樣式 ===== */
+function applyCss(){
+  $('labelCss').textContent = `
+  #printArea{display:none}
+  @media print{
+    @page{ size:${CFG.w}mm ${CFG.h}mm !important; margin:0 !important; }
+    body *{visibility:hidden}
+    #printArea,#printArea *{visibility:visible}
+    #printArea{display:block!important;position:absolute!important;left:0!important;top:0!important;
+      width:${CFG.w}mm!important;height:${CFG.h}mm!important;padding:3mm!important;margin:0!important;
+      box-sizing:border-box;background:#fff;color:#000;text-align:center;
+      font-family:'Microsoft JhengHei','微軟正黑體',sans-serif;
+      page-break-after:always!important;break-after:page!important;}
+    #printArea .label-wrap{display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;height:100%;gap:2mm}
+    #printArea .label-en{font-size:${CFG.enSize}px!important;font-weight:700;line-height:1.25;word-break:break-word;overflow-wrap:anywhere}
+    #printArea .label-zh{font-size:${CFG.zhSize}px!important;font-weight:800;line-height:1.25;word-break:break-word;overflow-wrap:anywhere}
+  }`;
+  $('prev').querySelector('.p-en').style.fontSize = CFG.enSize+'px';
+  $('prev').querySelector('.p-zh').style.fontSize = CFG.zhSize+'px';
+}
+rootRef.child('settings').on('value', s => {
+  const v = s.val()||{};
+  CFG = { w:+v.w||80, h:+v.h||50, enSize:+v.enSize||18, zhSize:+v.zhSize||26 };
+  $('sW').value=CFG.w; $('sH').value=CFG.h; $('sEn').value=CFG.enSize; $('sZh').value=CFG.zhSize;
+  applyCss();
+});
+$('btnSaveCfg').onclick = async () => {
+  await rootRef.child('settings').set({ w:+$('sW').value||80, h:+$('sH').value||50, enSize:+$('sEn').value||18, zhSize:+$('sZh').value||26 });
+  toast('✅ 設定已儲存 Saved');
+};
+applyCss();
+
+/* ===== 學生資料 ===== */
+rootRef.child('students').on('value', s => {
+  students = s.val()||{}; byCard={};
+  Object.entries(students).forEach(([k,v])=>{ if(v.cardId) byCard[normCard(v.cardId)]=k; });
+  doSearch();
+});
+
+/* ===== 連線狀態 ===== */
+firebase.database().ref('.info/connected').on('value', s => {
+  if(s.val()===true){
+    $('dot').classList.add('on'); $('statusText').textContent='✅ 已連線・監控標籤隊列中 Online & watching';
+    rootRef.child('printQueue').on('value', snap => {
+      const all = snap.val()||{};
+      Object.keys(all).forEach(k => { const j=all[k]; if(j && !j.done && !seen[k]) enqueue(k,j); });
+    });
+  } else {
+    $('dot').classList.remove('on'); $('statusText').textContent='⏳ 等待連線 Connecting…';
+  }
+});
+
+function updateCount(){ $('countChip').textContent = 'Queue 隊列：' + jobs.length; }
+function enqueue(k,j){
+  if(seen[k]) return; seen[k]=1;
+  jobs.push(Object.assign({key:k},j)); updateCount();
+  log('📥 收到任務 Job: ' + (j.nameEn||'?'));
+  processJobs();
+}
+
+/* ===== 標籤內容 ===== */
+function labelHTML(j){
+  const line1 = 'Parent of ' + [j.cls, j.classNo, j.nameEn].filter(x=>x&&String(x).trim()).join(' ');
+  const line2 = (j.nameZh||'') + '家長';
+  return `<div class="label-wrap"><div class="label-en">${esc(line1)}</div><div class="label-zh">${esc(line2)}</div></div>`;
+}
+
+/* ===== 流水線：印前 2 秒 ➜ 印 ➜ 印後 2 秒 ===== */
+async function processJobs(){
+  if(printing) return; printing=true;
+  while(jobs.length){
+    const j = jobs.shift(); updateCount();
+    await rootRef.child('printQueue/'+j.key).remove().catch(()=>{});
+    log('⏳ 準備列印 Preparing (2s)… ' + (j.nameEn||''));
+    $('printArea').innerHTML = labelHTML(j);
+    await new Promise(r=>setTimeout(r,2000));
+    const copies = Math.max(1, j.copies||1);
+    for(let i=0;i<copies;i++){
+      window.print();
+      log(`✅ ${j.nameEn||'LABEL'} 第 ${i+1}/${copies} 張已發送 Sent`);
+      if(i<copies-1) await new Promise(r=>setTimeout(r,2000));
+    }
+    await new Promise(r=>setTimeout(r,2000));
+  }
+  printing=false;
+}
+
+/* ===== 本機刷卡 ===== */
+let buf='', last=0;
+document.addEventListener('keydown', e => {
+  const a=document.activeElement;
+  if(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return;
+  const now=Date.now(); if(now-last>120) buf=''; last=now;
+  if(e.key==='Enter'||e.key==='Tab'){ if(buf.length>=4){ e.preventDefault(); scan(buf); } buf=''; }
+  else if(e.key.length===1){ buf+=e.key; }
+});
+async function scan(code){
+  const box=$('scanBox'); const k=byCard[normCard(code)];
+  if(k){
+    const s=students[k];
+    box.style.background='#bbf7d0'; box.style.color='#14532d';
+    box.innerHTML=`✅ ${esc(s.nameEn)} — 已送入列印`;
+    await rootRef.child('printQueue').push({type:'label',cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',copies:1,createdAt:Date.now(),done:false});
+  } else {
+    box.style.background='#fecaca'; box.style.color='#7f1d1d';
+    box.innerHTML=`❌ 未登記卡號 Unregistered: ${esc(code)}`;
+  }
+  setTimeout(()=>{ box.style.background='#e0f2fe'; box.style.color='#0369a1'; box.innerHTML='✅ 準備就緒，請直接刷卡 Ready to scan'; },3500);
+}
+
+/* ===== 手動搜尋 ===== */
+$('q').addEventListener('input', doSearch);
+function doSearch(){
+  const q=$('q').value.trim().toLowerCase();
+  if(!q){ $('res').innerHTML=''; return; }
+  const hits=Object.entries(students).filter(([k,s])=>
+    [s.nameEn,s.nameZh,s.cls,s.classNo,s.cardId].some(v=>String(v||'').toLowerCase().includes(q))).slice(0,30);
+  $('res').innerHTML = hits.map(([k,s])=>`<div class="search-item">
+    <div><b>${esc(s.nameEn)}</b> ／ ${esc(s.nameZh)} <span class="muted">${esc(s.cls||'')} ${esc(s.classNo||'')}</span></div>
+    <button class="btn-amber mini" onclick="pOne('${k}')">Print 列印</button></div>`).join('')
+    || '<p class="muted">No match 無匹配結果</p>';
+}
+window.pOne = async k => {
+  const s=students[k]; if(!s) return;
+  if(!confirm(`Print label for ${s.nameEn}?`)) return;
+  await rootRef.child('printQueue').push({type:'label',cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',copies:1,createdAt:Date.now(),done:false});
+  toast('✅ 已排隊 Queued');
+};
+
+/* ===== 測試 / 清空 ===== */
+$('btnTest').onclick = async () => {
+  if(!confirm('Test print a sample label?\n測試列印樣本標籤？')) return;
+  $('printArea').innerHTML = labelHTML({cls:'3A',classNo:'15',nameEn:'CHAN TAI MAN',nameZh:'陳大文'});
+  await new Promise(r=>setTimeout(r,2000));
+  window.print(); log('✅ 測試列印已發送 Test sent');
+};
+$('btnClear').onclick = async () => {
+  if(!confirm('Clear all label print queue?\n清空所有標籤列印隊列？')) return;
+  await rootRef.child('printQueue').remove();
+  jobs.length=0; for(const k in seen) delete seen[k];
+  updateCount(); log('隊列已清空 Queue cleared');
+};
+log('⚙️ 系統就緒 System ready');
+</script>
+</body></html>
