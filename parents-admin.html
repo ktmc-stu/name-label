@@ -1,0 +1,228 @@
+<!doctype html><html lang="zh-HK"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Parent Label 家長標籤遙控端</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.wrap{max-width:1080px;margin:18px auto;padding:0 16px;display:grid;gap:16px}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.g label{font-weight:700;font-size:14px;display:block;margin-bottom:4px}
+.g input{width:100%;box-sizing:border-box}
+.scan-box{background:#e0f2fe;border:2px dashed #0284c7;border-radius:16px;padding:22px;text-align:center;font-size:18px;font-weight:800;color:#0369a1;line-height:1.5}
+.search-res{margin-top:10px;display:grid;gap:8px}
+.search-item{background:#fff;border:1px solid #d2d2d7;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.search-item b{font-size:16px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border:1px solid #e8e8ed;padding:8px;text-align:left}
+.btn-red{background:#ff3b30!important;color:#fff!important}
+.mini{padding:6px 12px!important;font-size:13px!important;min-width:0!important}
+</style>
+</head><body>
+<div class="topbar"><span>🏷️ Parent Label 家長標籤</span><span class="chip" id="topChip">—</span></div>
+<div class="wrap">
+
+  <div class="card">
+    <h3>Card Scan 刷卡區</h3>
+    <div class="scan-box" id="scanBox">✅ 準備就緒，請直接刷卡<br>Ready — just swipe the card</div>
+    <p class="muted" style="margin-top:8px">刷卡器為鍵盤模式，無需點擊任何欄位，系統自動捕捉卡號並匹配列印。</p>
+  </div>
+
+  <div class="card">
+    <h3>Manual Search 手動搜尋</h3>
+    <input type="text" id="q" placeholder="輸入 姓名 / 班別 / 班號 / 卡號 …">
+    <div class="search-res" id="res"></div>
+  </div>
+
+  <div class="card">
+    <h3>Database 學生資料庫</h3>
+    <p class="muted">Excel 表頭：Card ID, Class, Class No, English Name, Chinese Name（相同卡號會自動覆蓋更新）</p>
+    <div class="row" style="margin-top:6px">
+      <input type="file" id="fExcel" accept=".xlsx,.xls,.csv" style="flex:1">
+      <button class="btn-gray" id="btnTpl">Download Template 下載模板</button>
+    </div>
+    <p class="muted" id="impMsg" style="margin-top:8px"></p>
+    <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
+    <div class="g">
+      <div><label>Card ID 卡號</label><input id="aCard"></div>
+      <div><label>Class 班別</label><input id="aCls" placeholder="3A"></div>
+      <div><label>Class No 班號</label><input id="aNo" placeholder="15"></div>
+      <div><label>English Name</label><input id="aEn" placeholder="CHAN TAI MAN"></div>
+      <div><label>Chinese Name</label><input id="aZh" placeholder="陳大文"></div>
+    </div>
+    <div class="row"><button id="btnAdd">Add / Update 新增或更新</button></div>
+    <div style="overflow:auto;margin-top:14px;max-height:420px"><table>
+      <thead><tr><th>Card ID</th><th>Class</th><th>No</th><th>English</th><th>Chinese</th><th>Actions</th></tr></thead>
+      <tbody id="dbBody"></tbody>
+    </table></div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDMBiSM4oGSDE3khRISIxtxDCJJTLaxm0",
+  authDomain: "ktmc-queue-system.firebaseapp.com",
+  databaseURL: "https://ktmc-queue-system-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "ktmc-queue-system",
+  storageBucket: "ktmc-queue-system.firebasestorage.app",
+  messagingSenderId: "1098822703041",
+  appId: "1:1098822703041:web:c010a95bf5c71c478a0140"
+};
+firebase.initializeApp(firebaseConfig);
+const rootRef = firebase.database().ref('parents');
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const toast = m => { const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400); };
+const normCard = v => String(v==null?'':v).trim().replace(/^0+/,'').toUpperCase();
+
+let students = {}, byCard = {}, unknownCard = null;
+
+rootRef.child('students').on('value', s => {
+  students = s.val() || {};
+  byCard = {};
+  Object.entries(students).forEach(([k,v]) => { if(v.cardId) byCard[normCard(v.cardId)] = k; });
+  $('topChip').textContent = 'Students 學生：' + Object.keys(students).length;
+  renderDB(); doSearch();
+});
+
+/* ===== 排隊列印（2 秒防 Spam） ===== */
+async function queueLabel(s, copies){
+  await new Promise(r=>setTimeout(r,2000));
+  await rootRef.child('printQueue').push({
+    type:'label', cls:s.cls||'', classNo:s.classNo||'', nameEn:s.nameEn||'', nameZh:s.nameZh||'',
+    copies: copies||1, createdAt:Date.now(), done:false
+  });
+}
+
+/* ===== 全局刷卡監聽 HID ===== */
+let buf='', last=0;
+document.addEventListener('keydown', e => {
+  const a = document.activeElement;
+  if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return;
+  const now = Date.now();
+  if (now - last > 120) buf = '';
+  last = now;
+  if (e.key === 'Enter' || e.key === 'Tab'){
+    if (buf.length >= 4){ e.preventDefault(); handleScan(buf); }
+    buf = '';
+  } else if (e.key.length === 1){ buf += e.key; }
+});
+
+async function handleScan(code){
+  const box = $('scanBox');
+  box.style.background='#fef08a'; box.style.borderColor='#ca8a04'; box.style.color='#854d0e';
+  box.innerHTML = `⏳ 卡號 Card: ${esc(code)}<br>匹配中 Matching…`;
+  const k = byCard[normCard(code)];
+  if (k){
+    unknownCard = null;
+    const s = students[k];
+    box.style.background='#bbf7d0'; box.style.borderColor='#16a34a'; box.style.color='#14532d';
+    box.innerHTML = `✅ ${esc(s.nameEn)}<br>${esc(s.cls||'')} ${esc(s.classNo||'')} ・ ${esc(s.nameZh||'')} — 已送入列印`;
+    await queueLabel(s,1);
+    toast('✅ 已排隊 Queued: ' + s.nameEn);
+  } else {
+    unknownCard = code;
+    box.style.background='#fecaca'; box.style.borderColor='#dc2626'; box.style.color='#7f1d1d';
+    box.innerHTML = `❌ 未登記卡號 Unregistered: ${esc(code)}<br>可在下方搜尋學生後按「綁定此卡」`;
+    toast('❌ 查無此卡號');
+    doSearch();
+  }
+  setTimeout(()=>{ box.style.background='#e0f2fe'; box.style.borderColor='#0284c7'; box.style.color='#0369a1';
+    box.innerHTML='✅ 準備就緒，請直接刷卡<br>Ready — just swipe the card'; }, 4000);
+}
+
+/* ===== 搜尋 ===== */
+$('q').addEventListener('input', doSearch);
+function doSearch(){
+  const q = $('q').value.trim().toLowerCase();
+  if(!q){ $('res').innerHTML=''; return; }
+  const hits = Object.entries(students).filter(([k,s]) =>
+    [s.nameEn,s.nameZh,s.cls,s.classNo,s.cardId].some(v => String(v||'').toLowerCase().includes(q))
+  ).slice(0,40);
+  $('res').innerHTML = hits.map(([k,s])=>`<div class="search-item">
+    <div><b>${esc(s.nameEn)}</b> ／ ${esc(s.nameZh)}<br>
+      <span class="muted">${esc(s.cls||'')} ${esc(s.classNo||'')} ・ Card ${esc(s.cardId||'—')}</span></div>
+    <div class="row" style="margin:0">
+      <button class="btn-amber mini" onclick="printOne('${k}')">Print 列印</button>
+      ${unknownCard?`<button class="btn-gray mini" onclick="bindCard('${k}')">綁定此卡 Bind</button>`:''}
+    </div></div>`).join('') || '<p class="muted">No match 無匹配結果</p>';
+}
+window.printOne = async k => {
+  const s = students[k]; if(!s) return;
+  if(!confirm(`Print label for ${s.nameEn}?\n列印 ${s.nameEn} 的家長標籤？`)) return;
+  await queueLabel(s,1); toast('✅ 已排隊 Queued');
+};
+window.bindCard = async k => {
+  if(!unknownCard) return;
+  if(!confirm(`Bind card ${unknownCard} to ${students[k].nameEn}?\n將卡號 ${unknownCard} 綁定至 ${students[k].nameEn}？`)) return;
+  await rootRef.child('students/'+k).update({ cardId: unknownCard });
+  toast('✅ 已綁定 Bound'); unknownCard=null; doSearch();
+};
+window.delOne = async k => {
+  if(!confirm('Delete this student?\n刪除此學生？')) return;
+  await rootRef.child('students/'+k).remove(); toast('Deleted 已刪除');
+};
+
+/* ===== 資料庫列表 ===== */
+function renderDB(){
+  const rows = Object.entries(students).sort((a,b)=>String(a[1].nameEn||'').localeCompare(String(b[1].nameEn||''))).slice(0,500);
+  $('dbBody').innerHTML = rows.map(([k,s])=>`<tr>
+    <td>${esc(s.cardId||'—')}</td><td>${esc(s.cls)}</td><td>${esc(s.classNo)}</td><td>${esc(s.nameEn)}</td><td>${esc(s.nameZh)}</td>
+    <td><button class="btn-amber mini" onclick="printOne('${k}')">Print</button>
+        <button class="btn-red mini" onclick="delOne('${k}')">Del</button></td></tr>`).join('')
+    || '<tr><td colspan="6" style="text-align:center">No data 暫無資料</td></tr>';
+}
+
+/* ===== 單筆新增／更新 ===== */
+$('btnAdd').onclick = async () => {
+  const rec = { cardId:$('aCard').value.trim(), cls:$('aCls').value.trim().toUpperCase(), classNo:$('aNo').value.trim(),
+                nameEn:$('aEn').value.trim(), nameZh:$('aZh').value.trim() };
+  if(!rec.nameEn && !rec.nameZh) return toast('請輸入姓名 Please enter name');
+  const k = rec.cardId ? byCard[normCard(rec.cardId)] : null;
+  if(k) await rootRef.child('students/'+k).update(rec);
+  else await rootRef.child('students').push(rec);
+  ['aCard','aCls','aNo','aEn','aZh'].forEach(id=>$(id).value='');
+  toast('✅ Saved 已儲存');
+};
+
+/* ===== Excel ===== */
+const norm = s => String(s).toLowerCase().replace(/[^a-z]/g,'');
+$('btnTpl').onclick = () => {
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['Card ID','Class','Class No','English Name','Chinese Name'],
+    ['0001234567','3A','15','CHAN TAI MAN','陳大文']
+  ]);
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Students');
+  XLSX.writeFile(wb,'parent_label_template.xlsx');
+};
+$('fExcel').addEventListener('change', function(){
+  const f=this.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload = async e => {
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+      const list=raw.map(r=>{ const o={}; Object.keys(r).forEach(k=>o[norm(k)]=r[k]);
+        return { cardId:String(o.cardid||o.card||'').trim(), cls:String(o.class||o.form||'').trim().toUpperCase(),
+                 classNo:String(o.classno||o.no||'').trim(), nameEn:String(o.englishname||o.nameen||'').trim(),
+                 nameZh:String(o.chinesename||o.namezh||'').trim() };
+      }).filter(x=>x.nameEn||x.nameZh);
+      if(!list.length){ $('impMsg').textContent='⚠️ 沒有有效資料 No valid rows'; return; }
+      let add=0, upd=0;
+      for(const it of list){
+        const k = it.cardId ? byCard[normCard(it.cardId)] : null;
+        if(k){ await rootRef.child('students/'+k).update(it); upd++; }
+        else { const ref = await rootRef.child('students').push(it); if(it.cardId) byCard[normCard(it.cardId)]=ref.key; add++; }
+      }
+      $('impMsg').textContent=`✅ 新增 ${add} 筆，更新 ${upd} 筆。 Added ${add}, updated ${upd}.`;
+      toast('✅ 匯入完成 Imported');
+    }catch(err){ $('impMsg').textContent='⚠️ '+err.message; }
+  };
+  rd.readAsArrayBuffer(f); this.value='';
+});
+</script>
+</body></html>
