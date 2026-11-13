@@ -3,41 +3,8 @@
 <title>Parent Label 家長標籤遙控端</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
-/* ===== Remote-specific ===== */
-.station-dock{
-  position:sticky;top:48px;z-index:9000;
-  background:var(--panel);color:var(--text);padding:12px clamp(14px,4vw,26px);
-  border-bottom:1px solid var(--line);
-}
-.dock-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:1080px;margin:0 auto}
-.dock-label{font-weight:600;font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:8px;color:var(--ink-2)}
-.dock-label svg{color:var(--accent)}
-.dock-row select{
-  min-width:240px;flex:1 1 240px;font-size:15px;font-weight:500;
-  background:var(--surface);color:var(--text);border:1px solid var(--line-2);
-  border-radius:var(--radius-sm);padding:9px 36px 9px 14px;min-height:42px;
-}
-.dock-meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
-.dock-meta #queueInfo{font-family:var(--mono);font-variant-numeric:tabular-nums}
-.dock-hint{max-width:1080px;margin:8px auto 0;font-size:12px;color:var(--faint)}
-.dock-empty{color:var(--faint);font-size:12.5px}
-.chips{display:flex;gap:8px;flex-wrap:wrap;max-width:1080px;margin:10px auto 0}
-.st-chip{
-  display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-2);
-  background:var(--surface);color:var(--ink-2);border-radius:var(--pill);padding:6px 12px;
-  font-size:12.5px;font-weight:500;cursor:pointer;min-width:0;transition:border-color .15s,background .15s,color .15s;
-}
-.st-chip:hover{background:var(--panel);border-color:var(--line-2);transform:none}
-.st-chip.active{background:var(--accent-soft);color:var(--accent-deep);border-color:var(--accent)}
-.st-chip .dot{width:7px;height:7px;border-radius:50%;background:#c2beb6;flex:none}
-.st-chip.on .dot{background:var(--ok)}
-.st-chip .tk{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
-.st-chip.active .tk{color:var(--accent)}
-.st-chip .q{background:var(--surface-3);border-radius:var(--pill);padding:1px 7px;font-size:10.5px;
-  font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
-.st-chip.active .q{background:var(--surface);color:var(--accent-deep)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:820px){.grid2{grid-template-columns:1fr}.dock-row select{min-width:160px}}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
 .statline{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
 .statline .tag{font-size:12px;padding:5px 10px}
 .help{background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:var(--radius-sm);
@@ -49,7 +16,6 @@
   <span class="chip" id="topChip">—</span>
 </div>
 
-<!-- ===== 站點選擇（固定置頂，永遠可見） ===== -->
 <div class="station-dock">
   <div class="dock-row">
     <span class="dock-label"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>送至 Send to</span>
@@ -57,19 +23,19 @@
     <span class="dock-meta"><span class="pill off" id="onlinePill">未選擇</span><span id="queueInfo">queue 0</span></span>
   </div>
   <div class="chips" id="stationChips"></div>
-  <div class="dock-hint">選擇後會記住；之後每次刷卡／手動列印都送到此站，直到你再切換。 Your choice is remembered until changed.</div>
+  <div class="dock-hint">選擇後會記住；刷卡會同時點名（出席）及列印。未選站點時刷卡只點名、不列印。</div>
 </div>
 
 <div class="wrap">
 
   <div class="card">
     <h3>Card Scan 刷卡區</h3>
-    <div class="scan-box" id="scanBox">準備就緒，請直接刷卡<br><span class="en">Ready — just swipe the card</span></div>
+    <div class="scan-box" id="scanBox">準備就緒，請直接刷卡<br><span class="en">Ready — swipe to mark attendance &amp; print</span></div>
     <div class="statline">
       <span class="tag" id="lastScan">Last scan: —</span>
       <span class="tag" id="sentCount">Sent 已送：0</span>
     </div>
-    <p class="muted" style="margin-top:10px">刷卡器為鍵盤模式，無需點擊任何欄位；系統自動捕捉卡號、匹配學生、送到上方選定的列印站。</p>
+    <p class="muted" style="margin-top:10px">刷卡器為鍵盤模式，無需點擊任何欄位；系統自動捕捉卡號、匹配學生、點名「出席」並記錄時間，再送到上方選定的列印站。</p>
   </div>
 
   <div class="card">
@@ -77,6 +43,26 @@
     <input type="text" id="q" placeholder="輸入 姓名 / 班別 / 班號 / 卡號 …">
     <div id="res"></div>
     <div class="help" id="bindHelp" style="display:none;margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <h3>Attendance 考勤點名</h3>
+    <div class="att-controls">
+      <div class="att-field"><label>日期 Date</label><input type="date" id="attDate"></div>
+      <div class="att-field"><label>班別 Class</label><select id="attCls"><option value="">全部 All</option></select></div>
+      <span class="spacer"></span>
+      <button class="btn-gray" id="btnAttExport">Export 匯出 Excel</button>
+      <button class="btn-gray" id="btnAbsAll">未點名 → 缺席</button>
+    </div>
+    <div class="statline" style="margin:0 0 12px">
+      <span class="tag" id="attP">出席 0</span>
+      <span class="tag" id="attA">缺席 0</span>
+      <span class="tag" id="attN">未點名 0</span>
+    </div>
+    <div style="overflow:auto;max-height:480px"><table>
+      <thead><tr><th>Class</th><th>No</th><th>English</th><th>Chinese</th><th>Status 狀態</th><th>Time 時間</th><th>By 來源</th><th>Actions</th></tr></thead>
+      <tbody id="attBody"></tbody>
+    </table></div>
   </div>
 
   <div class="grid2">
@@ -144,15 +130,85 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);};
 const normCard=v=>String(v==null?'':v).trim().replace(/^0+/,'').toUpperCase();
+const dayKey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const fmtT=ts=>ts?new Date(ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'—';
 const DEF={w:60,h:60,topMm:26,sideMm:2,enSize:12,zhSize:30};
 const LS='parentRemoteStation';
 const isOnline=st=>st&&st.lastSeen&&(Date.now()-st.lastSeen<60000);
-/* scan-box state colours (muted palette) */
 const SC={ready:['#f2f4f6','#4a6377'],wait:['#f6f0e2','#8a6a2f'],ok:['#ecf3ee','#3e7a58'],err:['#f7ecea','#a8524e']};
 const setBox=(el,s)=>{el.style.background=SC[s][0];el.style.color=SC[s][1];};
 
 let students={},byCard={},stations={},queues={},selKey=localStorage.getItem(LS)||null,unknownCard=null,sent=0;
 const queueCount=k=>Object.keys(queues[k]||{}).length;
+
+/* ===== Attendance ===== */
+let att={},attDay=dayKey(),attRef=null;
+function attachAtt(day){
+  if(attRef)attRef.off();
+  attDay=day;att={};
+  attRef=rootRef.child('attendance/'+day);
+  attRef.on('value',s=>{att=s.val()||{};renderAttendance();doSearch();});
+}
+async function markAtt(k,status,by,day=dayKey()){
+  const s=students[k];if(!s)return;
+  await rootRef.child('attendance/'+day+'/'+k).set({
+    status,time:Date.now(),by,cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',cardId:s.cardId||''
+  });
+}
+window.attMark=async(k,status)=>{await markAtt(k,status,'admin',attDay);toast((status==='present'?'已點名：出席 ':'已標記：缺席 ')+(students[k]?.nameEn||''));};
+window.attClear=async k=>{await rootRef.child('attendance/'+attDay+'/'+k).remove();toast('已清除點名記錄');};
+const attBadge=a=>a?(a.status==='present'
+  ?`<span class="att-badge p">出席 <span class="att-t">${fmtT(a.time)}</span></span>`
+  :`<span class="att-badge a">缺席 <span class="att-t">${fmtT(a.time)}</span></span>`)
+  :'<span class="att-badge">未點名</span>';
+function attRows(){
+  const cf=$('attCls').value;
+  return Object.entries(students)
+    .filter(([k,s])=>!cf||String(s.cls||'').toUpperCase()===cf)
+    .sort((a,b)=>String(a[1].cls||'').localeCompare(String(b[1].cls||''))||(+a[1].classNo||0)-(+b[1].classNo||0)||String(a[1].nameEn||'').localeCompare(String(b[1].nameEn||'')));
+}
+function renderAttendance(){
+  const classes=[...new Set(Object.values(students).map(s=>String(s.cls||'').toUpperCase()).filter(Boolean))].sort();
+  const sel=$('attCls'),cur=sel.value;
+  sel.innerHTML='<option value="">全部 All</option>'+classes.map(c=>`<option>${esc(c)}</option>`).join('');
+  if(classes.includes(cur))sel.value=cur;
+  const rows=attRows();
+  let p=0,a=0;rows.forEach(([k])=>{const r=att[k];if(r){r.status==='present'?p++:a++;}});
+  $('attP').textContent='出席 '+p;$('attA').textContent='缺席 '+a;$('attN').textContent='未點名 '+(rows.length-p-a);
+  $('attBody').innerHTML=rows.slice(0,1000).map(([k,s])=>{const r=att[k];
+    return `<tr><td>${esc(s.cls)}</td><td>${esc(s.classNo)}</td><td>${esc(s.nameEn)}</td><td>${esc(s.nameZh)}</td>
+      <td>${attBadge(r)}</td><td class="mono">${r?fmtT(r.time):'—'}</td><td>${esc(r?.by||'—')}</td>
+      <td><button class="btn-ok mini" onclick="attMark('${k}','present')">出席</button>
+          <button class="btn-red mini" onclick="attMark('${k}','absent')">缺席</button>
+          ${r?`<button class="btn-gray mini" onclick="attClear('${k}')">清除</button>`:''}</td></tr>`;
+  }).join('')||'<tr><td colspan="8" style="text-align:center">No data 暫無資料</td></tr>';
+}
+$('attDate').value=attDay;
+$('attDate').onchange=function(){attachAtt(this.value||dayKey());};
+$('attCls').onchange=renderAttendance;
+attachAtt(attDay);
+$('btnAbsAll').onclick=async()=>{
+  const un=attRows().filter(([k])=>!att[k]);
+  if(!un.length)return toast('沒有未點名學生');
+  if(!confirm(`將 ${un.length} 位未點名學生標記為缺席？（${attDay}）`))return;
+  const upd={};const now=Date.now();
+  un.forEach(([k,s])=>upd[k]={status:'absent',time:now,by:'admin',cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',cardId:s.cardId||''});
+  await rootRef.child('attendance/'+attDay).update(upd);
+  toast('已標記缺席 '+un.length+' 位');
+};
+$('btnAttExport').onclick=()=>{
+  const rows=attRows();
+  if(!rows.length)return toast('沒有學生資料');
+  const aoa=[['Date','Class','Class No','English Name','Chinese Name','Card ID','Status','Time','Marked By']];
+  rows.forEach(([k,s])=>{const r=att[k];
+    aoa.push([attDay,s.cls||'',s.classNo||'',s.nameEn||'',s.nameZh||'',s.cardId||'',
+      r?(r.status==='present'?'出席 Present':'缺席 Absent'):'未點名 Unmarked',
+      r?new Date(r.time).toLocaleTimeString('en-GB'):'',r?.by||'']);
+  });
+  const ws=XLSX.utils.aoa_to_sheet(aoa);const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Attendance');XLSX.writeFile(wb,`attendance_${attDay}.xlsx`);
+  toast('已匯出 attendance_'+attDay+'.xlsx');
+};
 
 /* ===== Station dock ===== */
 rootRef.child('stations').on('value',s=>{
@@ -239,7 +295,7 @@ async function queueLabel(s,copies=1){
   return true;
 }
 
-/* ===== Card scan (HID) ===== */
+/* ===== Card scan (HID) — 同時點名 + 列印 ===== */
 let buf='',last=0;
 document.addEventListener('keydown',e=>{
   const a=document.activeElement;
@@ -251,37 +307,35 @@ document.addEventListener('keydown',e=>{
 async function handleScan(code){
   $('lastScan').textContent='Last scan: '+code;
   const box=$('scanBox');
-  if(!selKey){setBox(box,'err');
-    box.innerHTML='請先選擇列印站<br><span class="en">Select a station first</span>';resetScanBox();return;}
-  setBox(box,'wait');
-  box.innerHTML=`卡號 ${esc(code)}<br><span class="en">匹配中 Matching…</span>`;
   const k=byCard[normCard(code)];
-  if(k){
-    unknownCard=null;$('bindHelp').style.display='none';
-    const s=students[k];
-    const ok=await queueLabel(s,1);
-    if(ok){setBox(box,'ok');
-      box.innerHTML=`${esc(s.nameEn)}<br>${esc(s.cls||'')} ${esc(s.classNo||'')} · ${esc(s.nameZh||'')}<br><span class="en">→ ${esc(stations[selKey].name)}</span>`;
-      toast('已送至 '+stations[selKey].name);}
-  }else{
-    unknownCard=code;
-    setBox(box,'err');
+  if(!k){
+    unknownCard=code;setBox(box,'err');
     box.innerHTML=`未登記卡號 Unregistered: ${esc(code)}<br><span class="en">搜尋學生後按「綁定此卡」</span>`;
     $('bindHelp').style.display='block';
     $('bindHelp').innerHTML=`卡號 <b>${esc(code)}</b> 未登記。請在上方搜尋學生，然後按「綁定此卡 Bind」完成登記。`;
-    doSearch();
+    doSearch();resetScanBox();return;
   }
+  unknownCard=null;$('bindHelp').style.display='none';
+  const s=students[k];
+  setBox(box,'wait');
+  box.innerHTML=`卡號 ${esc(code)}<br><span class="en">點名及列印中 Marking &amp; printing…</span>`;
+  await markAtt(k,'present','scan');
+  const t=fmtT(Date.now());
+  const printed=(selKey&&stations[selKey])?await queueLabel(s,1):false;
+  setBox(box,'ok');
+  box.innerHTML=`${esc(s.nameEn)}<br>${esc(s.cls||'')} ${esc(s.classNo||'')} · ${esc(s.nameZh||'')}<br><span class="en">已點名 出席 ${t}${printed?' · → '+esc(stations[selKey].name):' · 未選列印站，僅點名'}</span>`;
+  toast(printed?('已點名並送至 '+stations[selKey].name):'已點名（未選擇列印站，僅點名）');
   resetScanBox();
 }
 function resetScanBox(){setTimeout(()=>{const b=$('scanBox');setBox(b,'ready');
-  b.innerHTML='準備就緒，請直接刷卡<br><span class="en">Ready — just swipe the card</span>';},4000);}
+  b.innerHTML='準備就緒，請直接刷卡<br><span class="en">Ready — swipe to mark attendance &amp; print</span>';},4000);}
 
 /* ===== Students ===== */
 rootRef.child('students').on('value',s=>{
   students=s.val()||{};byCard={};
   Object.entries(students).forEach(([k,v])=>{if(v.cardId)byCard[normCard(v.cardId)]=k;});
   $('topChip').textContent='Students 學生：'+Object.keys(students).length;
-  renderDB();doSearch();
+  renderDB();renderAttendance();doSearch();
 });
 function renderDB(){
   const rows=Object.entries(students).sort((a,b)=>String(a[1].nameEn||'').localeCompare(String(b[1].nameEn||''))).slice(0,500);
@@ -298,9 +352,11 @@ function doSearch(){
   const hits=Object.entries(students).filter(([k,s])=>
     [s.nameEn,s.nameZh,s.cls,s.classNo,s.cardId].some(v=>String(v||'').toLowerCase().includes(q))).slice(0,40);
   $('res').innerHTML=hits.map(([k,s])=>`<div class="search-item">
-    <div><b>${esc(s.nameEn)}</b> ／ ${esc(s.nameZh)}<br><span class="muted">${esc(s.cls||'')} ${esc(s.classNo||'')} · Card ${esc(s.cardId||'—')}</span></div>
+    <div><b>${esc(s.nameEn)}</b> ／ ${esc(s.nameZh)} ${attBadge(att[k])}<br><span class="muted">${esc(s.cls||'')} ${esc(s.classNo||'')} · Card ${esc(s.cardId||'—')}</span></div>
     <div class="row" style="margin:0">
       <button class="btn-amber mini" onclick="printOne('${k}')">Print 列印</button>
+      <button class="btn-ok mini" onclick="attMark('${k}','present')">出席</button>
+      <button class="btn-red mini" onclick="attMark('${k}','absent')">缺席</button>
       ${unknownCard?`<button class="btn-gray mini" onclick="bindCard('${k}')">綁定此卡 Bind</button>`:''}
     </div></div>`).join('')||'<p class="muted">No match 無匹配結果</p>';
 }
