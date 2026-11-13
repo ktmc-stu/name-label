@@ -3,53 +3,56 @@
 <title>Parent Label 家長標籤遙控端</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
-/* ===== Remote-specific polish ===== */
+/* ===== Remote-specific ===== */
 .station-dock{
   position:sticky;top:48px;z-index:9000;
-  background:linear-gradient(120deg,#0f172a,#1e293b 60%,#132a44);
-  color:#fff;padding:14px clamp(14px,4vw,26px);
-  box-shadow:0 10px 30px rgba(12,20,36,.22);
-  border-bottom:1px solid rgba(255,255,255,.08);
+  background:var(--panel);color:var(--text);padding:12px clamp(14px,4vw,26px);
+  border-bottom:1px solid var(--line);
 }
 .dock-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:1080px;margin:0 auto}
-.dock-label{font-weight:800;font-size:15px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.dock-label{font-weight:600;font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:8px;color:var(--ink-2)}
+.dock-label svg{color:var(--accent)}
 .dock-row select{
-  min-width:240px;flex:1 1 240px;font-size:16px;font-weight:700;
-  background:#fff;color:#0f172a;border:0;border-radius:999px;padding:10px 18px;min-height:44px;
+  min-width:240px;flex:1 1 240px;font-size:15px;font-weight:500;
+  background:var(--surface);color:var(--text);border:1px solid var(--line-2);
+  border-radius:var(--radius-sm);padding:9px 36px 9px 14px;min-height:42px;
 }
-.dock-meta{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700}
-.dock-meta .pill{font-size:12px}
-.dock-hint{max-width:1080px;margin:8px auto 0;font-size:12px;color:rgba(255,255,255,.72)}
+.dock-meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.dock-meta #queueInfo{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.dock-hint{max-width:1080px;margin:8px auto 0;font-size:12px;color:var(--faint)}
+.dock-empty{color:var(--faint);font-size:12.5px}
 .chips{display:flex;gap:8px;flex-wrap:wrap;max-width:1080px;margin:10px auto 0}
 .st-chip{
-  display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.22);
-  background:rgba(255,255,255,.1);color:#fff;border-radius:999px;padding:7px 13px;
-  font-size:13px;font-weight:700;cursor:pointer;min-width:0;transition:.18s;
+  display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-2);
+  background:var(--surface);color:var(--ink-2);border-radius:var(--pill);padding:6px 12px;
+  font-size:12.5px;font-weight:500;cursor:pointer;min-width:0;transition:border-color .15s,background .15s,color .15s;
 }
-.st-chip:hover{background:rgba(255,255,255,.2);transform:translateY(-1px)}
-.st-chip.active{background:#fff;color:#0f172a;border-color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.25)}
-.st-chip .dot{width:9px;height:9px;border-radius:50%;background:#f87171;flex:none}
-.st-chip.on .dot{background:#4ade80;box-shadow:0 0 8px rgba(74,222,128,.8)}
-.st-chip .tk{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;opacity:.8}
-.st-chip .q{background:rgba(0,0,0,.25);border-radius:999px;padding:1px 7px;font-size:11px}
-.st-chip.active .q{background:#e2e8f0;color:#0f172a}
-.scan-box{position:relative;overflow:hidden}
-.scan-box::after{content:"";position:absolute;left:0;right:0;height:30px;top:-40px;
-  background:linear-gradient(180deg,transparent,rgba(2,132,199,.18),transparent);animation:scanmove 3.2s linear infinite}
-@keyframes scanmove{0%{top:-40px}100%{top:120%}}
+.st-chip:hover{background:var(--panel);border-color:var(--line-2);transform:none}
+.st-chip.active{background:var(--accent-soft);color:var(--accent-deep);border-color:var(--accent)}
+.st-chip .dot{width:7px;height:7px;border-radius:50%;background:#c2beb6;flex:none}
+.st-chip.on .dot{background:var(--ok)}
+.st-chip .tk{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+.st-chip.active .tk{color:var(--accent)}
+.st-chip .q{background:var(--surface-3);border-radius:var(--pill);padding:1px 7px;font-size:10.5px;
+  font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+.st-chip.active .q{background:var(--surface);color:var(--accent-deep)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:820px){.grid2{grid-template-columns:1fr}.dock-row select{min-width:160px}}
 .statline{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-.statline .tag{font-size:13px;padding:6px 12px}
-.help{background:#eef6ff;border:1px solid #b9d9f7;border-radius:12px;padding:12px 14px;font-size:13px;color:#0b46c8;line-height:1.6}
+.statline .tag{font-size:12px;padding:5px 10px}
+.help{background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:var(--radius-sm);
+  padding:12px 14px;font-size:13px;color:var(--accent-deep);line-height:1.65}
 </style>
 </head><body>
-<div class="topbar"><span>🏷️ Parent Label 家長標籤遙控端</span><span class="chip" id="topChip">—</span></div>
+<div class="topbar">
+  <span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Parent Label 家長標籤遙控端</span>
+  <span class="chip" id="topChip">—</span>
+</div>
 
-<!-- ===== 站點選擇（固定置頂，永遠可见） ===== -->
+<!-- ===== 站點選擇（固定置頂，永遠可見） ===== -->
 <div class="station-dock">
   <div class="dock-row">
-    <span class="dock-label">🖨️ 送至 Send to</span>
+    <span class="dock-label"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>送至 Send to</span>
     <select id="stationSel"><option value="">— 選擇列印站 Select station —</option></select>
     <span class="dock-meta"><span class="pill off" id="onlinePill">未選擇</span><span id="queueInfo">queue 0</span></span>
   </div>
@@ -61,7 +64,7 @@
 
   <div class="card">
     <h3>Card Scan 刷卡區</h3>
-    <div class="scan-box" id="scanBox">✅ 準備就緒，請直接刷卡<br>Ready — just swipe the card</div>
+    <div class="scan-box" id="scanBox">準備就緒，請直接刷卡<br><span class="en">Ready — just swipe the card</span></div>
     <div class="statline">
       <span class="tag" id="lastScan">Last scan: —</span>
       <span class="tag" id="sentCount">Sent 已送：0</span>
@@ -144,6 +147,9 @@ const normCard=v=>String(v==null?'':v).trim().replace(/^0+/,'').toUpperCase();
 const DEF={w:60,h:60,topMm:26,sideMm:2,enSize:12,zhSize:30};
 const LS='parentRemoteStation';
 const isOnline=st=>st&&st.lastSeen&&(Date.now()-st.lastSeen<60000);
+/* scan-box state colours (muted palette) */
+const SC={ready:['#f2f4f6','#4a6377'],wait:['#f6f0e2','#8a6a2f'],ok:['#ecf3ee','#3e7a58'],err:['#f7ecea','#a8524e']};
+const setBox=(el,s)=>{el.style.background=SC[s][0];el.style.color=SC[s][1];};
 
 let students={},byCard={},stations={},queues={},selKey=localStorage.getItem(LS)||null,unknownCard=null,sent=0;
 const queueCount=k=>Object.keys(queues[k]||{}).length;
@@ -167,19 +173,19 @@ function renderDock(){
     const on=isOnline(v),q=queueCount(k);
     return `<button class="st-chip ${k===selKey?'active':''} ${on?'on':'off'}" data-k="${k}">
       <span class="dot"></span><span>${esc(v.name)}</span><span class="tk">${esc(v.token)}</span><span class="q">${q}</span></button>`;
-  }).join('')||'<span style="color:rgba(255,255,255,.7);font-size:13px">尚未建立站點，請在下方「Stations 站點管理」新增。</span>';
+  }).join('')||'<span class="dock-empty">尚未建立站點，請在下方「Stations 站點管理」新增。</span>';
   const st=stations[selKey];
   const pill=$('onlinePill');
   if(!st){pill.textContent='未選擇 Not selected';pill.className='pill off';}
-  else if(isOnline(st)){pill.textContent='🟢 在線 Online';pill.className='pill';}
-  else{pill.textContent='🔴 離線 Offline';pill.className='pill off';}
+  else if(isOnline(st)){pill.textContent='在線 Online';pill.className='pill';}
+  else{pill.textContent='離線 Offline';pill.className='pill off';}
   $('queueInfo').textContent='queue '+(selKey?queueCount(selKey):0);
 }
 $('stationSel').onchange=function(){selectStation(this.value||null);};
 $('stationChips').onclick=e=>{const b=e.target.closest('.st-chip');if(b)selectStation(b.dataset.k);};
 function selectStation(k){
   selKey=k&&stations[k]?k:null;
-  if(selKey){localStorage.setItem(LS,selKey);toast('✅ 已選擇站點：'+stations[selKey].name);}
+  if(selKey){localStorage.setItem(LS,selKey);toast('已選擇站點：'+stations[selKey].name);}
   else localStorage.removeItem(LS);
   renderDock();
 }
@@ -187,10 +193,10 @@ function selectStation(k){
 /* ===== Station management ===== */
 function renderStations(){
   $('stBody').innerHTML=Object.entries(stations).map(([k,v])=>{
-    const c=v.settings||DEF,q=queueCount(k);
+    const c=v.settings||DEF,q=queueCount(k),on=isOnline(v);
     return `<tr><td><b>${esc(v.name)}</b></td><td>${esc(v.token)}</td>
       <td>${c.w||60}×${c.h||60}mm</td>
-      <td>${isOnline(v)?'🟢 Online':'🔴 Offline'}<br><span class="muted">queue ${q}</span></td>
+      <td><span class="dot ${on?'on':''}"></span> ${on?'Online':'Offline'}<br><span class="muted">queue ${q}</span></td>
       <td><button class="btn-gray mini" onclick="editStation('${k}')">Edit</button>
           <button class="btn-red mini" onclick="delStation('${k}')">Del</button></td></tr>`;
   }).join('')||'<tr><td colspan="5" style="text-align:center">No stations 尚未建立站點</td></tr>';
@@ -198,20 +204,20 @@ function renderStations(){
 $('btnAddStation').onclick=async()=>{
   const n=$('nsName').value.trim(),t=$('nsToken').value.trim().toUpperCase();
   if(!n||!t)return toast('請輸入名稱及 Token');
-  if(Object.values(stations).some(v=>String(v.token||'').toUpperCase()===t))return toast('⚠️ Token 已存在');
+  if(Object.values(stations).some(v=>String(v.token||'').toUpperCase()===t))return toast('Token 已存在');
   const ref=await rootRef.child('stations').push({name:n,token:t,settings:DEF,createdAt:Date.now(),lastSeen:0});
   $('nsName').value='';$('nsToken').value='';
   selectStation(ref.key);
-  toast('✅ 站點已新增並選定');
+  toast('站點已新增並選定');
 };
 window.editStation=async k=>{
   const v=stations[k];if(!v)return;
   const n=prompt('Station name 站點名稱：',v.name);if(n===null)return;
   const t=prompt('Station token：',v.token);if(t===null)return;
   const nt=t.trim().toUpperCase();
-  if(nt!==String(v.token).toUpperCase()&&Object.values(stations).some(x=>String(x.token||'').toUpperCase()===nt))return toast('⚠️ Token 已存在');
+  if(nt!==String(v.token).toUpperCase()&&Object.values(stations).some(x=>String(x.token||'').toUpperCase()===nt))return toast('Token 已存在');
   await rootRef.child('stations/'+k).update({name:n.trim()||v.name,token:nt||v.token});
-  toast('✅ 已更新');
+  toast('已更新');
 };
 window.delStation=async k=>{
   if(!confirm('Delete this station and its queue?\n刪除此站點及其隊列？'))return;
@@ -223,7 +229,7 @@ window.delStation=async k=>{
 
 /* ===== Print to selected station ===== */
 async function queueLabel(s,copies=1){
-  if(!selKey||!stations[selKey]){toast('⚠️ 請先選擇列印站 Select a station first');return false;}
+  if(!selKey||!stations[selKey]){toast('請先選擇列印站 Select a station first');return false;}
   await new Promise(r=>setTimeout(r,2000));
   await rootRef.child('queues/'+selKey).push({
     type:'label',cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',
@@ -245,30 +251,30 @@ document.addEventListener('keydown',e=>{
 async function handleScan(code){
   $('lastScan').textContent='Last scan: '+code;
   const box=$('scanBox');
-  if(!selKey){box.style.background='#fecaca';box.style.color='#7f1d1d';
-    box.innerHTML='⚠️ 請先選擇列印站 Select a station first';resetScanBox();return;}
-  box.style.background='#fef08a';box.style.color='#854d0e';
-  box.innerHTML=`⏳ 卡號 ${esc(code)}<br>匹配中…`;
+  if(!selKey){setBox(box,'err');
+    box.innerHTML='請先選擇列印站<br><span class="en">Select a station first</span>';resetScanBox();return;}
+  setBox(box,'wait');
+  box.innerHTML=`卡號 ${esc(code)}<br><span class="en">匹配中 Matching…</span>`;
   const k=byCard[normCard(code)];
   if(k){
     unknownCard=null;$('bindHelp').style.display='none';
     const s=students[k];
     const ok=await queueLabel(s,1);
-    if(ok){box.style.background='#bbf7d0';box.style.color='#14532d';
-      box.innerHTML=`✅ ${esc(s.nameEn)}<br>${esc(s.cls||'')} ${esc(s.classNo||'')} ・ ${esc(s.nameZh||'')}<br>➜ ${esc(stations[selKey].name)}`;
-      toast('✅ 已送至 '+stations[selKey].name);}
+    if(ok){setBox(box,'ok');
+      box.innerHTML=`${esc(s.nameEn)}<br>${esc(s.cls||'')} ${esc(s.classNo||'')} · ${esc(s.nameZh||'')}<br><span class="en">→ ${esc(stations[selKey].name)}</span>`;
+      toast('已送至 '+stations[selKey].name);}
   }else{
     unknownCard=code;
-    box.style.background='#fecaca';box.style.color='#7f1d1d';
-    box.innerHTML=`❌ 未登記卡號 Unregistered: ${esc(code)}<br>搜尋學生後按「綁定此卡」`;
+    setBox(box,'err');
+    box.innerHTML=`未登記卡號 Unregistered: ${esc(code)}<br><span class="en">搜尋學生後按「綁定此卡」</span>`;
     $('bindHelp').style.display='block';
     $('bindHelp').innerHTML=`卡號 <b>${esc(code)}</b> 未登記。請在上方搜尋學生，然後按「綁定此卡 Bind」完成登記。`;
     doSearch();
   }
   resetScanBox();
 }
-function resetScanBox(){setTimeout(()=>{const b=$('scanBox');b.style.background='#e0f2fe';b.style.color='#0369a1';
-  b.innerHTML='✅ 準備就緒，請直接刷卡<br>Ready — just swipe the card';},4000);}
+function resetScanBox(){setTimeout(()=>{const b=$('scanBox');setBox(b,'ready');
+  b.innerHTML='準備就緒，請直接刷卡<br><span class="en">Ready — just swipe the card</span>';},4000);}
 
 /* ===== Students ===== */
 rootRef.child('students').on('value',s=>{
@@ -292,7 +298,7 @@ function doSearch(){
   const hits=Object.entries(students).filter(([k,s])=>
     [s.nameEn,s.nameZh,s.cls,s.classNo,s.cardId].some(v=>String(v||'').toLowerCase().includes(q))).slice(0,40);
   $('res').innerHTML=hits.map(([k,s])=>`<div class="search-item">
-    <div><b>${esc(s.nameEn)}</b> ／ ${esc(s.nameZh)}<br><span class="muted">${esc(s.cls||'')} ${esc(s.classNo||'')} ・ Card ${esc(s.cardId||'—')}</span></div>
+    <div><b>${esc(s.nameEn)}</b> ／ ${esc(s.nameZh)}<br><span class="muted">${esc(s.cls||'')} ${esc(s.classNo||'')} · Card ${esc(s.cardId||'—')}</span></div>
     <div class="row" style="margin:0">
       <button class="btn-amber mini" onclick="printOne('${k}')">Print 列印</button>
       ${unknownCard?`<button class="btn-gray mini" onclick="bindCard('${k}')">綁定此卡 Bind</button>`:''}
@@ -300,15 +306,15 @@ function doSearch(){
 }
 window.printOne=async k=>{
   const s=students[k];if(!s)return;
-  if(!selKey)return toast('⚠️ 請先選擇列印站');
-  if(!confirm(`Print ${s.nameEn} ➜ ${stations[selKey].name}?`))return;
-  if(await queueLabel(s,1))toast('✅ 已送至 '+stations[selKey].name);
+  if(!selKey)return toast('請先選擇列印站');
+  if(!confirm(`Print ${s.nameEn} → ${stations[selKey].name}?`))return;
+  if(await queueLabel(s,1))toast('已送至 '+stations[selKey].name);
 };
 window.bindCard=async k=>{
   if(!unknownCard)return;
   if(!confirm(`Bind card ${unknownCard} to ${students[k].nameEn}?`))return;
   await rootRef.child('students/'+k).update({cardId:unknownCard});
-  toast('✅ 已綁定');unknownCard=null;$('bindHelp').style.display='none';doSearch();
+  toast('已綁定');unknownCard=null;$('bindHelp').style.display='none';doSearch();
 };
 window.delOne=async k=>{
   if(!confirm('Delete this student?'))return;
@@ -320,7 +326,7 @@ $('btnAdd').onclick=async()=>{
   if(!rec.nameEn&&!rec.nameZh)return toast('請輸入姓名');
   const k=rec.cardId?byCard[normCard(rec.cardId)]:null;
   if(k)await rootRef.child('students/'+k).update(rec);else await rootRef.child('students').push(rec);
-  ['aCard','aCls','aNo','aEn','aZh'].forEach(id=>$(id).value='');toast('✅ 已儲存');
+  ['aCard','aCls','aNo','aEn','aZh'].forEach(id=>$(id).value='');toast('已儲存');
 };
 
 /* ===== Excel ===== */
@@ -341,15 +347,15 @@ $('fExcel').addEventListener('change',function(){
                 classNo:String(o.classno||o.no||'').trim(),nameEn:String(o.englishname||o.nameen||'').trim(),
                 nameZh:String(o.chinesename||o.namezh||'').trim()};
       }).filter(x=>x.nameEn||x.nameZh);
-      if(!list.length){$('impMsg').textContent='⚠️ 沒有有效資料';return;}
+      if(!list.length){$('impMsg').textContent='沒有有效資料';return;}
       let add=0,upd=0;
       for(const it of list){
         const k=it.cardId?byCard[normCard(it.cardId)]:null;
         if(k){await rootRef.child('students/'+k).update(it);upd++;}
         else{const ref=await rootRef.child('students').push(it);if(it.cardId)byCard[normCard(it.cardId)]=ref.key;add++;}
       }
-      $('impMsg').textContent=`✅ 新增 ${add} 筆，更新 ${upd} 筆。`;
-    }catch(err){$('impMsg').textContent='⚠️ '+err.message;}
+      $('impMsg').textContent=`新增 ${add} 筆，更新 ${upd} 筆。`;
+    }catch(err){$('impMsg').textContent=err.message;}
   };
   rd.readAsArrayBuffer(f);this.value='';
 });
