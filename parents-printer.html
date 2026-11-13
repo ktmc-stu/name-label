@@ -5,7 +5,7 @@
 <style id="labelCss"></style>
 </head><body>
 <div class="topbar">
-  <span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Parent Printer 標籤列印端</span>
+  <span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Parent Printer 標籤列印端</span>
   <span class="chip" id="stationChip">未綁定 Not bound</span>
 </div>
 <div class="admin-wrap">
@@ -27,44 +27,66 @@
   </div>
 
   <div id="mainArea" style="display:none">
-    <div class="card">
-      <h3>Status 狀態</h3>
-      <div class="row" style="align-items:center"><span class="dot" id="dot"></span><b id="statusText" style="font-size:16px;font-weight:500">等待連線 Connecting…</b></div>
-      <div class="row" style="margin-top:12px">
-        <span class="chip" id="queueChip">Queue 隊列：0</span>
-        <button id="btnTest" class="btn-amber">Test Print 測試列印</button>
-        <button id="btnClear" class="btn-gray">Clear Queue 清空本站隊列</button>
-        <button id="btnUnbind" class="btn-gray">Change Station 更換站點</button>
+
+    <div class="card status-strip">
+      <span class="dot" id="dot"></span>
+      <b id="statusText" style="font-size:15px;font-weight:500">等待連線 Connecting…</b>
+      <span class="chip" id="queueChip" style="margin-left:auto">Queue 隊列：0</span>
+    </div>
+
+    <div class="tabnav">
+      <button data-tab="operate" class="active">操作 Operate</button>
+      <button data-tab="log">記錄 Log</button>
+      <button data-tab="settings">設定 Settings</button>
+    </div>
+
+    <!-- ===== 操作頁：與 remote 相同功能 + 本機刷卡 ===== -->
+    <div class="tabpanel active" id="tab-operate">
+      <div class="card">
+        <h3>Card Scan 刷卡（本機）</h3>
+        <div class="scan-box" id="scanBox">準備就緒，請直接刷卡<br><span class="en">Ready — swipe to mark attendance &amp; print</span></div>
+        <div class="row" style="margin-top:10px"><span class="tag" id="opAtt">今日：出席 0 · 缺席 0 · 未點名 0</span></div>
+      </div>
+      <div class="card">
+        <h3>Manual 手動操作</h3>
+        <p class="muted">與手持終端相同：「出席 + 列印」記錄出席時間並送到本站列印。</p>
+        <input type="text" id="q" placeholder="姓名 / 班別 / 班號 / 卡號 …" autocomplete="off">
+        <div id="res"></div>
       </div>
     </div>
 
-    <div class="card">
-      <h3>Label Settings 本站標籤設定</h3>
-      <div class="g">
-        <div><label>Width 寬 (mm)</label><input id="sW" type="number" min="20" max="200" value="60"></div>
-        <div><label>Height 高 (mm)</label><input id="sH" type="number" min="20" max="200" value="60"></div>
-        <div><label>Top 上留白 (mm)</label><input id="sTop" type="number" min="0" max="100" step="0.1" value="26"></div>
-        <div><label>Side 左右留白 (mm)</label><input id="sSide" type="number" min="0" max="30" step="0.1" value="2"></div>
-        <div><label>EN 英文字級 (px) 次</label><input id="sEn" type="number" min="6" max="60" value="12"></div>
-        <div><label>ZH 中文字級 (px) 主</label><input id="sZh" type="number" min="8" max="90" value="30"></div>
+    <!-- ===== 記錄頁 ===== -->
+    <div class="tabpanel" id="tab-log">
+      <div class="card"><h3>Print Log 列印記錄</h3><div class="log" id="log"></div></div>
+    </div>
+
+    <!-- ===== 設定頁 ===== -->
+    <div class="tabpanel" id="tab-settings">
+      <div class="card">
+        <h3>Label Settings 本站標籤設定</h3>
+        <div class="g">
+          <div><label>Width 寬 (mm)</label><input id="sW" type="number" min="20" max="200" value="60"></div>
+          <div><label>Height 高 (mm)</label><input id="sH" type="number" min="20" max="200" value="60"></div>
+          <div><label>Top 上留白 (mm)</label><input id="sTop" type="number" min="0" max="100" step="0.1" value="26"></div>
+          <div><label>Side 左右留白 (mm)</label><input id="sSide" type="number" min="0" max="30" step="0.1" value="2"></div>
+          <div><label>EN 英文字級 (px) 次</label><input id="sEn" type="number" min="6" max="60" value="12"></div>
+          <div><label>ZH 中文字級 (px) 主</label><input id="sZh" type="number" min="8" max="90" value="30"></div>
+        </div>
+        <div class="row"><button id="btnSaveCfg">Save Settings 儲存設定</button></div>
+        <p class="muted" style="margin-top:10px">1:1 預覽 Preview：</p>
+        <div id="prev"><div class="p-en">Parent of 3A 15 CHAN TAI MAN</div><div class="p-zh">陳大文家長</div></div>
       </div>
-      <div class="row"><button id="btnSaveCfg">Save Settings 儲存設定</button></div>
-      <p class="muted" style="margin-top:10px">1:1 預覽 Preview：</p>
-      <div id="prev"><div class="p-en">Parent of 3A 15 CHAN TAI MAN</div><div class="p-zh">陳大文家長</div></div>
+      <div class="card">
+        <h3>Station 站點</h3>
+        <p class="muted" id="stInfo">—</p>
+        <div class="row">
+          <button id="btnTest" class="btn-amber">Test Print 測試列印</button>
+          <button id="btnClear" class="btn-gray">Clear Queue 清空本站隊列</button>
+          <button id="btnUnbind" class="btn-gray">Change Station 更換站點</button>
+        </div>
+      </div>
     </div>
 
-    <div class="card">
-      <h3>Card Scan 刷卡（本機亦可用）</h3>
-      <div class="scan-box" id="scanBox">準備就緒，請直接刷卡<br><span class="en">Ready to scan</span></div>
-    </div>
-
-    <div class="card">
-      <h3>Manual Search 手動搜尋列印</h3>
-      <input type="text" id="q" placeholder="輸入 姓名 / 班別 / 班號 / 卡號 …">
-      <div id="res"></div>
-    </div>
-
-    <div class="card"><h3>Print Log 列印記錄</h3><div class="log" id="log"></div></div>
   </div>
 </div>
 
@@ -90,16 +112,48 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const toast = m => { const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400); };
 const normCard = v => String(v==null?'':v).trim().replace(/^0+/,'').toUpperCase();
+const dayKey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const fmtT=ts=>ts?new Date(ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'—';
 function log(m){ const d=document.createElement('div'); d.textContent=`[${new Date().toLocaleTimeString()}] ${m}`; $('log').prepend(d); }
 
 const DEF = { w:60, h:60, topMm:26, sideMm:2, enSize:12, zhSize:30 };
 const LS='parentStationToken';
 let CFG=Object.assign({},DEF), stationKey=null, station=null, started=false;
-let students={}, byCard={};
+let students={}, byCard={}, att={}, attDay=dayKey(), attRef=null, busy=false;
 const jobs=[], seen={}; let printing=false;
-/* scan-box state colours (muted palette) */
 const SC={ready:['#f2f4f6','#4a6377'],ok:['#ecf3ee','#3e7a58'],err:['#f7ecea','#a8524e']};
 const setBox=(el,s)=>{el.style.background=SC[s][0];el.style.color=SC[s][1];};
+
+/* ===== Tabs ===== */
+function showTab(n){
+  document.querySelectorAll('.tabnav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===n));
+  document.querySelectorAll('.tabpanel').forEach(p=>p.classList.toggle('active',p.id==='tab-'+n));
+}
+document.querySelectorAll('.tabnav button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+
+/* ===== Attendance (today) ===== */
+function attachAtt(day){
+  if(attRef)attRef.off();
+  attDay=day;att={};
+  attRef=rootRef.child('attendance/'+day);
+  attRef.on('value',s=>{att=s.val()||{};renderAttStats();doSearch();});
+}
+attachAtt(attDay);
+setInterval(()=>{const d=dayKey();if(d!==attDay)attachAtt(d);},30000);
+async function markAtt(k,status,by){
+  const s=students[k];if(!s)return;
+  await rootRef.child('attendance/'+attDay+'/'+k).set({
+    status,time:Date.now(),by,cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',cardId:s.cardId||''
+  });
+}
+function renderAttStats(){
+  let p=0,a=0;Object.values(att).forEach(r=>r.status==='present'?p++:a++);
+  $('opAtt').textContent=`今日：出席 ${p} · 缺席 ${a} · 未點名 ${Math.max(0,Object.keys(students).length-p-a)}`;
+}
+const attBadge=a=>a?(a.status==='present'
+  ?`<span class="att-badge p">出席 <span class="att-t">${fmtT(a.time)}</span></span>`
+  :`<span class="att-badge a">缺席 <span class="att-t">${fmtT(a.time)}</span></span>`)
+  :'<span class="att-badge">未點名</span>';
 
 /* ===== 列印樣式：display:none 隔離 + static 定位 + 無強制分頁 → 只印 1 頁 ===== */
 function applyCss(){
@@ -162,6 +216,7 @@ function bindStation(key){
     $('sW').value=CFG.w; $('sH').value=CFG.h; $('sTop').value=CFG.topMm; $('sSide').value=CFG.sideMm;
     $('sEn').value=CFG.enSize; $('sZh').value=CFG.zhSize;
     $('stationChip').textContent=`${station.name} (${station.token})`;
+    $('stInfo').textContent=`本站：${station.name} · Token ${station.token}`;
     applyCss();
   });
   rootRef.child('queues/'+key).on('value',snap=>{
@@ -187,7 +242,7 @@ $('btnSaveCfg').onclick=async()=>{
 rootRef.child('students').on('value',s=>{
   students=s.val()||{}; byCard={};
   Object.entries(students).forEach(([k,v])=>{ if(v.cardId) byCard[normCard(v.cardId)]=k; });
-  doSearch();
+  renderAttStats(); doSearch();
 });
 
 /* ===== 連線 ===== */
@@ -227,7 +282,7 @@ function pushJob(s){
   return rootRef.child('queues/'+stationKey).push({type:'label',cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',copies:1,createdAt:Date.now(),done:false});
 }
 
-/* ===== 刷卡 ===== */
+/* ===== 刷卡（本機）— 同時點名 + 列印 ===== */
 let buf='',last=0;
 document.addEventListener('keydown',e=>{
   const a=document.activeElement;
@@ -238,29 +293,48 @@ document.addEventListener('keydown',e=>{
   else if(e.key.length===1){ buf+=e.key; }
 });
 async function scan(code){
+  showTab('operate');
   const box=$('scanBox'), k=byCard[normCard(code)];
   if(k){ const s=students[k];
-    setBox(box,'ok'); box.innerHTML=`${esc(s.nameEn)} — 已送入本站列印`;
+    setBox(box,'ok');
+    await markAtt(k,'present','scan');
     await pushJob(s);
+    box.innerHTML=`${esc(s.nameEn)} — 已點名 出席 ${fmtT(Date.now())}，已送入本站列印`;
   }else{ setBox(box,'err'); box.innerHTML=`未登記卡號 Unregistered: ${esc(code)}`; }
-  setTimeout(()=>{ setBox(box,'ready'); box.innerHTML='準備就緒，請直接刷卡<br><span class="en">Ready to scan</span>'; },3500);
+  setTimeout(()=>{ setBox(box,'ready'); box.innerHTML='準備就緒，請直接刷卡<br><span class="en">Ready — swipe to mark attendance &amp; print</span>'; },3500);
 }
 
-/* ===== 搜尋 ===== */
+/* ===== 操作頁搜尋（與 remote 相同） ===== */
 $('q').addEventListener('input',doSearch);
 function doSearch(){
   const q=$('q').value.trim().toLowerCase();
   if(!q){ $('res').innerHTML=''; return; }
   const hits=Object.entries(students).filter(([k,s])=>
     [s.nameEn,s.nameZh,s.cls,s.classNo,s.cardId].some(v=>String(v||'').toLowerCase().includes(q))).slice(0,30);
-  $('res').innerHTML=hits.map(([k,s])=>`<div class="search-item">
-    <div><b>${esc(s.nameEn)}</b> ／ ${esc(s.nameZh)} <span class="muted">${esc(s.cls||'')} ${esc(s.classNo||'')}</span></div>
-    <button class="btn-amber mini" onclick="pOne('${k}')">Print 列印</button></div>`).join('')||'<p class="muted">No match</p>';
+  $('res').innerHTML=hits.map(([k,s])=>`<div class="stu-card">
+    <div class="stu-head"><span class="stu-name">${esc(s.nameEn)}</span><span class="stu-sub">${esc(s.nameZh)}</span>
+      <span class="stu-sub">${esc(s.cls||'')} ${esc(s.classNo||'')}</span>${attBadge(att[k])}</div>
+    <div class="act-row">
+      <button class="btn-lg" onclick="pLabel('${k}')">出席 + 列印</button>
+      <button class="btn-lg btn-ok" onclick="pMark('${k}','present')">出席</button>
+      <button class="btn-lg btn-red" onclick="pMark('${k}','absent')">缺席</button>
+    </div></div>`).join('')||'<p class="muted" style="margin-top:10px">No match 無匹配結果</p>';
 }
-window.pOne=async k=>{
-  const s=students[k]; if(!s||!stationKey) return;
-  if(!confirm(`Print label for ${s.nameEn}?`)) return;
-  await pushJob(s); toast('已加入隊列');
+window.pMark=async(k,status)=>{
+  const s=students[k];if(!s||!stationKey)return;
+  await markAtt(k,status,'printer');
+  toast((status==='present'?'已點名：出席 ':'已標記：缺席 ')+s.nameEn);
+  log(`點名 ${s.nameEn} ${status==='present'?'出席':'缺席'}`);
+};
+window.pLabel=async k=>{
+  if(busy)return;busy=true;
+  try{
+    const s=students[k];if(!s||!stationKey)return;
+    await markAtt(k,'present','printer');
+    await pushJob(s);
+    toast('已點名並加入本站隊列');
+    log(`點名+列印 ${s.nameEn}`);
+  }finally{busy=false;}
 };
 
 $('btnTest').onclick=async()=>{
