@@ -2,215 +2,118 @@
 <!doctype html><html lang="zh-HK"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>KTMC Parent Label · 家長標籤及考勤系統</title>
+<link rel="stylesheet" href="css/style.css">
 <style>
-:root{
-  --paper:#f6f5f1; --card:#ffffff; --panel:#fbfaf7;
-  --ink:#24262a; --ink-2:#3c4046; --muted:#6b6f76; --faint:#9a9da3;
-  --line:#e7e5df; --line-2:#d8d5cd;
-  --accent:#3d5a73; --accent-deep:#31495e; --accent-soft:#eef2f5; --accent-line:#c9d4dc;
-  --ok:#3e7a58; --ok-soft:#ecf3ee; --ok-line:#cfe0d5;
-  --warn:#8a6a2f; --warn-soft:#f6f0e2;
-  --bad:#a8524e; --bad-soft:#f7ecea;
-  --shadow-xs:0 1px 2px rgba(35,38,42,.05);
-  --r:10px; --r-sm:8px; --nav:60px;
-  --ease:cubic-bezier(.25,.6,.3,1);
-  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","PingFang TC","PingFang HK","Microsoft JhengHei","Noto Sans TC",Helvetica,Arial,sans-serif;
-  --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue","PingFang TC","PingFang HK","Microsoft JhengHei","Noto Sans TC",Helvetica,Arial,sans-serif;
-  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Courier New",monospace;
-  --print-cjk:"Microsoft JhengHei","Noto Sans TC","PingFang HK",var(--sans);
-}
-*,*::before,*::after{box-sizing:border-box}
+:root{--nav:60px}
 html{scroll-behavior:smooth;scroll-padding-top:calc(var(--nav) + 18px)}
-body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--paper);
-  font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-b,strong{font-weight:600}
-::selection{background:rgba(61,90,115,.18)}
-a{color:var(--accent-deep);text-decoration:none}
-button{font-family:var(--sans)}
-svg.i{width:15px;height:15px;flex:none}
-
-*{scrollbar-width:thin;scrollbar-color:#cfccc4 transparent}
-::-webkit-scrollbar{width:10px;height:10px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:#cfccc4;border-radius:6px;border:3px solid var(--paper);background-clip:padding-box}
-::-webkit-scrollbar-thumb:hover{background:#b8b4ab;background-clip:padding-box}
-
-nav{position:fixed;top:0;left:0;right:0;height:var(--nav);z-index:50;display:flex;align-items:center;gap:16px;
-  padding:0 clamp(16px,4vw,40px);transition:background .25s,border-color .25s;border-bottom:1px solid transparent}
-nav.scrolled{background:rgba(251,250,247,.96);border-bottom-color:var(--line)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;letter-spacing:-.01em;color:var(--ink)}
-.brand .mark{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--accent);
-  background:var(--card);border:1px solid var(--line-2)}
+body{overflow-x:hidden}
+.portal-nav{position:fixed;top:0;left:0;right:0;height:var(--nav);z-index:9500;display:flex;align-items:center;gap:16px;
+  padding:0 clamp(16px,4vw,40px);background:rgba(255,255,255,.94);border-bottom:1px solid transparent;transition:border-color .2s,box-shadow .2s}
+.portal-nav.scrolled{border-bottom-color:var(--line);box-shadow:0 6px 20px rgba(15,42,70,.06)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;color:var(--text)}
+.brand .mark{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:#fff;background:var(--accent)}
 .brand .mark svg{width:15px;height:15px}
-.brand small{display:block;font-size:10.5px;font-weight:400;color:var(--faint);letter-spacing:.05em}
+.brand small{display:block;font-size:10.5px;font-weight:400;color:var(--faint);letter-spacing:.04em}
 .navlinks{display:flex;gap:2px;margin-left:auto}
-.navlinks a{padding:8px 12px;font-size:13.5px;font-weight:500;color:var(--muted);transition:color .15s}
-.navlinks a:hover{color:var(--ink)}
+.navlinks a{padding:8px 12px;font-size:13.5px;font-weight:500;color:var(--muted)}
+.navlinks a:hover{color:var(--text);text-decoration:none}
 .navlinks a.active{color:var(--accent-deep);text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1px}
-.clock{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted);
-  background:var(--card);border:1px solid var(--line);border-radius:6px;padding:5px 10px}
-
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;cursor:pointer;
-  border-radius:var(--r-sm);padding:10px 18px;font-size:14px;font-weight:500;
-  transition:background .15s,border-color .15s,color .15s}
-.btn:active{transform:translateY(1px)}
-.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.btn-blue{background:var(--accent);color:#fff}
-.btn-blue:hover{background:var(--accent-deep)}
-.btn-green,.btn-ghost{background:var(--card);color:var(--ink-2);border-color:var(--line-2)}
-.btn-green:hover,.btn-ghost:hover{border-color:var(--accent);color:var(--accent-deep)}
-.btn-sm{padding:7px 14px;font-size:13px}
-
-main{max-width:1120px;margin:0 auto;padding:calc(var(--nav) + 40px) clamp(16px,4vw,40px) 64px}
-section{margin-bottom:72px}
+.clock{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:5px 10px}
+.portal{max-width:1120px;margin:0 auto;padding:calc(var(--nav) + 42px) clamp(16px,4vw,40px) 64px}
+.portal section{margin-bottom:72px}
 .eyebrow{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
-h1{font-family:var(--display);font-size:clamp(34px,5vw,52px);line-height:1.1;letter-spacing:-.02em;margin:16px 0 14px;font-weight:600}
-h1 .accent{color:var(--accent-deep)}
-h2{font-family:var(--display);font-size:clamp(22px,2.6vw,28px);letter-spacing:-.015em;margin:6px 0;font-weight:600}
-.t-zh{font-family:var(--sans);font-size:.6em;color:var(--muted);font-weight:400;margin-left:.55em;letter-spacing:.02em}
+.portal h1{font-size:clamp(34px,5vw,52px);line-height:1.1;letter-spacing:-.025em;margin:16px 0 14px;font-weight:600}
+.portal h1 .accent{color:var(--accent)}
+.portal h2{font-size:clamp(22px,2.6vw,28px);letter-spacing:-.015em;margin:6px 0;font-weight:600}
+.t-zh{font-size:.6em;color:var(--muted);font-weight:400;margin-left:.55em}
 .lede{color:var(--muted);font-size:15px;max-width:620px;margin:0}
 .sec-head{display:flex;align-items:end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
-
-.hero{display:grid;grid-template-columns:1.25fr .9fr;gap:40px;align-items:center}
+.hero{display:grid;grid-template-columns:1.2fr .9fr;gap:40px;align-items:center}
 .hero-cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);margin-top:34px;border-top:1px solid var(--line)}
 .stat{padding:16px 18px 4px;border-left:1px solid var(--line)}
 .stat:first-child{border-left:0;padding-left:0}
-.stat .n{font-size:26px;font-weight:400;font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:var(--ink)}
+.stat .n{font-size:26px;font-weight:500;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--text)}
 .stat.present .n{color:var(--ok)}
-.stat .l{font-size:11px;color:var(--faint);font-weight:500;margin-top:2px;letter-spacing:.08em;text-transform:uppercase}
-.hero-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-xs);padding:24px}
+.stat .l{font-size:11px;color:var(--faint);font-weight:500;margin-top:2px;letter-spacing:.06em;text-transform:uppercase}
+.hero-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-sm);padding:24px}
 .hero-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.hero-card .tagline{font-size:11px;font-weight:600;letter-spacing:.14em;color:var(--faint);text-transform:uppercase}
+.tagline{font-size:11px;font-weight:600;letter-spacing:.13em;color:var(--faint);text-transform:uppercase}
 .hero-day{font-family:var(--mono);font-size:11px;color:var(--muted);border:1px solid var(--line-2);border-radius:6px;padding:3px 8px}
-.label-demo{margin:18px auto 8px;width:210px;height:210px;border:1px dashed var(--line-2);border-radius:4px;background:#fff;
-  display:flex;flex-direction:column;justify-content:flex-start;align-items:center;padding:90px 8px 0;text-align:center;position:relative}
-.label-demo::after{content:"60 × 60 mm";position:absolute;right:8px;bottom:6px;font-size:10px;color:var(--faint);font-family:var(--mono)}
-.label-demo .en{font-size:11.5px;font-weight:600;color:#222;line-height:1.3}
-.label-demo .zh{font-size:28px;font-weight:600;margin-top:6px;color:#000;font-family:var(--print-cjk)}
-.att-sample{display:flex;align-items:center;gap:8px;margin-top:14px;padding:9px 12px;background:var(--ok-soft);
-  border:1px solid var(--ok-line);border-radius:8px;font-size:12.5px;color:var(--ok)}
+.hero-preview{margin:20px auto 10px;box-shadow:0 4px 16px rgba(15,42,70,.08)}
+.att-sample{display:flex;align-items:center;gap:8px;margin-top:14px;padding:9px 12px;background:var(--ok-soft);border:1px solid var(--ok-line);border-radius:8px;font-size:12.5px;color:var(--ok)}
 .att-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
-.att-sample .att-time{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.att-sample .att-time{font-family:var(--mono)}
 .att-sample .att-by{margin-left:auto;color:var(--muted);font-family:var(--mono);font-size:11px}
-.hero-note{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--muted);margin-top:12px}
-
+.hero-note{font-size:12.5px;color:var(--muted);margin-top:12px}
 .board{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
-.station{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;transition:border-color .15s,box-shadow .15s}
-.station:hover{border-color:var(--line-2);box-shadow:var(--shadow-xs)}
+.station{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;transition:border-color .15s,box-shadow .15s}
+.station:hover{border-color:var(--accent-line);box-shadow:var(--shadow-sm)}
 .st-top{display:flex;align-items:center;gap:9px}
 .st-dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
 .station.on .st-dot{background:var(--ok)}
 .st-name{font-weight:600;font-size:15px}
-.st-token{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--accent-deep);
-  background:var(--accent-soft);border:1px solid var(--accent-line);padding:2px 8px;border-radius:5px}
+.st-token{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--accent-deep);background:var(--accent-soft);border:1px solid var(--accent-line);padding:2px 8px;border-radius:5px}
 .st-meta{display:flex;gap:6px;flex-wrap:wrap;margin:13px 0}
 .meta{font-size:11px;color:var(--muted);background:var(--panel);border:1px solid var(--line);padding:3px 8px;border-radius:5px}
 .st-foot{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:11px}
-.st-foot .on{color:var(--ok)} .st-foot .off{color:var(--faint)}
-.qbadge{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink-2)}
-.qbadge.hot{color:var(--bad)}
-.empty{grid-column:1/-1;text-align:center;padding:44px 20px;border:1px dashed var(--line-2);border-radius:var(--r);color:var(--muted)}
-
+.st-foot .on{color:var(--ok)}.st-foot .off{color:var(--faint)}
+.qbadge{font-family:var(--mono);color:var(--ink-2)}.qbadge.hot{color:var(--bad)}
+.empty{grid-column:1/-1;text-align:center;padding:44px 20px;border:1px dashed var(--line-2);border-radius:12px;color:var(--muted)}
 .launch{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.launch-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:26px;
-  display:flex;flex-direction:column;gap:12px;transition:border-color .15s,box-shadow .15s}
-.launch-card:hover{border-color:var(--line-2);box-shadow:var(--shadow-xs)}
+.launch-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:12px;transition:border-color .15s,box-shadow .15s}
+.launch-card:hover{border-color:var(--accent-line);box-shadow:var(--shadow-sm)}
 .lc-top{display:flex;align-items:center}
-.launch-card .ic{width:38px;height:38px;border:1px solid var(--line-2);border-radius:8px;display:grid;place-items:center;color:var(--accent)}
+.launch-card .ic{width:38px;height:38px;border:1px solid var(--accent-line);border-radius:9px;display:grid;place-items:center;color:var(--accent);background:var(--accent-soft)}
 .launch-card .ic svg{width:18px;height:18px}
 .launch-card .idx{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--faint)}
-.launch-card h3{margin:2px 0 0;font-family:var(--display);font-size:21px;font-weight:600;letter-spacing:-.01em}
-.launch-card p{margin:0;font-size:13.5px;color:var(--muted);max-width:380px}
+.launch-card h3{margin:2px 0 0;font-size:20px;font-weight:600;letter-spacing:-.01em;border:0;padding:0}
+.launch-card p{margin:0;font-size:13.5px;color:var(--muted)}
 .launch-card .feat{display:flex;gap:6px;flex-wrap:wrap}
 .launch-card .feat span{font-size:11px;color:var(--muted);background:var(--panel);border:1px solid var(--line);padding:3px 8px;border-radius:5px}
 .launch-card .btn{align-self:flex-start;margin-top:auto}
-
 .setup-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;align-items:start}
-.steps{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:10px 24px}
+.steps{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 24px}
 .step{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}
 .step:last-child{border-bottom:0}
-.step .num{width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;
-  font-family:var(--sans);font-weight:500;font-size:14px;color:var(--accent-deep);border:1px solid var(--line-2);background:var(--panel)}
+.step .num{width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;font-weight:500;font-size:14px;color:var(--accent-deep);border:1px solid var(--accent-line);background:var(--accent-soft)}
 .step b{display:block;font-size:14.5px;font-weight:600}
 .step p{margin:2px 0 0;font-size:13px;color:var(--muted)}
-.batbox{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px;position:sticky;top:calc(var(--nav) + 16px)}
+.batbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;position:sticky;top:calc(var(--nav) + 16px)}
 .batbox .hd{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
-.batbox .hd b{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink)}
+.batbox .hd b{font-family:var(--mono);font-size:13px;font-weight:600}
 .batbox .hd .sub{margin-left:auto;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
-.batbox pre{margin:0;font-family:var(--mono);font-size:11px;line-height:1.65;white-space:pre-wrap;word-break:break-all;
-  background:var(--card);border:1px solid var(--line);border-radius:var(--r-sm);padding:14px;max-height:250px;overflow:auto;color:#4a4e55}
+.batbox pre{margin:0;font-family:var(--mono);font-size:11px;line-height:1.65;white-space:pre-wrap;word-break:break-all;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;max-height:250px;overflow:auto;color:var(--ink-2)}
 .batbox .row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-
-footer{border-top:1px solid var(--line);padding:24px clamp(16px,4vw,40px);display:flex;gap:14px;flex-wrap:wrap;
-  align-items:center;justify-content:space-between;color:var(--muted);font-size:12.5px;max-width:1120px;margin:0 auto}
+.portal-footer{border-top:1px solid var(--line);padding:24px clamp(16px,4vw,40px);display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;color:var(--muted);font-size:12.5px;max-width:1120px;margin:0 auto}
 .health{display:inline-flex;align-items:center;gap:7px;font-weight:500}
 .health i{width:8px;height:8px;border-radius:50%;background:var(--faint)}
-.health.ok i{background:var(--ok)} .health.ok{color:var(--ok)}
-.health.bad i{background:var(--bad)} .health.bad{color:var(--bad)}
-
-.reveal{opacity:0;transform:translateY(14px);transition:opacity .55s var(--ease),transform .55s var(--ease)}
+.health.ok i{background:var(--ok)}.health.ok{color:var(--ok)}
+.health.bad i{background:var(--bad)}.health.bad{color:var(--bad)}
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .5s var(--ease),transform .5s var(--ease)}
 .reveal.in{opacity:1;transform:none}
-#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(10px);z-index:90;background:#26282b;color:#f4f3f0;
-  padding:10px 18px;border-radius:8px;font-size:13.5px;font-weight:400;opacity:0;pointer-events:none;transition:.25s var(--ease);box-shadow:0 6px 20px rgba(0,0,0,.18)}
-#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-@media (max-width:900px){
-  .hero{grid-template-columns:1fr}
-  .launch{grid-template-columns:1fr}
-  .setup-grid{grid-template-columns:1fr}
-  .batbox{position:static}
-  .navlinks{display:none}
-  .stats{grid-template-columns:repeat(2,1fr)}
-  .stat:nth-child(odd){border-left:0;padding-left:0}
-  .stat{border-top:1px solid var(--line)}
-  .stat:nth-child(-n+2){border-top:0}
-}
-@media (max-width:560px){
-  .stats{grid-template-columns:1fr}
-  .stat{border-left:0;border-top:1px solid var(--line);padding:12px 0}
-  .stat:first-child{border-top:0}
-  .clock{display:none}
-  .hero-cta .btn{flex:1}
-}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(max-width:900px){.hero,.launch,.setup-grid{grid-template-columns:1fr}.batbox{position:static}.navlinks{display:none}.stats{grid-template-columns:repeat(2,1fr)}.stat:nth-child(odd){border-left:0;padding-left:0}.stat{border-top:1px solid var(--line)}.stat:nth-child(-n+2){border-top:0}}
+@media(max-width:560px){.stats{grid-template-columns:1fr}.stat{border-left:0;padding:12px 0}.stat:first-child{border-top:0}.clock{display:none}.hero-cta .btn{flex:1}}
 </style>
 </head><body>
-
-<nav id="nav">
-  <div class="brand">
-    <span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span>
-    <span>KTMC Parent Label<small>家長標籤及考勤系統</small></span>
-  </div>
-  <div class="navlinks">
-    <a href="#overview" class="active">Overview</a>
-    <a href="#stations">Stations</a>
-    <a href="#launch">Launch</a>
-    <a href="#setup">Setup</a>
-  </div>
+<nav class="portal-nav" id="nav">
+  <div class="brand"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span><span>KTMC Parent Label<small>家長標籤及考勤系統</small></span></div>
+  <div class="navlinks"><a href="#overview" class="active">Overview</a><a href="#stations">Stations</a><a href="#launch">Launch</a><a href="#setup">Setup</a></div>
   <span class="clock" id="clock">--:--:--</span>
   <a class="btn btn-blue btn-sm" href="parents-admin.html">Open Admin</a>
 </nav>
 
-<main>
+<main class="portal">
   <section id="overview" class="hero reveal">
     <div>
       <span class="eyebrow">EM Card · Attendance · Auto Label</span>
       <h1>Swipe a card.<br><span class="accent">Print &amp; take attendance.</span></h1>
-      <p class="lede">The EM reader acts as a keyboard. One swipe matches the student, logs attendance with a timestamp, and sends a 60×60&nbsp;mm parent label to the chosen station. No card reader? Use the handheld Remote to search and tap.</p>
+      <p class="lede">One swipe matches the student, logs attendance with a timestamp, and sends a parent label to the chosen station. Design the label freely in Admin with draggable text boxes and variables like {class} and {nameZh}. Handheld Remote works without a card reader.</p>
       <div class="hero-cta">
-        <a class="btn btn-blue" href="remote.html">
-          <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
-          Remote 手持終端</a>
-        <a class="btn btn-green" href="parents-admin.html">
-          <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          Admin 管理端</a>
-        <a class="btn btn-ghost" href="parents-printer.html">
-          <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          Printer 列印端</a>
-        <button class="btn btn-ghost" id="dlBatTop">
-          <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-          Download .bat</button>
+        <a class="btn btn-blue" href="remote.html">Remote 手持終端</a>
+        <a class="btn btn-ghost" href="parents-admin.html">Admin 管理端</a>
+        <a class="btn btn-ghost" href="parents-printer.html">Printer 列印端</a>
+        <button class="btn btn-ghost" id="dlBatTop">Download .bat</button>
       </div>
       <div class="stats">
         <div class="stat"><div class="n" id="stStudents">0</div><div class="l">Students 學生</div></div>
@@ -220,184 +123,92 @@ footer{border-top:1px solid var(--line);padding:24px clamp(16px,4vw,40px);displa
       </div>
     </div>
     <div class="hero-card">
-      <div class="hero-top"><span class="tagline">Live label preview · 即時預覽</span><span class="hero-day" id="attDayChip">—</span></div>
-      <div class="label-demo">
-        <div class="en">Parent of 3A 15 CHAN TAI MAN</div>
-        <div class="zh">陳大文家長</div>
-      </div>
+      <div class="hero-top"><span class="tagline">Live label preview</span><span class="hero-day" id="attDayChip">—</span></div>
+      <div class="label-preview hero-preview" id="heroPreview"></div>
       <div class="att-sample"><span class="att-dot"></span><span>出席 Present</span><span class="att-time">08:02</span><span class="att-by">scan</span></div>
-      <div class="hero-note">Chinese primary · English secondary · 26 mm top margin · attendance logged on every swipe</div>
+      <div class="hero-note">Custom layout · variables · 6×4 label with 60×60 driver page and −20 mm vertical shift</div>
     </div>
   </section>
 
   <section id="stations" class="reveal">
-    <div class="sec-head">
-      <div><span class="eyebrow">Live board</span>
-        <h2>Print stations<span class="t-zh">列印站點</span></h2>
-        <p class="lede">Each printer binds a token. Remote and Admin send every job to the selected station until changed.</p></div>
-      <a class="btn btn-ghost btn-sm" href="parents-admin.html">Manage stations →</a>
-    </div>
+    <div class="sec-head"><div><span class="eyebrow">Live board</span><h2>Print stations<span class="t-zh">列印站點</span></h2><p class="lede">Each printer binds a token and follows the saved label layout.</p></div><a class="btn btn-ghost btn-sm" href="parents-admin.html">Manage stations →</a></div>
     <div class="board" id="board"><div class="empty">Loading stations… 載入站點中…</div></div>
   </section>
 
   <section id="launch" class="reveal">
-    <div class="sec-head"><div><span class="eyebrow">Three ends</span>
-      <h2>Launch the system<span class="t-zh">啟動系統</span></h2></div></div>
+    <div class="sec-head"><div><span class="eyebrow">Three ends</span><h2>Launch the system<span class="t-zh">啟動系統</span></h2></div></div>
     <div class="launch">
-      <div class="launch-card">
-        <div class="lc-top">
-          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
-          <span class="idx">01</span>
-        </div>
-        <h3>Admin<span class="t-zh">管理端</span></h3>
-        <p>Full control: card scan with auto attendance, the attendance board, Excel import, station management, and guarded delete-all actions.</p>
-        <div class="feat"><span>Card scan</span><span>Attendance</span><span>Excel import</span><span>Stations</span><span>Danger zone</span></div>
-        <a class="btn btn-ghost btn-sm" href="parents-admin.html">Open parents-admin.html →</a>
-      </div>
-      <div class="launch-card">
-        <div class="lc-top">
-          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span>
-          <span class="idx">02</span>
-        </div>
-        <h3>Remote<span class="t-zh">手持終端</span></h3>
-        <p>Handheld, no card reader. Search a student, then mark present and print, present only, or absent — with the station remembered.</p>
-        <div class="feat"><span>No reader</span><span>Present + print</span><span>Absent</span><span>Station select</span></div>
-        <a class="btn btn-ghost btn-sm" href="remote.html">Open remote.html →</a>
-      </div>
-      <div class="launch-card">
-        <div class="lc-top">
-          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span>
-          <span class="idx">03</span>
-        </div>
-        <h3>Printer<span class="t-zh">列印端</span></h3>
-        <p>Bind a token, then work in three tabs: operate like Remote, watch the print log, and tune label settings. One clean 60×60 mm page per label.</p>
-        <div class="feat"><span>Token bind</span><span>Operate / Log / Settings</span><span>Queue safe</span><span>Single page</span></div>
-        <a class="btn btn-ghost btn-sm" href="parents-printer.html">Open parents-printer.html →</a>
-      </div>
+      <div class="launch-card"><div class="lc-top"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span class="idx">01</span></div><h3>Admin<span class="t-zh">管理端</span></h3><p>Card scan with attendance, the layout designer, Excel import, station management and guarded delete-all actions.</p><div class="feat"><span>Layout designer</span><span>Attendance</span><span>Excel</span><span>Stations</span></div><a class="btn btn-ghost btn-sm" href="parents-admin.html#designer">Open Admin →</a></div>
+      <div class="launch-card"><div class="lc-top"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span><span class="idx">02</span></div><h3>Remote<span class="t-zh">手持終端</span></h3><p>Handheld, no card reader. Search a student, then mark present and print, present only, or absent.</p><div class="feat"><span>Present + print</span><span>Absent</span><span>Station select</span></div><a class="btn btn-ghost btn-sm" href="remote.html">Open Remote →</a></div>
+      <div class="launch-card"><div class="lc-top"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span><span class="idx">03</span></div><h3>Printer<span class="t-zh">列印端</span></h3><p>Bind a token, operate like Remote, watch the log, and tune the per-station shift. One clean page per label.</p><div class="feat"><span>Operate / Log / Settings</span><span>Per-station shift</span><span>Single page</span></div><a class="btn btn-ghost btn-sm" href="parents-printer.html">Open Printer →</a></div>
     </div>
   </section>
 
   <section id="setup" class="reveal">
-    <div class="sec-head"><div><span class="eyebrow">Deployment</span>
-      <h2>Setup in five steps<span class="t-zh">五步完成</span></h2></div></div>
+    <div class="sec-head"><div><span class="eyebrow">Deployment</span><h2>Setup in five steps<span class="t-zh">五步完成</span></h2></div></div>
     <div class="setup-grid">
       <div class="steps">
-        <div class="step"><span class="num">1</span><div><b>Create stations 建立站點</b><p>In Admin → Stations, add a name and token per printer (e.g. LOBBY1 / LAB2).</p></div></div>
-        <div class="step"><span class="num">2</span><div><b>Bind each printer 綁定列印端</b><p>Open parents-printer.html on the printer PC, enter its token, press Bind. It is remembered.</p></div></div>
-        <div class="step"><span class="num">3</span><div><b>Import students 匯入學生</b><p>Excel columns: Card ID, Class, Class No, English Name, Chinese Name. Same card ID updates the record.</p></div></div>
-        <div class="step"><span class="num">4</span><div><b>Operate 操作</b><p>Swipe in Admin or Printer to auto-mark present and print, or use the handheld Remote to search and tap.</p></div></div>
-        <div class="step"><span class="num">5</span><div><b>Review attendance 查看考勤</b><p>In Admin, filter by date and class, export Excel, and mark any unmarked students as absent.</p></div></div>
+        <div class="step"><span class="num">1</span><div><b>Create stations 建立站點</b><p>In Admin → Stations, add a name and token per printer.</p></div></div>
+        <div class="step"><span class="num">2</span><div><b>Bind each printer 綁定列印端</b><p>Open parents-printer.html on the printer PC, enter its token, press Bind.</p></div></div>
+        <div class="step"><span class="num">3</span><div><b>Design the label 設計標籤</b><p>In Admin → Label Designer, drag text boxes and use {class}, {classNo}, {nameEn}, {nameZh}. Save once for all printers.</p></div></div>
+        <div class="step"><span class="num">4</span><div><b>Import students 匯入學生</b><p>Excel columns: Card ID, Class, Class No, English Name, Chinese Name.</p></div></div>
+        <div class="step"><span class="num">5</span><div><b>Operate &amp; review 操作及考勤</b><p>Swipe or use Remote, then filter and export attendance in Admin.</p></div></div>
       </div>
       <div class="batbox">
         <div class="hd"><b>StartLabelPrinter.bat</b><span class="sub">Windows batch</span></div>
         <pre id="batCode"></pre>
-        <div class="row">
-          <button class="btn btn-blue btn-sm" id="dlBat">
-            <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-            Download</button>
-          <button class="btn btn-ghost btn-sm" id="cpBat">
-            <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
-            Copy</button>
-        </div>
+        <div class="row"><button class="btn btn-blue btn-sm" id="dlBat">Download</button><button class="btn btn-ghost btn-sm" id="cpBat">Copy</button></div>
       </div>
     </div>
   </section>
 </main>
 
-<footer>
-  <span>KTMC Parent Label System · label + attendance build</span>
-  <span class="health" id="health"><i></i><span>Connecting…</span></span>
-</footer>
-<div id="toast"></div>
+<footer class="portal-footer"><span>KTMC Parent Label System · label + attendance build</span><span class="health" id="health"><i></i><span>Connecting…</span></span></footer>
+<div class="toast" id="toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="js/label-layout.js"></script>
 <script>
-const firebaseConfig={
-  apiKey:"AIzaSyDMBiSM4oGSDE3khRISIxtxDCJJTLaxm0",
-  authDomain:"ktmc-queue-system.firebaseapp.com",
-  databaseURL:"https://ktmc-queue-system-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId:"ktmc-queue-system",
-  storageBucket:"ktmc-queue-system.firebasestorage.app",
-  messagingSenderId:"1098822703041",
-  appId:"1:1098822703041:web:c010a95bf5c71c478a0140"
-};
+const firebaseConfig={apiKey:"AIzaSyDMBiSM4oGSDE3khRISIxtxDCJJTLaxm0",authDomain:"ktmc-queue-system.firebaseapp.com",databaseURL:"https://ktmc-queue-system-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"ktmc-queue-system",storageBucket:"ktmc-queue-system.firebasestorage.app",messagingSenderId:"1098822703041",appId:"1:1098822703041:web:c010a95bf5c71c478a0140"};
 firebase.initializeApp(firebaseConfig);
 const root=firebase.database().ref('parents');
 const $=id=>document.getElementById(id);
-const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=LabelLayout.esc;
 const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)};
 const dayKey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const tick=()=>{$('clock').textContent=new Date().toLocaleTimeString('en-GB')};tick();setInterval(tick,1000);
+const nav=$('nav');addEventListener('scroll',()=>nav.classList.toggle('scrolled',scrollY>10),{passive:true});
+const links=[...document.querySelectorAll('.navlinks a')],secs=links.map(a=>document.querySelector(a.getAttribute('href')));
+new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)links.forEach(l=>l.classList.toggle('active',l.getAttribute('href')==='#'+e.target.id))}),{rootMargin:'-40% 0px -55% 0px'}).observe&&secs.forEach(s=>{if(s)new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)links.forEach(l=>l.classList.toggle('active',l.getAttribute('href')==='#'+e.target.id))}),{rootMargin:'-40% 0px -55% 0px'}).observe(s)});
+const rio=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');rio.unobserve(e.target)}}),{threshold:.12});document.querySelectorAll('.reveal').forEach(el=>rio.observe(el));
 
-const tick=()=>{$('clock').textContent=new Date().toLocaleTimeString('en-GB')};
-tick();setInterval(tick,1000);
-
-const nav=$('nav');
-addEventListener('scroll',()=>{nav.classList.toggle('scrolled',scrollY>10)},{passive:true});
-const links=[...document.querySelectorAll('.navlinks a')];
-const secs=links.map(a=>document.querySelector(a.getAttribute('href')));
-const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.toggle('active',l.getAttribute('href')==='#'+e.target.id))}})},{rootMargin:'-40% 0px -55% 0px'});
-secs.forEach(s=>s&&io.observe(s));
-const rio=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');rio.unobserve(e.target)}}),{threshold:.12});
-document.querySelectorAll('.reveal').forEach(el=>rio.observe(el));
-
-let students={},stations={},queues={},attToday={},attDay=dayKey(),attRef=null;
-function online(st){return st&&st.lastSeen&&(Date.now()-st.lastSeen<60000)}
-function attachAtt(day){
-  if(attRef)attRef.off();
-  attDay=day;attToday={};
-  $('attDayChip').textContent=day;
-  attRef=root.child('attendance/'+day);
-  attRef.on('value',s=>{attToday=s.val()||{};render();});
-}
-attachAtt(attDay);
-setInterval(()=>{const d=dayKey();if(d!==attDay)attachAtt(d);},30000);
-
+let students={},stations={},queues={},attToday={},attDay=dayKey(),attRef=null,layout=LabelLayout.norm(null);
+const online=st=>st&&st.lastSeen&&(Date.now()-st.lastSeen<60000);
+function renderHero(){const p=$('heroPreview');p.style.width=layout.physical.w+'mm';p.style.height=layout.physical.h+'mm';p.innerHTML=LabelLayout.stageHTML(layout,layout.sample);}
+root.child('labelLayout').on('value',s=>{layout=LabelLayout.norm(s.val());renderHero();});
+function attachAtt(day){if(attRef)attRef.off();attDay=day;attToday={};$('attDayChip').textContent=day;attRef=root.child('attendance/'+day);attRef.on('value',s=>{attToday=s.val()||{};render();});}
+attachAtt(attDay);setInterval(()=>{const d=dayKey();if(d!==attDay)attachAtt(d);},30000);
 function render(){
-  const stArr=Object.entries(stations);
-  const on=stArr.filter(([k,v])=>online(v)).length;
+  const stArr=Object.entries(stations),on=stArr.filter(([k,v])=>online(v)).length;
   let pending=0;Object.values(queues).forEach(q=>pending+=Object.keys(q||{}).length);
   let present=0;Object.values(attToday).forEach(a=>{if(a&&a.status==='present')present++;});
-  $('stStudents').textContent=Object.keys(students).length;
-  $('stOnline').textContent=on+'/'+stArr.length;
-  $('stQueue').textContent=pending;
-  $('stPresent').textContent=present;
+  $('stStudents').textContent=Object.keys(students).length;$('stOnline').textContent=on+'/'+stArr.length;$('stQueue').textContent=pending;$('stPresent').textContent=present;
   const board=$('board');
   if(!stArr.length){board.innerHTML='<div class="empty">No stations yet. Create one in Admin → Stations.<br>尚未建立站點，請到管理端新增。</div>';return}
-  board.innerHTML=stArr.map(([k,v])=>{
-    const c=v.settings||{};const q=Object.keys(queues[k]||{}).length;const isOn=online(v);
-    return `<div class="station ${isOn?'on':'off'}">
-      <div class="st-top"><span class="st-dot"></span><span class="st-name">${esc(v.name||'Station')}</span><span class="st-token">${esc(v.token||'—')}</span></div>
-      <div class="st-meta"><span class="meta">${c.w||60}×${c.h||60} mm</span><span class="meta">top ${c.topMm??26} mm</span><span class="meta">ZH ${c.zhSize||30}px</span></div>
-      <div class="st-foot"><span class="${isOn?'on':'off'}">${isOn?'Online 在線':'Offline 離線'}</span><span class="qbadge ${q?'hot':''}">queue ${q}</span></div>
-    </div>`;
-  }).join('');
+  board.innerHTML=stArr.map(([k,v])=>{const c=v.settings||{},q=Object.keys(queues[k]||{}).length,isOn=online(v);
+    return `<div class="station ${isOn?'on':'off'}"><div class="st-top"><span class="st-dot"></span><span class="st-name">${esc(v.name||'Station')}</span><span class="st-token">${esc(v.token||'—')}</span></div><div class="st-meta"><span class="meta">driver ${c.w||layout.driver.w}×${c.h||layout.driver.h} mm</span><span class="meta">label ${layout.physical.w}×${layout.physical.h} mm</span><span class="meta">shift ${layout.offset.x},${layout.offset.y} mm</span></div><div class="st-foot"><span class="${isOn?'on':'off'}">${isOn?'Online 在線':'Offline 離線'}</span><span class="qbadge ${q?'hot':''}">queue ${q}</span></div></div>`;}).join('');
 }
 root.child('students').on('value',s=>{students=s.val()||{};render()});
 root.child('stations').on('value',s=>{stations=s.val()||{};render()});
 root.child('queues').on('value',s=>{queues=s.val()||{};render()});
 setInterval(render,15000);
-firebase.database().ref('.info/connected').on('value',s=>{
-  const h=$('health');const ok=s.val()===true;
-  h.className='health '+(ok?'ok':'bad');
-  h.querySelector('span').textContent=ok?'Firebase connected · 已連線':'Firebase offline · 離線';
-});
-
-function batText(){
-  const url=location.href.replace(/[^/]*$/,'')+'parents-printer.html';
-  return [
-    '@echo off',
-    'start "" "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --kiosk --kiosk-printing --user-data-dir="C:\\kiosk-profile" --app="'+url+'" --disable-features=IntensiveWakeUpThrottling --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-renderer-backgrounding --no-first-run --no-default-browser-check --disable-infobars',
-    ''
-  ].join('\r\n');
-}
+firebase.database().ref('.info/connected').on('value',s=>{const h=$('health'),ok=s.val()===true;h.className='health '+(ok?'ok':'bad');h.querySelector('span').textContent=ok?'Firebase connected · 已連線':'Firebase offline · 離線';});
+function batText(){const url=location.href.replace(/[^/]*$/,'')+'parents-printer.html';return ['@echo off','start "" "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --kiosk --kiosk-printing --user-data-dir="C:\\kiosk-profile" --app="'+url+'" --disable-features=IntensiveWakeUpThrottling --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-renderer-backgrounding --no-first-run --no-default-browser-check --disable-infobars',''].join('\r\n');}
 $('batCode').textContent=batText();
-function downloadBat(){
-  const blob=new Blob([batText()],{type:'application/octet-stream'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='StartLabelPrinter.bat';a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1500);toast('StartLabelPrinter.bat downloaded');
-}
+function downloadBat(){const blob=new Blob([batText()],{type:'application/octet-stream'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='StartLabelPrinter.bat';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);toast('StartLabelPrinter.bat downloaded');}
 $('dlBat').onclick=downloadBat;$('dlBatTop').onclick=downloadBat;
 $('cpBat').onclick=async()=>{try{await navigator.clipboard.writeText(batText());toast('Copied .bat to clipboard')}catch(e){toast('Copy failed — select the code manually')}};
+renderHero();
 </script>
 </body></html>
