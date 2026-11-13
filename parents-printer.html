@@ -4,7 +4,10 @@
 <link rel="stylesheet" href="css/style.css">
 <style id="labelCss"></style>
 </head><body>
-<div class="topbar"><span>🏷️ Parent Printer</span><span class="chip" id="stationChip">未綁定 Not bound</span></div>
+<div class="topbar">
+  <span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Parent Printer 標籤列印端</span>
+  <span class="chip" id="stationChip">未綁定 Not bound</span>
+</div>
 <div class="admin-wrap">
 
   <div class="card" id="bindCard">
@@ -17,7 +20,7 @@
       </div>
       <div class="row">
         <button id="btnBind">Bind 綁定站點</button>
-        <button id="btnCreate" class="btn-amber">Create & Bind 建立並綁定</button>
+        <button id="btnCreate" class="btn-amber">Create &amp; Bind 建立並綁定</button>
       </div>
       <p class="muted" id="bindMsg" style="margin-top:8px"></p>
     </div>
@@ -26,7 +29,7 @@
   <div id="mainArea" style="display:none">
     <div class="card">
       <h3>Status 狀態</h3>
-      <div class="row" style="align-items:center"><span class="dot" id="dot"></span><b id="statusText" style="font-size:18px">等待連線 Connecting…</b></div>
+      <div class="row" style="align-items:center"><span class="dot" id="dot"></span><b id="statusText" style="font-size:16px;font-weight:500">等待連線 Connecting…</b></div>
       <div class="row" style="margin-top:12px">
         <span class="chip" id="queueChip">Queue 隊列：0</span>
         <button id="btnTest" class="btn-amber">Test Print 測試列印</button>
@@ -52,7 +55,7 @@
 
     <div class="card">
       <h3>Card Scan 刷卡（本機亦可用）</h3>
-      <div class="scan-box" id="scanBox">✅ 準備就緒，請直接刷卡 Ready to scan</div>
+      <div class="scan-box" id="scanBox">準備就緒，請直接刷卡<br><span class="en">Ready to scan</span></div>
     </div>
 
     <div class="card">
@@ -94,6 +97,9 @@ const LS='parentStationToken';
 let CFG=Object.assign({},DEF), stationKey=null, station=null, started=false;
 let students={}, byCard={};
 const jobs=[], seen={}; let printing=false;
+/* scan-box state colours (muted palette) */
+const SC={ready:['#f2f4f6','#4a6377'],ok:['#ecf3ee','#3e7a58'],err:['#f7ecea','#a8524e']};
+const setBox=(el,s)=>{el.style.background=SC[s][0];el.style.color=SC[s][1];};
 
 /* ===== 列印樣式：display:none 隔離 + static 定位 + 無強制分頁 → 只印 1 頁 ===== */
 function applyCss(){
@@ -113,7 +119,7 @@ function applyCss(){
     }
     #printArea .label-wrap{display:flex;flex-direction:column;justify-content:flex-start;align-items:center;width:100%}
     #printArea .label-en{font-size:${CFG.enSize}px!important;font-weight:600;line-height:1.25;word-break:break-word;overflow-wrap:anywhere}
-    #printArea .label-zh{font-size:${CFG.zhSize}px!important;font-weight:800;line-height:1.2;margin-top:1.5mm;word-break:break-word;overflow-wrap:anywhere}
+    #printArea .label-zh{font-size:${CFG.zhSize}px!important;font-weight:600;line-height:1.2;margin-top:1.5mm;word-break:break-word;overflow-wrap:anywhere}
   }`;
   const p=$('prev');
   p.style.width=CFG.w+'mm'; p.style.height=CFG.h+'mm';
@@ -130,15 +136,15 @@ async function findToken(t){
 }
 $('btnBind').onclick=async()=>{
   const t=$('bToken').value.trim().toUpperCase();
-  if(!t) return $('bindMsg').textContent='⚠️ 請輸入 Token';
+  if(!t) return $('bindMsg').textContent='請輸入 Token';
   const hit=await findToken(t);
-  if(!hit) return $('bindMsg').textContent='❌ 找不到此 Token，可按「建立並綁定」新增。';
+  if(!hit) return $('bindMsg').textContent='找不到此 Token，可按「建立並綁定」新增。';
   localStorage.setItem(LS,t); bindStation(hit[0]);
 };
 $('btnCreate').onclick=async()=>{
   const t=$('bToken').value.trim().toUpperCase(), n=$('bName').value.trim();
-  if(!t||!n) return $('bindMsg').textContent='⚠️ 請輸入 Token 及名稱';
-  if(await findToken(t)) return $('bindMsg').textContent='⚠️ Token 已存在，請直接綁定';
+  if(!t||!n) return $('bindMsg').textContent='請輸入 Token 及名稱';
+  if(await findToken(t)) return $('bindMsg').textContent='Token 已存在，請直接綁定';
   const ref=await rootRef.child('stations').push({name:n,token:t,settings:DEF,createdAt:Date.now(),lastSeen:Date.now()});
   localStorage.setItem(LS,t); bindStation(ref.key);
 };
@@ -155,7 +161,7 @@ function bindStation(key){
           sideMm:(v.sideMm!=null?+v.sideMm:DEF.sideMm), enSize:+v.enSize||DEF.enSize, zhSize:+v.zhSize||DEF.zhSize };
     $('sW').value=CFG.w; $('sH').value=CFG.h; $('sTop').value=CFG.topMm; $('sSide').value=CFG.sideMm;
     $('sEn').value=CFG.enSize; $('sZh').value=CFG.zhSize;
-    $('stationChip').textContent=`🖨️ ${station.name} (${station.token})`;
+    $('stationChip').textContent=`${station.name} (${station.token})`;
     applyCss();
   });
   rootRef.child('queues/'+key).on('value',snap=>{
@@ -164,7 +170,7 @@ function bindStation(key){
   });
   const beat=()=>rootRef.child('stations/'+key+'/lastSeen').set(Date.now());
   beat(); setInterval(beat,20000);
-  log('⚙️ 站點已綁定 Station bound');
+  log('站點已綁定 Station bound');
 }
 (async()=>{ const t=localStorage.getItem(LS); if(t){ const hit=await findToken(t); if(hit) bindStation(hit[0]); } })();
 
@@ -174,7 +180,7 @@ $('btnSaveCfg').onclick=async()=>{
     w:+$('sW').value||DEF.w, h:+$('sH').value||DEF.h, topMm:+$('sTop').value||0,
     sideMm:+$('sSide').value||0, enSize:+$('sEn').value||DEF.enSize, zhSize:+$('sZh').value||DEF.zhSize
   });
-  toast('✅ 本站設定已儲存');
+  toast('本站設定已儲存');
 };
 
 /* ===== 學生資料 ===== */
@@ -186,15 +192,15 @@ rootRef.child('students').on('value',s=>{
 
 /* ===== 連線 ===== */
 firebase.database().ref('.info/connected').on('value',s=>{
-  if(s.val()===true){ $('dot').classList.add('on'); $('statusText').textContent='✅ 已連線・監控本站隊列 Online'; }
-  else{ $('dot').classList.remove('on'); $('statusText').textContent='⏳ 等待連線 Connecting…'; }
+  if(s.val()===true){ $('dot').classList.add('on'); $('statusText').textContent='已連線，監控本站隊列 Online'; }
+  else{ $('dot').classList.remove('on'); $('statusText').textContent='等待連線 Connecting…'; }
 });
 
 function updateCount(){ $('queueChip').textContent='Queue 隊列：'+jobs.length; }
 function enqueue(k,j){
   if(seen[k]) return; seen[k]=1;
   jobs.push(Object.assign({key:k},j)); updateCount();
-  log('📥 收到任務 Job: '+(j.nameEn||'?')); processJobs();
+  log('收到任務 Job: '+(j.nameEn||'?')); processJobs();
 }
 function labelHTML(j){
   const l1='Parent of '+[j.cls,j.classNo,j.nameEn].filter(x=>x&&String(x).trim()).join(' ');
@@ -205,12 +211,12 @@ async function processJobs(){
   while(jobs.length){
     const j=jobs.shift(); updateCount();
     await rootRef.child('queues/'+stationKey+'/'+j.key).remove().catch(()=>{});
-    log('⏳ 準備列印 (2s)… '+(j.nameEn||''));
+    log('準備列印 (2s)… '+(j.nameEn||''));
     $('printArea').innerHTML=labelHTML(j);
     await new Promise(r=>setTimeout(r,2000));
     const c=Math.max(1,j.copies||1);
     for(let i=0;i<c;i++){
-      window.print(); log(`✅ ${j.nameEn||'LABEL'} ${i+1}/${c} 已發送`);
+      window.print(); log(`${j.nameEn||'LABEL'} ${i+1}/${c} 已發送`);
       if(i<c-1) await new Promise(r=>setTimeout(r,2000));
     }
     await new Promise(r=>setTimeout(r,2000));
@@ -234,10 +240,10 @@ document.addEventListener('keydown',e=>{
 async function scan(code){
   const box=$('scanBox'), k=byCard[normCard(code)];
   if(k){ const s=students[k];
-    box.style.background='#bbf7d0'; box.style.color='#14532d'; box.innerHTML=`✅ ${esc(s.nameEn)} — 已送入本站列印`;
+    setBox(box,'ok'); box.innerHTML=`${esc(s.nameEn)} — 已送入本站列印`;
     await pushJob(s);
-  }else{ box.style.background='#fecaca'; box.style.color='#7f1d1d'; box.innerHTML=`❌ 未登記卡號: ${esc(code)}`; }
-  setTimeout(()=>{ box.style.background='#e0f2fe'; box.style.color='#0369a1'; box.innerHTML='✅ 準備就緒，請直接刷卡 Ready to scan'; },3500);
+  }else{ setBox(box,'err'); box.innerHTML=`未登記卡號 Unregistered: ${esc(code)}`; }
+  setTimeout(()=>{ setBox(box,'ready'); box.innerHTML='準備就緒，請直接刷卡<br><span class="en">Ready to scan</span>'; },3500);
 }
 
 /* ===== 搜尋 ===== */
@@ -254,13 +260,13 @@ function doSearch(){
 window.pOne=async k=>{
   const s=students[k]; if(!s||!stationKey) return;
   if(!confirm(`Print label for ${s.nameEn}?`)) return;
-  await pushJob(s); toast('✅ 已排隊');
+  await pushJob(s); toast('已加入隊列');
 };
 
 $('btnTest').onclick=async()=>{
   if(!confirm('Test print a sample label?')) return;
   $('printArea').innerHTML=labelHTML({cls:'3A',classNo:'15',nameEn:'CHAN TAI MAN',nameZh:'陳大文'});
-  await new Promise(r=>setTimeout(r,2000)); window.print(); log('✅ 測試列印已發送');
+  await new Promise(r=>setTimeout(r,2000)); window.print(); log('測試列印已發送');
 };
 $('btnClear').onclick=async()=>{
   if(!confirm('清空本站隊列？')) return;
