@@ -9,6 +9,30 @@
 .statline .tag{font-size:12px;padding:5px 10px}
 .help{background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:var(--radius-sm);
   padding:12px 14px;font-size:13px;color:var(--accent-deep);line-height:1.65}
+
+/* ---- Danger zone ---- */
+.danger-card{border-color:var(--bad-line)}
+.danger-card h3{color:var(--bad)}
+.danger-note{font-size:12px;color:var(--muted);margin-top:10px}
+.eyebrow-danger{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--bad)}
+.modal-scrim{position:fixed;inset:0;z-index:10000;background:rgba(36,38,42,.45);display:none;
+  align-items:center;justify-content:center;padding:20px}
+.modal-scrim.open{display:flex}
+.modal{width:min(520px,100%);max-height:calc(100vh - 40px);overflow:auto;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 24px 64px rgba(20,22,26,.28);
+  padding:24px;animation:riseIn .25s var(--ease) both}
+.modal h3{font-size:18px;margin:6px 0 8px}
+.danger-summary{display:grid;gap:6px;margin:14px 0;padding:12px 14px;background:var(--panel);
+  border:1px solid var(--line);border-radius:var(--radius-sm)}
+.danger-summary div{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--ink-2)}
+.danger-summary b{font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums}
+.danger-check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);cursor:pointer}
+.danger-check input{width:16px;height:16px;min-height:0;flex:none}
+#dangerPhrase{text-transform:uppercase;font-family:var(--mono);letter-spacing:.06em}
+.danger-status{min-height:18px;margin:10px 0 0;font-size:12.5px;color:var(--muted)}
+.danger-status.err{color:var(--bad)}
+.btn-red.solid{background:var(--bad);color:#fff;border-color:var(--bad)}
+.btn-red.solid:hover{background:#96443f}
 </style>
 </head><body>
 <div class="topbar">
@@ -107,7 +131,38 @@
     </table></div>
   </div>
 
+  <div class="card danger-card">
+    <h3>Danger Zone 危險操作</h3>
+    <p class="muted">以下操作會永久刪除 Firebase 資料，無法在系統內復原。預設會先下載 JSON 備份。 These actions permanently delete Firebase data. A JSON backup is downloaded first by default.</p>
+    <div class="row" style="margin-top:12px">
+      <button class="btn-red" id="btnDelStudents">Delete All Students 刪除所有學生</button>
+      <button class="btn-red" id="btnDelAll">Delete All Data 刪除所有資料</button>
+    </div>
+    <p class="danger-note">「刪除所有學生」只清空學生資料庫（考勤、站點、隊列保留）；「刪除所有資料」清空學生、站點、隊列及全部日期嘅考勤記錄。</p>
+  </div>
+
 </div>
+
+<!-- ===== Delete confirmation ===== -->
+<div class="modal-scrim" id="dangerModal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dangerTitle">
+    <span class="eyebrow-danger">Permanent deletion</span>
+    <h3 id="dangerTitle">—</h3>
+    <p class="muted" id="dangerDesc">—</p>
+    <div class="danger-summary" id="dangerSummary"></div>
+    <label class="danger-check"><input type="checkbox" id="dangerBackup" checked> Download backup first 先下載備份（JSON）</label>
+    <div class="att-field" style="margin-top:14px">
+      <label id="dangerPhraseLabel">Type DELETE to confirm</label>
+      <input id="dangerPhrase" autocomplete="off" spellcheck="false" placeholder="DELETE">
+    </div>
+    <p class="danger-status" id="dangerStatus"></p>
+    <div class="row" style="justify-content:flex-end;margin-top:16px">
+      <button class="btn-gray" id="dangerCancel">Cancel 取消</button>
+      <button class="btn-red solid" id="dangerConfirm" disabled>Delete 刪除</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -298,6 +353,7 @@ async function queueLabel(s,copies=1){
 /* ===== Card scan (HID) — 同時點名 + 列印 ===== */
 let buf='',last=0;
 document.addEventListener('keydown',e=>{
+  if($('dangerModal').classList.contains('open'))return;
   const a=document.activeElement;
   if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;
   const now=Date.now();if(now-last>120)buf='';last=now;
@@ -414,6 +470,128 @@ $('fExcel').addEventListener('change',function(){
     }catch(err){$('impMsg').textContent=err.message;}
   };
   rd.readAsArrayBuffer(f);this.value='';
+});
+
+/* ===== Danger zone: delete all students / all data ===== */
+const DANGER={
+  students:{
+    title:'Delete all students 刪除所有學生',
+    desc:'This permanently removes the entire student database. Attendance history, print stations and queues are kept. 只刪除學生資料庫；考勤記錄、列印站點及隊列會保留。',
+    phrase:'DELETE',
+    label:'Type DELETE to confirm 輸入 DELETE 確認',
+    btn:'Delete Students 刪除學生'
+  },
+  all:{
+    title:'Delete all data 刪除所有資料',
+    desc:'This permanently removes everything in this system: students, print stations, queued labels and all attendance records across every date. 永久刪除系統內所有資料：學生、列印站點、待印標籤及全部日期嘅考勤記錄。',
+    phrase:'DELETE ALL',
+    label:'Type DELETE ALL to confirm 輸入 DELETE ALL 確認',
+    btn:'Delete Everything 刪除全部'
+  }
+};
+let dangerScope=null,dangerBusy=false,dangerReturnFocus=null;
+function dangerSummaryHTML(scope){
+  const st=Object.keys(students).length,sn=Object.keys(stations).length;
+  let q=0;Object.values(queues).forEach(x=>q+=Object.keys(x||{}).length);
+  if(scope==='students')return `<div><span>Students 學生</span><b>${st}</b></div>`;
+  return `<div><span>Students 學生</span><b>${st}</b></div>
+    <div><span>Stations 站點</span><b>${sn}</b></div>
+    <div><span>Pending labels 待印標籤</span><b>${q}</b></div>
+    <div><span>Attendance 考勤</span><b>all dates 所有日期</b></div>`;
+}
+function setDangerLocked(locked){
+  $('dangerConfirm').disabled=locked||$('dangerPhrase').value.trim().toUpperCase()!==DANGER[dangerScope]?.phrase;
+  $('dangerCancel').disabled=locked;
+  $('dangerPhrase').disabled=locked;
+  $('dangerBackup').disabled=locked;
+}
+function openDanger(scope,trigger){
+  if(dangerBusy)return;
+  dangerScope=scope;dangerReturnFocus=trigger||document.activeElement;
+  const c=DANGER[scope];
+  $('dangerTitle').textContent=c.title;
+  $('dangerDesc').textContent=c.desc;
+  $('dangerPhraseLabel').textContent=c.label;
+  $('dangerPhrase').placeholder=c.phrase;
+  $('dangerPhrase').value='';
+  $('dangerBackup').checked=true;
+  $('dangerConfirm').textContent=c.btn;
+  $('dangerStatus').textContent='';$('dangerStatus').className='danger-status';
+  $('dangerSummary').innerHTML=dangerSummaryHTML(scope);
+  setDangerLocked(false);
+  $('dangerModal').classList.add('open');
+  $('dangerModal').setAttribute('aria-hidden','false');
+  document.body.style.overflow='hidden';
+  setTimeout(()=>$('dangerPhrase').focus(),30);
+}
+function closeDanger(){
+  if(dangerBusy)return;
+  $('dangerModal').classList.remove('open');
+  $('dangerModal').setAttribute('aria-hidden','true');
+  document.body.style.overflow='';
+  const f=dangerReturnFocus;dangerScope=null;dangerReturnFocus=null;
+  if(f&&f.focus)f.focus();
+}
+function validateDanger(){
+  const c=DANGER[dangerScope];if(!c||dangerBusy)return;
+  $('dangerConfirm').disabled=$('dangerPhrase').value.trim().toUpperCase()!==c.phrase;
+}
+function downloadJSON(obj,name){
+  const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+async function confirmDanger(){
+  const scope=dangerScope,c=DANGER[scope];
+  if(!c||dangerBusy)return;
+  if($('dangerPhrase').value.trim().toUpperCase()!==c.phrase)return;
+  dangerBusy=true;setDangerLocked(true);
+  const setStatus=(m,err)=>{$('dangerStatus').textContent=m;$('dangerStatus').className='danger-status'+(err?' err':'');};
+  try{
+    if($('dangerBackup').checked){
+      setStatus('Preparing backup… 準備備份…');
+      const snap=await (scope==='all'?rootRef:rootRef.child('students')).once('value');
+      const stamp=new Date().toISOString().replace(/[:.]/g,'-');
+      downloadJSON({app:'KTMC Parent Label System',scope,exportedAt:new Date().toISOString(),data:snap.val()||{}},
+        `ktmc-parents-${scope}-backup-${stamp}.json`);
+      setStatus('Backup downloaded. Deleting… 備份已下載，刪除中…');
+    }else{
+      setStatus('Deleting… 刪除中…');
+    }
+    if(scope==='all')await rootRef.remove();
+    else await rootRef.child('students').remove();
+    if(scope==='all'){
+      localStorage.removeItem(LS);selKey=null;
+      $('stationSel').value='';
+    }
+    unknownCard=null;
+    $('bindHelp').style.display='none';
+    $('q').value='';$('res').innerHTML='';
+    dangerBusy=false;
+    closeDanger();
+    toast(scope==='all'?'已刪除所有資料 All data deleted':'已刪除所有學生 All students deleted');
+  }catch(err){
+    dangerBusy=false;
+    setDangerLocked(false);
+    setStatus('Delete failed 刪除失敗：'+(err&&err.message?err.message:String(err)),true);
+  }
+}
+$('btnDelStudents').onclick=e=>openDanger('students',e.currentTarget);
+$('btnDelAll').onclick=e=>openDanger('all',e.currentTarget);
+$('dangerCancel').onclick=closeDanger;
+$('dangerConfirm').onclick=confirmDanger;
+$('dangerPhrase').addEventListener('input',validateDanger);
+$('dangerModal').addEventListener('click',e=>{if(e.target===$('dangerModal'))closeDanger();});
+document.addEventListener('keydown',e=>{
+  if(!$('dangerModal').classList.contains('open'))return;
+  if(e.key==='Escape'){closeDanger();return;}
+  if(e.key==='Tab'){
+    const f=[...$('dangerModal').querySelectorAll('button,input')].filter(el=>!el.disabled);
+    if(!f.length)return;
+    const first=f[0],last=f[f.length-1];
+    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+  }
 });
 </script>
 </body></html>
