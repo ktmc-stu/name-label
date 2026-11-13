@@ -1,0 +1,175 @@
+<!doctype html><html lang="zh-HK"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Remote 手持終端 · 列印及點名</title>
+<link rel="stylesheet" href="css/style.css">
+</head><body>
+<div class="topbar">
+  <span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>Remote 手持終端</span>
+  <span class="chip" id="dayChip">—</span>
+</div>
+
+<div class="station-dock">
+  <div class="dock-row">
+    <span class="dock-label"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>送至 Send to</span>
+    <select id="stationSel"><option value="">— 選擇列印站 Select station —</option></select>
+    <span class="dock-meta"><span class="pill off" id="onlinePill">未選擇</span><span id="queueInfo">queue 0</span></span>
+  </div>
+  <div class="chips" id="stationChips"></div>
+</div>
+
+<div class="remote-wrap">
+
+  <div class="card">
+    <h3>Today 今天點名</h3>
+    <div class="row" style="gap:8px">
+      <span class="tag" id="sP">出席 0</span>
+      <span class="tag" id="sA">缺席 0</span>
+      <span class="tag" id="sN">未點名 0</span>
+    </div>
+    <p class="muted" style="margin-top:10px">手持終端不支援刷卡：搜尋學生後按按鈕。「出席 + 列印」會記錄出席時間並送出標籤；未選列印站時只點名。</p>
+  </div>
+
+  <div class="card">
+    <h3>Search 搜尋學生</h3>
+    <input type="text" id="q" placeholder="姓名 / 班別 / 班號 / 卡號 …" autocomplete="off">
+    <div id="res"></div>
+  </div>
+
+  <div class="card">
+    <h3>Session 本次操作</h3>
+    <div class="session" id="session"><div>—</div></div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDMBiSM4oGSDE3khRISIxtxDCJJTLaxm0",
+  authDomain: "ktmc-queue-system.firebaseapp.com",
+  databaseURL: "https://ktmc-queue-system-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "ktmc-queue-system",
+  storageBucket: "ktmc-queue-system.firebasestorage.app",
+  messagingSenderId: "1098822703041",
+  appId: "1:1098822703041:web:c010a95bf5c71c478a0140"
+};
+firebase.initializeApp(firebaseConfig);
+const rootRef = firebase.database().ref('parents');
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);};
+const dayKey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const fmtT=ts=>ts?new Date(ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'—';
+const LS='parentRemoteStation';
+const isOnline=st=>st&&st.lastSeen&&(Date.now()-st.lastSeen<60000);
+
+let students={},stations={},queues={},selKey=localStorage.getItem(LS)||null,att={},attDay=dayKey(),attRef=null,busy=false;
+const queueCount=k=>Object.keys(queues[k]||{}).length;
+function sess(m){const d=document.createElement('div');d.textContent=`[${fmtT(Date.now())}] ${m}`;
+  const s=$('session');if(s.firstChild&&s.firstChild.textContent==='—')s.innerHTML='';s.prepend(d);
+  while(s.children.length>12)s.lastChild.remove();}
+
+/* ===== Attendance (today, auto day-rollover) ===== */
+function attachAtt(day){
+  if(attRef)attRef.off();
+  attDay=day;att={};$('dayChip').textContent=day;
+  attRef=rootRef.child('attendance/'+day);
+  attRef.on('value',s=>{att=s.val()||{};renderStats();doSearch();});
+}
+attachAtt(attDay);
+setInterval(()=>{const d=dayKey();if(d!==attDay){attachAtt(d);toast('已切換至新一天 '+d);}},30000);
+async function markAtt(k,status){
+  const s=students[k];if(!s)return;
+  await rootRef.child('attendance/'+attDay+'/'+k).set({
+    status,time:Date.now(),by:'remote',cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',cardId:s.cardId||''
+  });
+}
+function renderStats(){
+  let p=0,a=0;Object.values(att).forEach(r=>r.status==='present'?p++:a++);
+  $('sP').textContent='出席 '+p;$('sA').textContent='缺席 '+a;
+  $('sN').textContent='未點名 '+Math.max(0,Object.keys(students).length-p-a);
+}
+const attBadge=a=>a?(a.status==='present'
+  ?`<span class="att-badge p">出席 <span class="att-t">${fmtT(a.time)}</span></span>`
+  :`<span class="att-badge a">缺席 <span class="att-t">${fmtT(a.time)}</span></span>`)
+  :'<span class="att-badge">未點名</span>';
+
+/* ===== Stations ===== */
+rootRef.child('stations').on('value',s=>{
+  stations=s.val()||{};
+  if(selKey&&!stations[selKey]){selKey=null;localStorage.removeItem(LS);}
+  renderDock();
+});
+rootRef.child('queues').on('value',s=>{queues=s.val()||{};renderDock();});
+setInterval(renderDock,15000);
+function renderDock(){
+  const entries=Object.entries(stations);
+  const sel=$('stationSel');
+  sel.innerHTML='<option value="">— 選擇列印站 Select station —</option>'+
+    entries.map(([k,v])=>`<option value="${k}">${esc(v.name)} (${esc(v.token)})</option>`).join('');
+  sel.value=selKey||'';
+  $('stationChips').innerHTML=entries.map(([k,v])=>{
+    const on=isOnline(v),q=queueCount(k);
+    return `<button class="st-chip ${k===selKey?'active':''} ${on?'on':'off'}" data-k="${k}">
+      <span class="dot"></span><span>${esc(v.name)}</span><span class="tk">${esc(v.token)}</span><span class="q">${q}</span></button>`;
+  }).join('')||'<span class="dock-empty">尚未建立站點，請到 admin 新增。</span>';
+  const st=stations[selKey],pill=$('onlinePill');
+  if(!st){pill.textContent='未選擇 Not selected';pill.className='pill off';}
+  else if(isOnline(st)){pill.textContent='在線 Online';pill.className='pill';}
+  else{pill.textContent='離線 Offline';pill.className='pill off';}
+  $('queueInfo').textContent='queue '+(selKey?queueCount(selKey):0);
+}
+$('stationSel').onchange=function(){selectStation(this.value||null);};
+$('stationChips').onclick=e=>{const b=e.target.closest('.st-chip');if(b)selectStation(b.dataset.k);};
+function selectStation(k){
+  selKey=k&&stations[k]?k:null;
+  if(selKey){localStorage.setItem(LS,selKey);toast('已選擇站點：'+stations[selKey].name);}
+  else localStorage.removeItem(LS);
+  renderDock();
+}
+
+/* ===== Students / search ===== */
+rootRef.child('students').on('value',s=>{students=s.val()||{};renderStats();doSearch();});
+$('q').addEventListener('input',doSearch);
+function doSearch(){
+  const q=$('q').value.trim().toLowerCase();
+  if(!q){$('res').innerHTML='<p class="muted" style="margin-top:10px">輸入關鍵字開始搜尋。</p>';return;}
+  const hits=Object.entries(students).filter(([k,s])=>
+    [s.nameEn,s.nameZh,s.cls,s.classNo,s.cardId].some(v=>String(v||'').toLowerCase().includes(q))).slice(0,30);
+  $('res').innerHTML=hits.map(([k,s])=>`<div class="stu-card">
+    <div class="stu-head"><span class="stu-name">${esc(s.nameEn)}</span><span class="stu-sub">${esc(s.nameZh)}</span>
+      <span class="stu-sub">${esc(s.cls||'')} ${esc(s.classNo||'')}</span>${attBadge(att[k])}</div>
+    <div class="act-row">
+      <button class="btn-lg" onclick="rLabel('${k}')">出席 + 列印</button>
+      <button class="btn-lg btn-ok" onclick="rMark('${k}','present')">出席</button>
+      <button class="btn-lg btn-red" onclick="rMark('${k}','absent')">缺席</button>
+    </div></div>`).join('')||'<p class="muted" style="margin-top:10px">No match 無匹配結果</p>';
+}
+window.rMark=async(k,status)=>{
+  const s=students[k];if(!s)return;
+  await markAtt(k,status);
+  toast((status==='present'?'已點名：出席 ':'已標記：缺席 ')+s.nameEn);
+  sess(`${s.nameEn} ${status==='present'?'出席':'缺席'}`);
+};
+window.rLabel=async k=>{
+  if(busy)return;busy=true;
+  try{
+    const s=students[k];if(!s)return;
+    await markAtt(k,'present');
+    if(selKey&&stations[selKey]){
+      await new Promise(r=>setTimeout(r,2000));
+      await rootRef.child('queues/'+selKey).push({type:'label',cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',copies:1,createdAt:Date.now(),done:false});
+      toast('已點名並送至 '+stations[selKey].name);
+      sess(`${s.nameEn} 出席 + 列印 → ${stations[selKey].name}`);
+    }else{
+      toast('已點名（未選列印站，未列印）');
+      sess(`${s.nameEn} 出席（未列印）`);
+    }
+  }finally{busy=false;}
+};
+doSearch();
+</script>
+</body></html>
