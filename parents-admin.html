@@ -3,26 +3,44 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Parent Label Admin 家長標籤管理端</title>
 <link rel="stylesheet" href="css/style.css">
+<style>
+.station-trigger{max-width:1120px;margin:0 auto;padding:12px 16px 0;display:flex}
+#stationBtn{gap:8px}
+#stationBtn .dot{background:var(--faint)}
+#stationBtn .dot.on{background:var(--ok)}
+#stationBtn .muted{font-family:var(--mono);font-size:11px}
+#stationModal .dock-row{margin:0 0 10px}
+#stationModal .chips{margin:10px 0 0}
+#stationModal .dock-hint{margin:10px 0 0}
+</style>
 </head><body>
-<div class="topbar"><span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Parent Label Admin 家長標籤管理端</span><span class="chip" id="topChip">—</span></div>
+<div class="topbar"><span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Parent Label Admin 家長標籤管理端</span><span class="chip" id="topChip">—</span></div>
 
-<div class="station-dock">
-  <div class="dock-row"><span class="dock-label">送至 Send to</span>
-    <select id="stationSel"><option value="">— 選擇列印站 Select station —</option></select>
-    <span class="dock-meta"><span class="pill off" id="onlinePill">未選擇</span><span id="queueInfo">queue 0</span></span>
+<div class="station-trigger">
+  <button class="btn btn-ghost btn-sm" id="stationBtn"><span class="dot" id="stBtnDot"></span><span id="stBtnText">未選擇站點 Select station</span><span class="muted" id="stBtnQueue"></span></button>
+</div>
+<div class="modal-scrim" id="stationModal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="stationTitle">
+    <h3 id="stationTitle">選擇列印站 Select station</h3>
+    <div class="dock-row">
+      <select id="stationSel"><option value="">— 選擇列印站 Select station —</option></select>
+      <span class="dock-meta"><span class="pill off" id="onlinePill">未選擇</span><span id="queueInfo">queue 0</span></span>
+    </div>
+    <div class="chips" id="stationChips"></div>
+    <div class="dock-hint">刷卡同時點名（出席）及列印；未選站點時只點名。</div>
+    <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn-gray" id="stationClose">Close 關閉</button></div>
   </div>
-  <div class="chips" id="stationChips"></div>
-  <div class="dock-hint">刷卡同時點名（出席）及列印；未選站點時只點名。排版只顯示有效列印區域，隱藏補償區不會畫出。</div>
 </div>
 
 <div class="wrap">
   <div class="card"><h3>Card Scan 刷卡區</h3>
     <div class="scan-box" id="scanBox">準備就緒，請直接刷卡<br><span class="en">Ready — swipe to mark attendance &amp; print</span></div>
     <div class="statline"><span class="tag" id="lastScan">Last scan: —</span><span class="tag" id="sentCount">Sent 已送：0</span></div>
+    <p class="muted" style="margin-top:10px">系統自動捕捉卡號、匹配學生、點名「出席」並記錄時間，再送到所選列印站。</p>
   </div>
 
   <div class="card"><h3>Manual Search 手動搜尋</h3>
-    <input type="text" id="q" placeholder="輸入 姓名 / 班別 / 班號 / 卡號 …" autocomplete="off">
+    <input type="text" id="q" placeholder="輸入 姓名 / 班別 / 班號 / 卡號 …（例如 3A 15）" autocomplete="off">
     <div id="res"></div><div class="help" id="bindHelp" style="display:none;margin-top:10px"></div>
   </div>
 
@@ -120,15 +138,15 @@
 
   <div class="grid2">
     <div class="card"><h3>Stations 站點管理</h3>
-      <div class="g"><div><label>Station Name 名稱</label><input id="nsName"></div><div><label>Station Token</label><input id="nsToken" style="text-transform:uppercase"></div></div>
+      <div class="g"><div><label>Station Name 名稱</label><input id="nsName" placeholder="e.g. 一樓大堂"></div><div><label>Station Token</label><input id="nsToken" placeholder="e.g. LOBBY1" style="text-transform:uppercase"></div></div>
       <div class="row"><button id="btnAddStation">Add Station 新增站點</button></div>
       <div style="overflow:auto;margin-top:12px"><table><thead><tr><th>Name</th><th>Token</th><th>Layout</th><th>Status</th><th>Actions</th></tr></thead><tbody id="stBody"></tbody></table></div>
     </div>
     <div class="card"><h3>Database 學生資料庫</h3>
-      <p class="muted">Excel 表頭：Card ID, Class, Class No, English Name, Chinese Name</p>
+      <p class="muted">Excel 表頭：Card ID, Class, Class No, English Name, Chinese Name（相同卡號自動覆蓋）</p>
       <div class="row" style="margin-top:6px"><input type="file" id="fExcel" accept=".xlsx,.xls,.csv" style="flex:1"><button class="btn-gray" id="btnTpl">Template</button></div>
       <p class="muted" id="impMsg" style="margin-top:8px"></p><hr>
-      <div class="g"><div><label>Card ID</label><input id="aCard"></div><div><label>Class</label><input id="aCls"></div><div><label>Class No</label><input id="aNo"></div><div><label>English Name</label><input id="aEn"></div><div><label>Chinese Name</label><input id="aZh"></div></div>
+      <div class="g"><div><label>Card ID</label><input id="aCard"></div><div><label>Class</label><input id="aCls" placeholder="3A"></div><div><label>Class No</label><input id="aNo" placeholder="15"></div><div><label>English Name</label><input id="aEn"></div><div><label>Chinese Name</label><input id="aZh"></div></div>
       <div class="row"><button id="btnAdd">Add / Update 新增或更新</button></div>
     </div>
   </div>
@@ -140,10 +158,11 @@
   <div class="card danger-card"><h3>Danger Zone 危險操作</h3>
     <p class="muted">永久刪除 Firebase 資料；預設先下載 JSON 備份。</p>
     <div class="row" style="margin-top:12px"><button class="btn-red" id="btnDelStudents">Delete All Students 刪除所有學生</button><button class="btn-red" id="btnDelAll">Delete All Data 刪除所有資料</button></div>
+    <p class="danger-note">「刪除所有學生」只清空學生資料庫；「刪除所有資料」清空學生、站點、隊列、考勤及排版。</p>
   </div>
 </div>
 
-<div class="modal-scrim" id="dangerModal" aria-hidden="true"><div class="modal" role="dialog" aria-modal="true">
+<div class="modal-scrim" id="dangerModal" aria-hidden="true"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="dangerTitle">
   <span class="eyebrow-danger">Permanent deletion</span><h3 id="dangerTitle">—</h3><p class="muted" id="dangerDesc">—</p>
   <div class="danger-summary" id="dangerSummary"></div>
   <label class="danger-check"><input type="checkbox" id="dangerBackup" checked> Download backup first 先下載備份</label>
@@ -153,13 +172,62 @@
 </div></div>
 <div class="toast" id="toast"></div>
 
+<script>
+/* inline label engine · doc + hide model */
+(function(){
+const MM=96/25.4;
+const DEF={version:4,mode:'simple',doc:{w:60,h:60},hide:{top:20,left:0},
+ simple:{topMm:6,sideMm:2,enSize:12,zhSize:30,gapMm:1.5,enText:'Parent of {class} {classNo} {nameEn}',zhText:'{nameZh}家長'},
+ boxes:[{id:'en',x:2,y:4,w:56,h:6,text:'Parent of {class} {classNo} {nameEn}',size:12,weight:600,align:'center',valign:'middle',color:'#000000',lineHeight:1.2},
+        {id:'zh',x:2,y:11,w:56,h:13,text:'{nameZh}家長',size:30,weight:600,align:'center',valign:'middle',color:'#000000',lineHeight:1.15}],
+ sample:{cls:'3A',classNo:'15',nameEn:'CHAN TAI MAN',nameZh:'陳大文',cardId:'0001234567'}};
+const PH=[['class','班別'],['classNo','班號'],['nameEn','英文名'],['nameZh','中文名'],['cardId','卡號'],['parent','中文家長'],['parentEn','英文家長'],['date','日期'],['time','時間']];
+const clone=o=>JSON.parse(JSON.stringify(o));
+const num=(v,d)=>{const n=parseFloat(v);return Number.isFinite(n)?n:d;};
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nb=(x,i)=>({id:String(x.id||('b'+i)),x:num(x.x,0),y:num(x.y,0),w:num(x.w,20),h:num(x.h,8),text:x.text==null?'':String(x.text),size:num(x.size,16),weight:num(x.weight,600),align:['left','center','right'].includes(x.align)?x.align:'center',valign:['top','middle','bottom'].includes(x.valign)?x.valign:'middle',color:/^#[0-9a-fA-F]{6}$/.test(x.color||'')?x.color:'#000000',lineHeight:num(x.lineHeight,1.2)});
+function eff(l){return {x:l.hide.left,y:l.hide.top,w:Math.max(1,l.doc.w-l.hide.left),h:Math.max(1,l.doc.h-l.hide.top)};}
+function norm(l){
+ const b=clone(DEF);if(!l||typeof l!=='object')return b;
+ b.mode=l.mode==='designer'?'designer':'simple';
+ if(l.doc&&l.hide){b.doc={w:num(l.doc.w,60),h:num(l.doc.h,60)};b.hide={top:Math.max(0,num(l.hide.top,20)),left:Math.max(0,num(l.hide.left,0))};}
+ else if(l.label&&typeof l.label==='object'){const bt=Math.max(0,num(l.blankTop,20)),bl=Math.max(0,num(l.blankLeft,0));b.doc={w:num(l.label.w,60)+bl,h:num(l.label.h,40)+bt};b.hide={top:bt,left:bl};}
+ else if(l.driver&&l.physical){const ox=num(l.offset&&l.offset.x,0),oy=num(l.offset&&l.offset.y,-20);b.doc={w:num(l.driver.w,60),h:num(l.driver.h,60)};b.hide={top:Math.max(0,-oy),left:Math.max(0,-ox)};b.simple=Object.assign({},DEF.simple,l.simple||{});b.simple.topMm=num(b.simple.topMm,26)+oy;b.simple.sideMm=num(b.simple.sideMm,2)+ox;if(Array.isArray(l.boxes))b.boxes=l.boxes.map((x,i)=>{const t=nb(x,i);t.x+=ox;t.y+=oy;return t;});b.sample=Object.assign({},DEF.sample,l.sample||{});return b;}
+ b.simple=Object.assign({},DEF.simple,l.simple||{});
+ ['topMm','sideMm','enSize','zhSize','gapMm'].forEach(k=>b.simple[k]=num(b.simple[k],DEF.simple[k]));
+ if(Array.isArray(l.boxes))b.boxes=l.boxes.map(nb);
+ b.sample=Object.assign({},DEF.sample,l.sample||{});return b;
+}
+function fill(t,s){s=s||{};const cls=s.cls||s.class||'',no=s.classNo||s.no||'',en=s.nameEn||'',zh=s.nameZh||'',card=s.cardId||'';
+ const m={class:cls,cls:cls,no:no,classNo:no,nameEn:en,nameZh:zh,cardId:card,parent:zh?zh+'家長':'',parentEn:'Parent of '+[cls,no,en].filter(Boolean).join(' '),date:new Date().toLocaleDateString('en-GB'),time:new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})};
+ return String(t==null?'':t).replace(/\{([a-zA-Z]+)\}/g,(x,k)=>m[k]!=null?String(m[k]):x);}
+const just=v=>v==='top'?'flex-start':v==='bottom'?'flex-end':'center';
+function inner(l,data){
+ if(l.mode==='simple'){const s=l.simple;return `<div class="simple-wrap" style="padding:${s.topMm}mm ${s.sideMm}mm 0 ${s.sideMm}mm"><div class="label-en" style="font-size:${s.enSize}px">${esc(fill(s.enText,data))}</div><div class="label-zh" style="font-size:${s.zhSize}px;margin-top:${s.gapMm}mm">${esc(fill(s.zhText,data))}</div></div>`;}
+ return (l.boxes||[]).map(b=>`<div class="lb" style="left:${b.x}mm;top:${b.y}mm;width:${b.w}mm;height:${b.h}mm;font-size:${b.size}px;font-weight:${b.weight};text-align:${b.align};color:${b.color};line-height:${b.lineHeight};justify-content:${just(b.valign)}">${esc(fill(b.text,data)).replace(/\n/g,'<br>')}</div>`).join('');
+}
+function stageHTML(l,data,forPrint){const e=eff(l);const left=forPrint?l.hide.left:0,top=forPrint?l.hide.top:0;
+ return `<div class="label-stage" style="left:${left}mm;top:${top}mm;width:${e.w}mm;height:${e.h}mm">${inner(l,data)}</div>`;}
+function printCss(l){return `#printArea{display:none}
+@media print{@page{size:${l.doc.w}mm ${l.doc.h}mm;margin:0}
+html,body{margin:0!important;padding:0!important;background:#fff!important;height:auto!important;min-height:0!important}
+body>*:not(#printArea){display:none!important}
+#printArea{display:block!important;position:relative!important;margin:0!important;padding:0!important;width:${l.doc.w}mm!important;height:${l.doc.h}mm!important;overflow:hidden!important;background:#fff!important;color:#000}
+#printArea .label-stage{position:absolute;overflow:hidden}
+#printArea .simple-wrap{display:flex;flex-direction:column;align-items:center;text-align:center;width:100%;height:100%;box-sizing:border-box;font-family:'Microsoft JhengHei','Noto Sans TC','PingFang HK',sans-serif}
+#printArea .label-en{font-weight:600;line-height:1.25;word-break:break-word;overflow-wrap:anywhere}
+#printArea .label-zh{font-weight:600;line-height:1.2;word-break:break-word;overflow-wrap:anywhere}
+#printArea .lb{position:absolute;display:flex;flex-direction:column;overflow:hidden;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;font-family:'Microsoft JhengHei','Noto Sans TC','PingFang HK',sans-serif}}`;}
+window.LL={MM,DEF,PH,clone,norm,fill,esc,eff,stageHTML,printCss};
+})();
+</script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="js/label-layout.js"></script>
 <script>
-const LL=window.LabelLayout;
-const $=id=>document.getElementById(id);const esc=LL.esc;
+const LL=window.LL;
+const $=id=>document.getElementById(id);
+const esc=LL.esc;
 const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);};
 const normCard=v=>String(v==null?'':v).trim().replace(/^0+/,'').toUpperCase();
 const dayKey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -173,16 +241,54 @@ let rootRef=null,students={},byCard={},stations={},queues={},selKey=localStorage
 const queueCount=k=>Object.keys(queues[k]||{}).length;
 try{firebase.initializeApp({apiKey:"AIzaSyDMBiSM4oGSDE3khRISIxtxDCJJTLaxm0",authDomain:"ktmc-queue-system.firebaseapp.com",databaseURL:"https://ktmc-queue-system-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"ktmc-queue-system",storageBucket:"ktmc-queue-system.firebasestorage.app",messagingSenderId:"1098822703041",appId:"1:1098822703041:web:c010a95bf5c71c478a0140"});rootRef=firebase.database().ref('parents');}catch(e){toast('Firebase 未連線，離線顯示預設');}
 
+/* ===== search ===== */
+function searchMatch(s,q){
+  const tokens=q.split(/[\s,，、/\-]+/).filter(Boolean);
+  if(!tokens.length)return false;
+  const cls=String(s.cls||'').toLowerCase(),no=String(s.classNo||'').toLowerCase(),noS=no.replace(/^0+/,'')||no;
+  const card=String(s.cardId||'').toLowerCase(),cardS=card.replace(/^0+/,'')||card;
+  const en=String(s.nameEn||'').toLowerCase(),zh=String(s.nameZh||'').toLowerCase();
+  const hay=[en,zh,cls,no,noS,card,cardS,cls+no,cls+' '+no,cls+noS,cls+' '+noS,en+' '+zh,zh+' '+en];
+  return tokens.every(t=>{
+    if(hay.some(h=>h.includes(t)))return true;
+    if(/^\d+$/.test(t)){const ts=t.replace(/^0+/,'')||t;return hay.some(h=>h.includes(ts));}
+    return false;
+  });
+}
+
+/* ===== station modal ===== */
+function renderDock(){
+  const e=Object.entries(stations),sel=$('stationSel');
+  sel.innerHTML='<option value="">— 選擇列印站 Select station —</option>'+e.map(([k,v])=>`<option value="${k}">${esc(v.name)} (${esc(v.token)})</option>`).join('');
+  sel.value=selKey||'';
+  $('stationChips').innerHTML=e.map(([k,v])=>{const on=isOnline(v),q=queueCount(k);return `<button class="st-chip ${k===selKey?'active':''} ${on?'on':'off'}" data-k="${k}"><span class="dot"></span><span>${esc(v.name)}</span><span class="tk">${esc(v.token)}</span><span class="q">${q}</span></button>`;}).join('')||'<span class="dock-empty">尚未建立站點，請在下方新增。</span>';
+  const st=stations[selKey],pill=$('onlinePill');
+  if(!st){pill.textContent='未選擇';pill.className='pill off';}else if(isOnline(st)){pill.textContent='在線 Online';pill.className='pill';}else{pill.textContent='離線 Offline';pill.className='pill off';}
+  $('queueInfo').textContent='queue '+(selKey?queueCount(selKey):0);
+  const on=selKey&&isOnline(st);
+  $('stBtnText').textContent=selKey&&st?st.name:'未選擇站點 Select station';
+  $('stBtnDot').className='dot'+(on?' on':'');
+  $('stBtnQueue').textContent='queue '+(selKey?queueCount(selKey):0);
+}
+function openStation(){$('stationModal').classList.add('open');$('stationModal').setAttribute('aria-hidden','false');}
+function closeStation(){$('stationModal').classList.remove('open');$('stationModal').setAttribute('aria-hidden','true');}
+function selectStation(k){selKey=k&&stations[k]?k:null;if(selKey){localStorage.setItem(LS,selKey);toast('已選擇：'+stations[selKey].name);}else localStorage.removeItem(LS);renderDock();closeStation();}
+$('stationBtn').onclick=openStation;$('stationClose').onclick=closeStation;
+$('stationSel').onchange=function(){selectStation(this.value||null);};
+$('stationChips').onclick=e=>{const b=e.target.closest('.st-chip');if(b)selectStation(b.dataset.k);};
+$('stationModal').addEventListener('click',e=>{if(e.target===$('stationModal'))closeStation();});
+
 /* ===== designer ===== */
 let layout=LL.norm(null),selId=null,zoom=1.4,dzDrag=null;
 const dzScale=()=>LL.MM*zoom;const selBox=()=>layout.boxes.find(b=>b.id===selId)||null;
+function effText(){const e=LL.eff(layout);return `有效列印區域：起點 (${e.x}, ${e.y}) · 大小 ${e.w}×${e.h} mm`;}
 function setMode(m){layout.mode=m;$('modeBasic').classList.toggle('active',m==='simple');$('modeDesigner').classList.toggle('active',m==='designer');$('basicBox').style.display=m==='simple'?'block':'none';$('designerBox').style.display=m==='designer'?'block':'none';$('dzModeHint').textContent=m==='simple'?'基本兩行模式':'自由放置文字方塊';renderAll();}
-function effText(){const e=LL.eff(layout);return `有效列印區域：起點 (${e.x}, ${e.y}) · 大小 ${e.w}×${e.h} mm`; }
 function syncInputs(){
  $('dcW').value=layout.doc.w;$('dcH').value=layout.doc.h;$('hdTop').value=layout.hide.top;$('hdLeft').value=layout.hide.left;
  $('bsTop').value=layout.simple.topMm;$('bsSide').value=layout.simple.sideMm;$('bsEn').value=layout.simple.enSize;$('bsZh').value=layout.simple.zhSize;$('bsGap').value=layout.simple.gapMm;$('bsEnText').value=layout.simple.enText;$('bsZhText').value=layout.simple.zhText;
  $('smCls').value=layout.sample.cls||'';$('smNo').value=layout.sample.classNo||'';$('smEn').value=layout.sample.nameEn||'';$('smZh').value=layout.sample.nameZh||'';$('smCard').value=layout.sample.cardId||'';
- $('effInfo').textContent=effText();syncProps();}
+ $('effInfo').textContent=effText();syncProps();
+}
 function syncProps(){const b=selBox();$('dzNoSel').style.display=b?'none':'block';$('dzProps').style.display=b?'block':'none';if(!b)return;
  $('dzText').value=b.text;$('dzX').value=b.x;$('dzY').value=b.y;$('dzW').value=b.w;$('dzH').value=b.h;$('dzSize').value=b.size;$('dzWeight').value=String(b.weight);$('dzLine').value=b.lineHeight;$('dzAlign').value=b.align;$('dzValign').value=b.valign;$('dzColor').value=b.color;}
 function renderCanvas(){if(layout.mode!=='designer')return;const e=LL.eff(layout),S=dzScale(),c=$('dzCanvas');c.style.width=e.w*S+'px';c.style.height=e.h*S+'px';
@@ -194,7 +300,7 @@ function updateBoxEl(b){const el=[...$('dzCanvas').querySelectorAll('.dz-box')].
 setMode(layout.mode);syncInputs();renderAll();
 if(rootRef)rootRef.child('labelLayout').on('value',s=>{const keep=selId;layout=LL.norm(s.val());if(keep&&layout.boxes.some(b=>b.id===keep))selId=keep;else selId=layout.boxes[0]?.id||null;setMode(layout.mode);syncInputs();renderAll();$('dzStatus').textContent=s.exists()?'已載入設定（舊排版已自動轉換）。':'未儲存設定，顯示預設。';});
 $('modeBasic').onclick=()=>setMode('simple');$('modeDesigner').onclick=()=>setMode('designer');
-$('dzChips').innerHTML=LL.PLACEHOLDERS.map(([k,l])=>`<button type="button" class="dz-chip" data-k="${k}">{${k}}<span class="hk"> ${l}</span></button>`).join('');
+$('dzChips').innerHTML=LL.PH.map(([k,l])=>`<button type="button" class="dz-chip" data-k="${k}">{${k}}<span class="hk"> ${l}</span></button>`).join('');
 $('dzChips').onclick=e=>{const c=e.target.closest('.dz-chip');if(!c)return;const b=selBox();if(!b)return;const ta=$('dzText'),t='{'+c.dataset.k+'}',s=ta.selectionStart,en=ta.selectionEnd;ta.value=ta.value.slice(0,s)+t+ta.value.slice(en);ta.selectionStart=ta.selectionEnd=s+t.length;b.text=ta.value;ta.focus();renderAll();};
 $('dzCanvas').addEventListener('pointerdown',e=>{const el=e.target.closest('.dz-box');if(!el)return;const b=layout.boxes.find(x=>x.id===el.dataset.id);if(!b)return;selectBox(b.id);dzDrag={id:b.id,mode:e.target.classList.contains('dz-handle')?'resize':'move',sx:e.clientX,sy:e.clientY,ox:b.x,oy:b.y,ow:b.w,oh:b.h};e.preventDefault();});
 window.addEventListener('pointermove',e=>{if(!dzDrag)return;const b=layout.boxes.find(x=>x.id===dzDrag.id);if(!b)return;const ef=LL.eff(layout),S=dzScale(),dx=(e.clientX-dzDrag.sx)/S,dy=(e.clientY-dzDrag.sy)/S;
@@ -234,53 +340,58 @@ function renderAttendance(){const classes=[...new Set(Object.values(students).ma
  $('attBody').innerHTML=rows.slice(0,1000).map(([k,s])=>{const r=att[k];return `<tr><td>${esc(s.cls)}</td><td>${esc(s.classNo)}</td><td>${esc(s.nameEn)}</td><td>${esc(s.nameZh)}</td><td>${attBadge(r)}</td><td class="mono">${r?fmtT(r.time):'—'}</td><td>${esc(r?.by||'—')}</td><td><button class="btn-ok mini" onclick="attMark('${k}','present')">出席</button> <button class="btn-red mini" onclick="attMark('${k}','absent')">缺席</button> ${r?`<button class="btn-gray mini" onclick="attClear('${k}')">清除</button>`:''}</td></tr>`;}).join('')||'<tr><td colspan="8" style="text-align:center">No data 暫無資料</td></tr>';}
 $('attDate').value=attDay;$('attDate').onchange=function(){attachAtt(this.value||dayKey());};$('attCls').onchange=renderAttendance;
 $('btnAbsAll').onclick=async()=>{const un=attRows().filter(([k])=>!att[k]);if(!un.length)return toast('沒有未點名學生');if(!confirm(`將 ${un.length} 位標記為缺席？`))return;const upd={},now=Date.now();un.forEach(([k,s])=>upd[k]={status:'absent',time:now,by:'admin',cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',cardId:s.cardId||''});if(rootRef)await rootRef.child('attendance/'+attDay).update(upd);toast('已標記缺席');};
-$('btnAttExport').onclick=()=>{const rows=attRows();if(!rows.length)return toast('沒有學生資料');const aoa=[['Date','Class','Class No','English Name','Chinese Name','Card ID','Status','Time','By']];rows.forEach(([k,s])=>{const r=att[k];aoa.push([attDay,s.cls||'',s.classNo||'',s.nameEn||'',s.nameZh||'',s.cardId||'',r?(r.status==='present'?'Present':'Absent'):'Unmarked',r?new Date(r.time).toLocaleTimeString('en-GB'):'',r?.by||'']);});const ws=XLSX.utils.aoa_to_sheet(aoa),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Attendance');XLSX.writeFile(wb,`attendance_${attDay}.xlsx`);};
+$('btnAttExport').onclick=()=>{if(typeof XLSX==='undefined')return toast('Excel 元件未載入');const rows=attRows();if(!rows.length)return toast('沒有學生資料');const aoa=[['Date','Class','Class No','English Name','Chinese Name','Card ID','Status','Time','By']];rows.forEach(([k,s])=>{const r=att[k];aoa.push([attDay,s.cls||'',s.classNo||'',s.nameEn||'',s.nameZh||'',s.cardId||'',r?(r.status==='present'?'Present':'Absent'):'Unmarked',r?new Date(r.time).toLocaleTimeString('en-GB'):'',r?.by||'']);});const ws=XLSX.utils.aoa_to_sheet(aoa),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Attendance');XLSX.writeFile(wb,`attendance_${attDay}.xlsx`);};
 
-/* ===== stations / students / scan / excel / danger ===== */
-function renderDock(){const e=Object.entries(stations),sel=$('stationSel');sel.innerHTML='<option value="">— 選擇列印站 Select station —</option>'+e.map(([k,v])=>`<option value="${k}">${esc(v.name)} (${esc(v.token)})</option>`).join('');sel.value=selKey||'';
- $('stationChips').innerHTML=e.map(([k,v])=>{const on=isOnline(v),q=queueCount(k);return `<button class="st-chip ${k===selKey?'active':''} ${on?'on':'off'}" data-k="${k}"><span class="dot"></span><span>${esc(v.name)}</span><span class="tk">${esc(v.token)}</span><span class="q">${q}</span></button>`;}).join('')||'<span class="dock-empty">尚未建立站點。</span>';
- const st=stations[selKey],pill=$('onlinePill');if(!st){pill.textContent='未選擇';pill.className='pill off';}else if(isOnline(st)){pill.textContent='在線 Online';pill.className='pill';}else{pill.textContent='離線 Offline';pill.className='pill off';}
- $('queueInfo').textContent='queue '+(selKey?queueCount(selKey):0);}
+/* ===== stations ===== */
 function renderStations(){$('stBody').innerHTML=Object.entries(stations).map(([k,v])=>{const q=queueCount(k),on=isOnline(v);return `<tr><td><b>${esc(v.name)}</b></td><td>${esc(v.token)}</td><td>global</td><td><span class="dot ${on?'on':''}"></span> ${on?'Online':'Offline'}<br><span class="muted">queue ${q}</span></td><td><button class="btn-gray mini" onclick="editStation('${k}')">Edit</button> <button class="btn-red mini" onclick="delStation('${k}')">Del</button></td></tr>`;}).join('')||'<tr><td colspan="5" style="text-align:center">No stations</td></tr>';}
-$('stationSel').onchange=function(){selectStation(this.value||null);};
-$('stationChips').onclick=e=>{const b=e.target.closest('.st-chip');if(b)selectStation(b.dataset.k);};
-function selectStation(k){selKey=k&&stations[k]?k:null;if(selKey){localStorage.setItem(LS,selKey);toast('已選擇：'+stations[selKey].name);}else localStorage.removeItem(LS);renderDock();}
-$('btnAddStation').onclick=async()=>{const n=$('nsName').value.trim(),t=$('nsToken').value.trim().toUpperCase();if(!n||!t)return toast('請輸入名稱及 Token');if(!rootRef)return;if(Object.values(stations).some(v=>String(v.token||'').toUpperCase()===t))return toast('Token 已存在');const ref=await rootRef.child('stations').push({name:n,token:t,settings:{},createdAt:Date.now(),lastSeen:0});$('nsName').value='';$('nsToken').value='';selectStation(ref.key);};
+$('btnAddStation').onclick=async()=>{const n=$('nsName').value.trim(),t=$('nsToken').value.trim().toUpperCase();if(!n||!t)return toast('請輸入名稱及 Token');if(!rootRef)return;if(Object.values(stations).some(v=>String(v.token||'').toUpperCase()===t))return toast('Token 已存在');const ref=await rootRef.child('stations').push({name:n,token:t,settings:{},createdAt:Date.now(),lastSeen:0});$('nsName').value='';$('nsToken').value='';selectStation(ref.key);toast('站點已新增並選定');};
 window.editStation=async k=>{const v=stations[k];if(!v)return;const n=prompt('Name：',v.name);if(n===null)return;const t=prompt('Token：',v.token);if(t===null)return;if(rootRef)await rootRef.child('stations/'+k).update({name:n.trim()||v.name,token:t.trim().toUpperCase()||v.token});};
-window.delStation=async k=>{if(!confirm('刪除站點及隊列？'))return;if(rootRef){await rootRef.child('stations/'+k).remove();await rootRef.child('queues/'+k).remove();}if(selKey===k){selKey=null;localStorage.removeItem(LS);}};
+window.delStation=async k=>{if(!confirm('刪除站點及隊列？'))return;if(rootRef){await rootRef.child('stations/'+k).remove();await rootRef.child('queues/'+k).remove();}if(selKey===k){selKey=null;localStorage.removeItem(LS);}renderDock();renderStations();};
+
+/* ===== print queue ===== */
 async function queueLabel(s,copies=1){if(!selKey||!stations[selKey]){toast('請先選擇列印站');return false;}if(!rootRef)return false;await new Promise(r=>setTimeout(r,2000));await rootRef.child('queues/'+selKey).push({type:'label',cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',cardId:s.cardId||'',copies,createdAt:Date.now(),done:false});sent++;$('sentCount').textContent='Sent 已送：'+sent;return true;}
+
+/* ===== HID scan ===== */
 let buf='',last=0;
-document.addEventListener('keydown',e=>{if($('dangerModal').classList.contains('open'))return;const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;const now=Date.now();if(now-last>120)buf='';last=now;if(e.key==='Enter'||e.key==='Tab'){if(buf.length>=4){e.preventDefault();handleScan(buf);}buf='';}else if(e.key.length===1)buf+=e.key;});
+document.addEventListener('keydown',e=>{if($('dangerModal').classList.contains('open')||$('stationModal').classList.contains('open'))return;const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;const now=Date.now();if(now-last>120)buf='';last=now;if(e.key==='Enter'||e.key==='Tab'){if(buf.length>=4){e.preventDefault();handleScan(buf);}buf='';}else if(e.key.length===1)buf+=e.key;});
 async function handleScan(code){$('lastScan').textContent='Last scan: '+code;const box=$('scanBox'),k=byCard[normCard(code)];
  if(!k){unknownCard=code;setBox(box,'err');box.innerHTML=`未登記卡號: ${esc(code)}<br><span class="en">搜尋學生後按「綁定此卡」</span>`;$('bindHelp').style.display='block';$('bindHelp').innerHTML=`卡號 <b>${esc(code)}</b> 未登記。`;doSearch();resetScanBox();return;}
  unknownCard=null;$('bindHelp').style.display='none';const s=students[k];setBox(box,'wait');box.innerHTML=`卡號 ${esc(code)}<br><span class="en">點名及列印中…</span>`;
  await markAtt(k,'present','scan');const t=fmtT(Date.now()),printed=(selKey&&stations[selKey])?await queueLabel(s,1):false;
  setBox(box,'ok');box.innerHTML=`${esc(s.nameEn)}<br>${esc(s.cls||'')} ${esc(s.classNo||'')} · ${esc(s.nameZh||'')}<br><span class="en">已點名 出席 ${t}${printed?' · → '+esc(stations[selKey].name):' · 僅點名'}</span>`;resetScanBox();}
 function resetScanBox(){setTimeout(()=>{const b=$('scanBox');setBox(b,'ready');b.innerHTML='準備就緒，請直接刷卡<br><span class="en">Ready — swipe to mark attendance &amp; print</span>';},4000);}
+
+/* ===== students ===== */
 function renderDB(){const rows=Object.entries(students).sort((a,b)=>String(a[1].nameEn||'').localeCompare(String(b[1].nameEn||''))).slice(0,500);$('dbBody').innerHTML=rows.map(([k,s])=>`<tr><td>${esc(s.cardId||'—')}</td><td>${esc(s.cls)}</td><td>${esc(s.classNo)}</td><td>${esc(s.nameEn)}</td><td>${esc(s.nameZh)}</td><td><button class="btn-amber mini" onclick="printOne('${k}')">Print</button> <button class="btn-red mini" onclick="delOne('${k}')">Del</button></td></tr>`).join('')||'<tr><td colspan="6" style="text-align:center">No data</td></tr>';}
 $('q').addEventListener('input',doSearch);
-function doSearch(){const q=$('q').value.trim().toLowerCase();if(!q){$('res').innerHTML='';return;}const hits=Object.entries(students).filter(([k,s])=>[s.nameEn,s.nameZh,s.cls,s.classNo,s.cardId].some(v=>String(v||'').toLowerCase().includes(q))).slice(0,40);
- $('res').innerHTML=hits.map(([k,s])=>`<div class="search-item"><div><b>${esc(s.nameEn)}</b> ／ ${esc(s.nameZh)} ${attBadge(att[k])}<br><span class="muted">${esc(s.cls||'')} ${esc(s.classNo||'')} · Card ${esc(s.cardId||'—')}</span></div><div class="row" style="margin:0"><button class="btn-amber mini" onclick="printOne('${k}')">Print</button> <button class="btn-ok mini" onclick="attMark('${k}','present')">出席</button> <button class="btn-red mini" onclick="attMark('${k}','absent')">缺席</button> ${unknownCard?`<button class="btn-gray mini" onclick="bindCard('${k}')">綁定此卡</button>`:''}</div></div>`).join('')||'<p class="muted">No match</p>';}
+function doSearch(){const q=$('q').value.trim().toLowerCase();if(!q){$('res').innerHTML='';return;}const hits=Object.entries(students).filter(([k,s])=>searchMatch(s,q)).slice(0,40);
+ $('res').innerHTML=hits.map(([k,s])=>`<div class="search-item"><div><b>${esc(s.nameEn)}</b> ／ ${esc(s.nameZh)} ${attBadge(att[k])}<br><span class="muted">${esc(s.cls||'')} ${esc(s.classNo||'')} · Card ${esc(s.cardId||'—')}</span></div><div class="row" style="margin:0"><button class="btn-amber mini" onclick="printOne('${k}')">Print</button> <button class="btn-ok mini" onclick="attMark('${k}','present')">出席</button> <button class="btn-red mini" onclick="attMark('${k}','absent')">缺席</button> ${unknownCard?`<button class="btn-gray mini" onclick="bindCard('${k}')">綁定此卡</button>`:''}</div></div>`).join('')||'<p class="muted">No match 無匹配結果</p>';}
 window.printOne=async k=>{const s=students[k];if(!s)return;if(!selKey)return toast('請先選擇列印站');if(!confirm(`Print ${s.nameEn}?`))return;if(await queueLabel(s,1))toast('已送至 '+stations[selKey].name);};
-window.bindCard=async k=>{if(!unknownCard)return;if(!confirm(`Bind ${unknownCard} to ${students[k].nameEn}?`))return;if(rootRef)await rootRef.child('students/'+k).update({cardId:unknownCard});unknownCard=null;$('bindHelp').style.display='none';doSearch();};
-window.delOne=async k=>{if(!confirm('Delete this student?'))return;if(rootRef)await rootRef.child('students/'+k).remove();};
+window.bindCard=async k=>{if(!unknownCard)return;if(!confirm(`Bind ${unknownCard} to ${students[k].nameEn}?`))return;if(rootRef)await rootRef.child('students/'+k).update({cardId:unknownCard});unknownCard=null;$('bindHelp').style.display='none';doSearch();toast('已綁定');};
+window.delOne=async k=>{if(!confirm('Delete this student?'))return;if(rootRef)await rootRef.child('students/'+k).remove();toast('已刪除');};
 $('btnAdd').onclick=async()=>{const rec={cardId:$('aCard').value.trim(),cls:$('aCls').value.trim().toUpperCase(),classNo:$('aNo').value.trim(),nameEn:$('aEn').value.trim(),nameZh:$('aZh').value.trim()};if(!rec.nameEn&&!rec.nameZh)return toast('請輸入姓名');if(!rootRef)return;const k=rec.cardId?byCard[normCard(rec.cardId)]:null;if(k)await rootRef.child('students/'+k).update(rec);else await rootRef.child('students').push(rec);['aCard','aCls','aNo','aEn','aZh'].forEach(id=>$(id).value='');toast('已儲存');};
+
+/* ===== Excel ===== */
 const norm=s=>String(s).toLowerCase().replace(/[^a-z]/g,'');
-$('btnTpl').onclick=()=>{const ws=XLSX.utils.aoa_to_sheet([['Card ID','Class','Class No','English Name','Chinese Name'],['0001234567','3A','15','CHAN TAI MAN','陳大文']]),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Students');XLSX.writeFile(wb,'parent_label_template.xlsx');};
-$('fExcel').addEventListener('change',function(){const f=this.files[0];if(!f||!rootRef)return;const rd=new FileReader();rd.onload=async e=>{try{const wb=XLSX.read(e.target.result,{type:'array'}),raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});const list=raw.map(r=>{const o={};Object.keys(r).forEach(k=>o[norm(k)]=r[k]);return{cardId:String(o.cardid||o.card||'').trim(),cls:String(o.class||o.form||'').trim().toUpperCase(),classNo:String(o.classno||o.no||'').trim(),nameEn:String(o.englishname||o.nameen||'').trim(),nameZh:String(o.chinesename||o.namezh||'').trim()};}).filter(x=>x.nameEn||x.nameZh);if(!list.length){$('impMsg').textContent='沒有有效資料';return;}let add=0,upd=0;for(const it of list){const k=it.cardId?byCard[normCard(it.cardId)]:null;if(k){await rootRef.child('students/'+k).update(it);upd++;}else{const ref=await rootRef.child('students').push(it);if(it.cardId)byCard[normCard(it.cardId)]=ref.key;add++;}}$('impMsg').textContent=`新增 ${add} 筆，更新 ${upd} 筆。`;}catch(err){$('impMsg').textContent=err.message;}};rd.readAsArrayBuffer(f);this.value='';});
+$('btnTpl').onclick=()=>{if(typeof XLSX==='undefined')return toast('Excel 元件未載入');const ws=XLSX.utils.aoa_to_sheet([['Card ID','Class','Class No','English Name','Chinese Name'],['0001234567','3A','15','CHAN TAI MAN','陳大文']]),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Students');XLSX.writeFile(wb,'parent_label_template.xlsx');};
+$('fExcel').addEventListener('change',function(){const f=this.files[0];if(!f||!rootRef)return;if(typeof XLSX==='undefined')return toast('Excel 元件未載入');const rd=new FileReader();rd.onload=async e=>{try{const wb=XLSX.read(e.target.result,{type:'array'}),raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});const list=raw.map(r=>{const o={};Object.keys(r).forEach(k=>o[norm(k)]=r[k]);return{cardId:String(o.cardid||o.card||'').trim(),cls:String(o.class||o.form||'').trim().toUpperCase(),classNo:String(o.classno||o.no||'').trim(),nameEn:String(o.englishname||o.nameen||'').trim(),nameZh:String(o.chinesename||o.namezh||'').trim()};}).filter(x=>x.nameEn||x.nameZh);if(!list.length){$('impMsg').textContent='沒有有效資料';return;}let add=0,upd=0;for(const it of list){const k=it.cardId?byCard[normCard(it.cardId)]:null;if(k){await rootRef.child('students/'+k).update(it);upd++;}else{const ref=await rootRef.child('students').push(it);if(it.cardId)byCard[normCard(it.cardId)]=ref.key;add++;}}$('impMsg').textContent=`新增 ${add} 筆，更新 ${upd} 筆。`;}catch(err){$('impMsg').textContent=err.message;}};rd.readAsArrayBuffer(f);this.value='';});
+
+/* ===== danger zone ===== */
 const DANGER={students:{title:'Delete all students',desc:'只刪除學生資料庫。',phrase:'DELETE',btn:'Delete Students'},all:{title:'Delete all data',desc:'刪除學生、站點、隊列、考勤及排版。',phrase:'DELETE ALL',btn:'Delete Everything'}};
 let dangerScope=null,dangerBusy=false;
-function openDanger(sc){dangerScope=sc;const c=DANGER[sc];$('dangerTitle').textContent=c.title;$('dangerDesc').textContent=c.desc;$('dangerPhraseLabel').textContent='Type '+c.phrase+' to confirm';$('dangerPhrase').value='';$('dangerPhrase').placeholder=c.phrase;$('dangerBackup').checked=true;$('dangerConfirm').textContent=c.btn;$('dangerConfirm').disabled=true;$('dangerStatus').textContent='';$('dangerSummary').innerHTML=`<div><span>Students</span><b>${Object.keys(students).length}</b></div>`+(sc==='all'?`<div><span>Stations</span><b>${Object.keys(stations).length}</b></div><div><span>Attendance + Layout</span><b>all</b></div>`:'');$('dangerModal').classList.add('open');document.body.style.overflow='hidden';setTimeout(()=>$('dangerPhrase').focus(),30);}
-function closeDanger(){if(dangerBusy)return;$('dangerModal').classList.remove('open');document.body.style.overflow='';dangerScope=null;}
+function openDanger(sc){dangerScope=sc;const c=DANGER[sc];$('dangerTitle').textContent=c.title;$('dangerDesc').textContent=c.desc;$('dangerPhraseLabel').textContent='Type '+c.phrase+' to confirm';$('dangerPhrase').value='';$('dangerPhrase').placeholder=c.phrase;$('dangerBackup').checked=true;$('dangerConfirm').textContent=c.btn;$('dangerConfirm').disabled=true;$('dangerCancel').disabled=false;$('dangerStatus').textContent='';$('dangerStatus').className='danger-status';$('dangerSummary').innerHTML=`<div><span>Students</span><b>${Object.keys(students).length}</b></div>`+(sc==='all'?`<div><span>Stations</span><b>${Object.keys(stations).length}</b></div><div><span>Attendance + Layout</span><b>all</b></div>`:'');$('dangerModal').classList.add('open');$('dangerModal').setAttribute('aria-hidden','false');document.body.style.overflow='hidden';setTimeout(()=>$('dangerPhrase').focus(),30);}
+function closeDanger(){if(dangerBusy)return;$('dangerModal').classList.remove('open');$('dangerModal').setAttribute('aria-hidden','true');document.body.style.overflow='';dangerScope=null;}
 $('dangerPhrase').addEventListener('input',()=>{const c=DANGER[dangerScope];if(c)$('dangerConfirm').disabled=$('dangerPhrase').value.trim().toUpperCase()!==c.phrase;});
 $('btnDelStudents').onclick=()=>openDanger('students');$('btnDelAll').onclick=()=>openDanger('all');$('dangerCancel').onclick=closeDanger;
 $('dangerModal').addEventListener('click',e=>{if(e.target===$('dangerModal'))closeDanger();});
 $('dangerConfirm').onclick=async()=>{const sc=dangerScope,c=DANGER[sc];if(!c||dangerBusy)return;if($('dangerPhrase').value.trim().toUpperCase()!==c.phrase)return;dangerBusy=true;$('dangerConfirm').disabled=true;$('dangerCancel').disabled=true;
  try{if($('dangerBackup').checked&&rootRef){const snap=await(sc==='all'?rootRef:rootRef.child('students')).once('value');const blob=new Blob([JSON.stringify({scope:sc,exportedAt:new Date().toISOString(),data:snap.val()||{}},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`backup-${sc}-${Date.now()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);}
   if(rootRef){if(sc==='all')await rootRef.remove();else await rootRef.child('students').remove();}
-  if(sc==='all'){localStorage.removeItem(LS);selKey=null;}unknownCard=null;$('q').value='';$('res').innerHTML='';dangerBusy=false;$('dangerCancel').disabled=false;closeDanger();toast('已刪除');
+  if(sc==='all'){localStorage.removeItem(LS);selKey=null;}unknownCard=null;$('q').value='';$('res').innerHTML='';dangerBusy=false;closeDanger();toast('已刪除');
  }catch(err){dangerBusy=false;$('dangerCancel').disabled=false;$('dangerStatus').textContent='失敗：'+err.message;$('dangerStatus').className='danger-status err';}};
-document.addEventListener('keydown',e=>{if($('dangerModal').classList.contains('open')&&e.key==='Escape')closeDanger();});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if($('dangerModal').classList.contains('open'))closeDanger();if($('stationModal').classList.contains('open'))closeStation();});
+
+/* ===== init ===== */
 renderDock();renderStations();renderDB();renderAttendance();attachAtt(attDay);
 if(rootRef){
  rootRef.child('stations').on('value',s=>{stations=s.val()||{};if(selKey&&!stations[selKey]){selKey=null;localStorage.removeItem(LS);}renderDock();renderStations();});
