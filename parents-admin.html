@@ -9,6 +9,10 @@
 .station-trigger{padding:0 0 14px;display:flex}
 #stationBtn{gap:8px}#stationBtn .dot{background:var(--faint)}#stationBtn .dot.on{background:var(--ok)}#stationBtn .muted{font-family:var(--mono);font-size:11px}
 #stationModal .dock-row{margin:0 0 10px}#stationModal .chips{margin:10px 0 0}#stationModal .dock-hint{margin:10px 0 0}
+#userDeleteModal .ud-list{margin:0;padding-left:18px;font-size:12.5px;line-height:1.75}
+#userDeleteModal .ud-warn{margin-top:10px;padding-top:10px;border-top:1px solid var(--accent-line);color:var(--warn)}
+#userDeleteModal .ud-uid{font-family:var(--mono);font-size:11px;color:var(--faint);word-break:break-all}
+.user-legacy{font-size:10.5px;padding:1px 7px;border-radius:999px;border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent-deep);margin-left:6px;white-space:nowrap}
 </style>
 </head><body class="auth-locked">
 <div class="topbar"><span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><span data-i18n="app.admin"></span></span><span class="chip" id="topChip">—</span></div>
@@ -166,6 +170,7 @@
           <span class="spacer" style="flex:1"></span><span class="tag" id="userCount"></span>
         </div>
         <div style="overflow:auto"><table><thead><tr><th data-i18n="common.name"></th><th data-i18n="common.email"></th><th data-i18n="common.role"></th><th data-i18n="common.status"></th><th data-i18n="common.requested"></th><th data-i18n="common.actions"></th></tr></thead><tbody id="usersBody"></tbody></table></div>
+        <p class="muted" id="usersFootNote" style="margin-top:12px"></p>
       </div>
     </section>
 
@@ -193,6 +198,18 @@
   <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn-gray" id="stationClose" data-i18n="common.close"></button></div>
 </div></div>
 
+<div class="modal-scrim" id="userDeleteModal" aria-hidden="true"><div class="modal" role="dialog" aria-modal="true">
+  <span class="eyebrow-danger" id="udEyebrow"></span>
+  <h3 id="udTitle"></h3>
+  <p class="muted" id="udDesc"></p>
+  <div class="danger-summary" id="udSummary"></div>
+  <div class="help" id="udNote"></div>
+  <div class="row" id="udConsoleRow" style="margin-top:12px"><a class="btn btn-gray btn-sm" id="udConsole" target="_blank" rel="noopener"></a></div>
+  <div class="att-field" style="margin-top:14px"><label id="udLabel"></label><input id="udEmail" autocomplete="off" spellcheck="false"></div>
+  <p class="danger-status" id="udStatus"></p>
+  <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn-gray" id="udCancel"></button><button class="btn-red solid" id="udConfirm" disabled></button></div>
+</div></div>
+
 <div class="modal-scrim" id="dangerModal" aria-hidden="true"><div class="modal" role="dialog" aria-modal="true">
   <span class="eyebrow-danger" data-i18n="admin.permanent"></span><h3 id="dangerTitle">—</h3><p class="muted" id="dangerDesc">—</p>
   <div class="danger-summary" id="dangerSummary"></div>
@@ -211,156 +228,354 @@
 <script src="js/label-layout.js"></script>
 <script src="js/auth.js"></script>
 <script>
-const $=id=>document.getElementById(id),t=(k,v)=>I18N.t(k,v),esc=LL.esc,rootRef=Auth.root();
-const toast=m=>{const el=$('toast');el.textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2600);};
-const normCard=v=>String(v==null?'':v).trim().replace(/^0+/,'').toUpperCase();
-const dayKey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-const fmtT=ts=>ts?new Date(ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'—';
-const fmtD=ts=>ts?new Date(ts).toLocaleDateString('en-GB'):'—';
-const LS='parentRemoteStation',isOnline=st=>st&&st.lastSeen&&(Date.now()-st.lastSeen<60000),clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
-const SC={ready:['#e7f1fd','#0851a8'],wait:['#fdf3df','#966712'],ok:['#e6f5ed','#177a4c'],err:['#fdecec','#c23b3b']};
-const setBox=(el,s)=>{el.style.background=SC[s][0];el.style.color=SC[s][1];};
-const guard=()=>{if(!Auth.isAdmin()){toast(t('admin.needAdmin'));return false;}return true;};
-const werr=e=>{const c=(e&&e.code)||'';toast(/PERMISSION_DENIED/i.test(c+e)?t('admin.writeDenied'):t('admin.opFail')+': '+(e.message||e));};
-let students={},byCard={},stations={},queues={},selKey=localStorage.getItem(LS)||null,unknownCard=null,sent=0,users={},userFilter='pending';
-const queueCount=k=>Object.keys(queues[k]||{}).length;
+/* Optional: URL of the deployed callable Cloud Function (see functions/index.js).
+   Leave empty to remove the profile and access only; the Firebase Authentication
+   login record must then be deleted in Firebase Console. */
+const AUTH_DELETE_ENDPOINT = '';
 
-const PAGES=['overview','operate','designer','attendance','stations','students','users','settings'];
-function showPage(p){if(!PAGES.includes(p))p='overview';document.querySelectorAll('.side-link').forEach(b=>b.classList.toggle('active',b.dataset.page===p));document.querySelectorAll('.admin-page').forEach(s=>s.classList.toggle('active',s.id==='page-'+p));if(location.hash.slice(1)!==p)history.replaceState(null,'','#'+p);if(p==='designer')renderAll();}
-document.querySelectorAll('.side-link').forEach(b=>b.onclick=()=>showPage(b.dataset.page));
-document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>showPage(b.dataset.goto));
-addEventListener('hashchange',()=>showPage(location.hash.slice(1)));
-showPage(location.hash.slice(1)||'overview');
+const EXTRA = {
+  zh: {
+    'acct.delete': '刪除帳戶',
+    'acct.deleteTitle': '刪除帳戶',
+    'acct.deleteDesc': '此操作會移除該用戶的系統設定檔及管理員權限，並即時撤銷所有存取權。',
+    'acct.deleteWhat': '將會移除',
+    'acct.removeProfile': '用戶設定檔（users）',
+    'acct.removeAdmin': '管理員權限（admins）',
+    'acct.removeAuth': 'Firebase Authentication 登入紀錄',
+    'acct.authWillDelete': '已設定刪除服務，登入紀錄會一併刪除。',
+    'acct.authManual': '此系統為純前端應用，無法直接刪除其他用戶的 Firebase Authentication 登入紀錄。移除設定檔後，該用戶仍可登入，但會顯示為「帳戶尚未設定」，且無法讀取或寫入任何資料。如需徹底移除登入紀錄，請到 Firebase Console → Authentication → Users 刪除該用戶。',
+    'acct.openConsole': '開啟 Firebase Console — Authentication',
+    'acct.typeEmail': '輸入該用戶的電郵以確認',
+    'acct.typeUid': '輸入該用戶的 UID 以確認',
+    'acct.cannotSelfDelete': '不能刪除自己的帳戶',
+    'acct.adminWarn': '注意：此帳戶擁有管理員權限。刪除前請確認系統仍有其他管理員。',
+    'acct.reRequestNote': '如該用戶再次登入並提交申請，會重新出現在「待批」名單，需要再次審批。',
+    'acct.deleted': '已刪除帳戶',
+    'acct.authDeleted': '已刪除帳戶及登入紀錄',
+    'acct.authStillExists': '已移除設定檔及存取權；登入紀錄請到 Firebase Console 刪除。',
+    'acct.deleteFailed': '刪除帳戶失敗',
+    'acct.confirmDelete': '刪除帳戶',
+    'acct.legacy': 'Firebase 管理員',
+    'acct.legacyNote': '標示為「Firebase 管理員」的帳戶只在 admins 節點設定，沒有系統設定檔，因此只可刪除。',
+    'acct.usersFoot': '刪除帳戶會即時撤銷存取權。如未設定刪除服務，Firebase Authentication 登入紀錄需於 Firebase Console 另行刪除。',
+    'acct.unknownEmail': '（沒有電郵紀錄）',
+    'acct.uid': '用戶 ID'
+  },
+  en: {
+    'acct.delete': 'Delete account',
+    'acct.deleteTitle': 'Delete account',
+    'acct.deleteDesc': 'This removes the user profile and admin rights, and revokes all access immediately.',
+    'acct.deleteWhat': 'Will be removed',
+    'acct.removeProfile': 'User profile (users)',
+    'acct.removeAdmin': 'Admin rights (admins)',
+    'acct.removeAuth': 'Firebase Authentication login record',
+    'acct.authWillDelete': 'A deletion service is configured, so the login record is removed as well.',
+    'acct.authManual': 'This is a front-end only system and cannot delete another user’s Firebase Authentication record. After the profile is removed the user can still sign in, but will see “Account not provisioned” and cannot read or write any data. To remove the login record completely, delete the user in Firebase Console → Authentication → Users.',
+    'acct.openConsole': 'Open Firebase Console — Authentication',
+    'acct.typeEmail': 'Type the user’s email to confirm',
+    'acct.typeUid': 'Type the user’s UID to confirm',
+    'acct.cannotSelfDelete': 'You cannot delete your own account',
+    'acct.adminWarn': 'Warning: this account has admin rights. Make sure another administrator remains.',
+    'acct.reRequestNote': 'If the user signs in again and submits a request, they reappear in the Pending list and must be approved again.',
+    'acct.deleted': 'Account deleted',
+    'acct.authDeleted': 'Account and login record deleted',
+    'acct.authStillExists': 'Profile and access removed. Delete the login record in Firebase Console.',
+    'acct.deleteFailed': 'Failed to delete account',
+    'acct.confirmDelete': 'Delete account',
+    'acct.legacy': 'Firebase admin',
+    'acct.legacyNote': 'Accounts marked “Firebase admin” exist only in the admins node and have no system profile, so they can only be deleted.',
+    'acct.usersFoot': 'Deleting an account revokes access immediately. Without a deletion service, the Firebase Authentication login record must be removed separately in Firebase Console.',
+    'acct.unknownEmail': '(no email on record)',
+    'acct.uid': 'User ID'
+  }
+};
 
-function renderOverview(){const a=Object.entries(stations),on=a.filter(([k,v])=>online(v)).length;let pend=0;Object.values(queues).forEach(q=>pend+=Object.keys(q||{}).length);let pres=0;Object.values(att).forEach(r=>{if(r&&r.status==='present')pres++;});const pu=Object.values(users).filter(u=>u.status==='pending').length;
-$('ovStudents').textContent=Object.keys(students).length;$('ovOnline').textContent=on+'/'+a.length;$('ovQueue').textContent=pend;$('ovPresent').textContent=pres;$('ovPending').textContent=pu;const b=$('pendingBadge');b.textContent=pu;b.hidden=pu===0;}
-function renderDock(){const e=Object.entries(stations),sel=$('stationSel');sel.innerHTML='<option value="">— '+esc(t('common.selectStation'))+' —</option>'+e.map(([k,v])=>'<option value="'+k+'">'+esc(v.name)+' ('+esc(v.token)+')</option>').join('');sel.value=selKey||'';
-$('stationChips').innerHTML=e.map(([k,v])=>{const on=isOnline(v),q=queueCount(k);return '<button class="st-chip '+(k===selKey?'active':'')+' '+(on?'on':'off')+'" data-k="'+k+'"><span class="dot"></span><span>'+esc(v.name)+'</span><span class="tk">'+esc(v.token)+'</span><span class="q">'+q+'</span></button>';}).join('')||'<span class="dock-empty">'+esc(t('remote.noStations'))+'</span>';
-const st=stations[selKey],pill=$('onlinePill');if(!st){pill.textContent=t('common.notSelected');pill.className='pill off';}else if(isOnline(st)){pill.textContent=t('common.online');pill.className='pill';}else{pill.textContent=t('common.offline');pill.className='pill off';}
-$('queueInfo').textContent=t('common.queue')+' '+(selKey?queueCount(selKey):0);const on=selKey&&isOnline(st);$('stBtnText').textContent=selKey&&st?st.name:t('common.selectStation');$('stBtnDot').className='dot'+(on?' on':'');$('stBtnQueue').textContent=t('common.queue')+' '+(selKey?queueCount(selKey):0);}
-function openStation(){$('stationModal').classList.add('open');}function closeStation(){$('stationModal').classList.remove('open');}
-function selectStation(k){selKey=k&&stations[k]?k:null;if(selKey){localStorage.setItem(LS,selKey);toast(t('admin.stationSelected')+': '+stations[selKey].name);}else localStorage.removeItem(LS);renderDock();closeStation();}
-$('stationBtn').onclick=openStation;$('stationClose').onclick=closeStation;$('stationSel').onchange=function(){selectStation(this.value||null);};$('stationChips').onclick=e=>{const b=e.target.closest('.st-chip');if(b)selectStation(b.dataset.k);};$('stationModal').addEventListener('click',e=>{if(e.target===$('stationModal'))closeStation();});
+const $ = id => document.getElementById(id);
+const t = (k, v) => {
+  const l = I18N.lang, s = EXTRA[l] && EXTRA[l][k];
+  if (s != null) { let o = s; if (v) Object.keys(v).forEach(x => o = o.split('{' + x + '}').join(v[x])); return o; }
+  return I18N.t(k, v);
+};
+const esc = LL.esc, rootRef = Auth.root();
+const toast = m => { const el = $('toast'); el.textContent = m; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 3200); };
+const normCard = v => String(v == null ? '' : v).trim().replace(/^0+/, '').toUpperCase();
+const dayKey = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const fmtT = ts => ts ? new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—';
+const fmtD = ts => ts ? new Date(ts).toLocaleDateString('en-GB') : '—';
+const LS = 'parentRemoteStation', isOnline = st => st && st.lastSeen && (Date.now() - st.lastSeen < 60000), clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const SC = { ready: ['#e7f1fd', '#0851a8'], wait: ['#fdf3df', '#966712'], ok: ['#e6f5ed', '#177a4c'], err: ['#fdecec', '#c23b3b'] };
+const setBox = (el, s) => { el.style.background = SC[s][0]; el.style.color = SC[s][1]; };
+const guard = () => { if (!Auth.isAdmin()) { toast(t('admin.needAdmin')); return false; } return true; };
+const werr = e => { const c = (e && e.code) || ''; toast(/PERMISSION_DENIED/i.test(c + e) ? t('admin.writeDenied') : t('admin.opFail') + ': ' + (e.message || e)); };
+let students = {}, byCard = {}, stations = {}, queues = {}, selKey = localStorage.getItem(LS) || null, unknownCard = null, sent = 0, users = {}, adminFlags = {}, userFilter = 'pending';
+const queueCount = k => Object.keys(queues[k] || {}).length;
+const consoleUsersUrl = () => 'https://console.firebase.google.com/project/' + (Auth.cfg.projectId || '') + '/authentication/users';
 
-let layout=LL.norm(null),selId=null,zoom=1.4,dzDrag=null;
-const dzScale=()=>LL.MM*zoom,selBox=()=>layout.boxes.find(b=>b.id===selId)||null;
-function effText(){const e=LL.eff(layout);return t('admin.effArea')+': '+t('admin.origin')+' ('+e.x+', '+e.y+') · '+t('admin.size')+' '+e.w+'×'+e.h+' mm';}
-function setMode(m){layout.mode=m;$('modeBasic').classList.toggle('active',m==='simple');$('modeDesigner').classList.toggle('active',m==='designer');$('basicBox').style.display=m==='simple'?'block':'none';$('designerBox').style.display=m==='designer'?'block':'none';$('dzModeHint').textContent=m==='simple'?t('admin.basicHint'):t('admin.designerHint');renderAll();}
-function syncInputs(){$('dcW').value=layout.doc.w;$('dcH').value=layout.doc.h;$('hdTop').value=layout.hide.top;$('hdLeft').value=layout.hide.left;$('bsTop').value=layout.simple.topMm;$('bsSide').value=layout.simple.sideMm;$('bsEn').value=layout.simple.enSize;$('bsZh').value=layout.simple.zhSize;$('bsGap').value=layout.simple.gapMm;$('bsEnText').value=layout.simple.enText;$('bsZhText').value=layout.simple.zhText;$('smCls').value=layout.sample.cls||'';$('smNo').value=layout.sample.classNo||'';$('smEn').value=layout.sample.nameEn||'';$('smZh').value=layout.sample.nameZh||'';$('smCard').value=layout.sample.cardId||'';$('effInfo').textContent=effText();syncProps();}
-function syncProps(){const b=selBox();$('dzNoSel').style.display=b?'none':'block';$('dzProps').style.display=b?'block':'none';if(!b)return;$('dzText').value=b.text;$('dzX').value=b.x;$('dzY').value=b.y;$('dzW').value=b.w;$('dzH').value=b.h;$('dzSize').value=b.size;$('dzWeight').value=String(b.weight);$('dzLine').value=b.lineHeight;$('dzAlign').value=b.align;$('dzValign').value=b.valign;$('dzColor').value=b.color;}
-function renderChips(){$('dzChips').innerHTML=LL.PH.map(([k])=>'<button type="button" class="dz-chip" data-k="'+k+'">{'+k+'}<span class="hk"> '+esc(t('label.'+k))+'</span></button>').join('');}
-function renderCanvas(){if(layout.mode!=='designer')return;const e=LL.eff(layout),S=dzScale(),c=$('dzCanvas');c.style.width=e.w*S+'px';c.style.height=e.h*S+'px';c.innerHTML=layout.boxes.map(b=>{const j=b.valign==='top'?'flex-start':b.valign==='bottom'?'flex-end':'center';return '<div class="dz-box '+(b.id===selId?'sel':'')+'" data-id="'+esc(b.id)+'" style="left:'+b.x*S+'px;top:'+b.y*S+'px;width:'+b.w*S+'px;height:'+b.h*S+'px;font-size:'+b.size*zoom+'px;font-weight:'+b.weight+';text-align:'+b.align+';color:'+b.color+';line-height:'+b.lineHeight+';justify-content:'+j+'">'+esc(LL.fill(b.text,layout.sample)).replace(/\n/g,'<br>')+'<span class="dz-handle"></span></div>';}).join('');}
-function renderPreview(){const e=LL.eff(layout),p=$('dzPreview');p.style.width=e.w+'mm';p.style.height=e.h+'mm';p.innerHTML=LL.stageHTML(layout,layout.sample,false);$('dzInfo').textContent=effText();}
-function renderAll(){renderChips();renderCanvas();renderPreview();syncProps();$('effInfo').textContent=effText();}
-function selectBox(id){selId=id;renderCanvas();syncProps();}
-function updateBoxEl(b){const el=[...$('dzCanvas').querySelectorAll('.dz-box')].find(x=>x.dataset.id===b.id);if(!el)return;const S=dzScale();el.style.left=b.x*S+'px';el.style.top=b.y*S+'px';el.style.width=b.w*S+'px';el.style.height=b.h*S+'px';}
-setMode(layout.mode);syncInputs();renderAll();
-$('modeBasic').onclick=()=>setMode('simple');$('modeDesigner').onclick=()=>setMode('designer');
-$('dzChips').onclick=e=>{const c=e.target.closest('.dz-chip');if(!c)return;const b=selBox();if(!b)return;const ta=$('dzText'),tx='{'+c.dataset.k+'}',s=ta.selectionStart,en=ta.selectionEnd;ta.value=ta.value.slice(0,s)+tx+ta.value.slice(en);ta.selectionStart=ta.selectionEnd=s+tx.length;b.text=ta.value;ta.focus();renderAll();};
-$('dzCanvas').addEventListener('pointerdown',e=>{const el=e.target.closest('.dz-box');if(!el)return;const b=layout.boxes.find(x=>x.id===el.dataset.id);if(!b)return;selectBox(b.id);dzDrag={id:b.id,mode:e.target.classList.contains('dz-handle')?'resize':'move',sx:e.clientX,sy:e.clientY,ox:b.x,oy:b.y,ow:b.w,oh:b.h};e.preventDefault();});
-window.addEventListener('pointermove',e=>{if(!dzDrag)return;const b=layout.boxes.find(x=>x.id===dzDrag.id);if(!b)return;const ef=LL.eff(layout),S=dzScale(),dx=(e.clientX-dzDrag.sx)/S,dy=(e.clientY-dzDrag.sy)/S;if(dzDrag.mode==='move'){b.x=+clamp(dzDrag.ox+dx,0,Math.max(0,ef.w-b.w)).toFixed(2);b.y=+clamp(dzDrag.oy+dy,0,Math.max(0,ef.h-b.h)).toFixed(2);}else{b.w=+clamp(dzDrag.ow+dx,1,Math.max(1,ef.w-b.x)).toFixed(2);b.h=+clamp(dzDrag.oh+dy,1,Math.max(1,ef.h-b.y)).toFixed(2);}updateBoxEl(b);renderPreview();$('dzX').value=b.x;$('dzY').value=b.y;$('dzW').value=b.w;$('dzH').value=b.h;});
-window.addEventListener('pointerup',()=>dzDrag=null);window.addEventListener('pointercancel',()=>dzDrag=null);
-[['dzX','x'],['dzY','y'],['dzW','w'],['dzH','h'],['dzSize','size'],['dzLine','lineHeight']].forEach(([id,k])=>$(id).addEventListener('input',()=>{const b=selBox();if(!b)return;const v=parseFloat($(id).value);if(!Number.isFinite(v))return;b[k]=v;renderAll();}));
-$('dzWeight').onchange=()=>{const b=selBox();if(b){b.weight=parseInt($('dzWeight').value)||600;renderAll();}};
-$('dzAlign').onchange=()=>{const b=selBox();if(b){b.align=$('dzAlign').value;renderAll();}};
-$('dzValign').onchange=()=>{const b=selBox();if(b){b.valign=$('dzValign').value;renderAll();}};
-$('dzColor').oninput=()=>{const b=selBox();if(b){b.color=$('dzColor').value;renderAll();}};
-$('dzText').oninput=()=>{const b=selBox();if(b){b.text=$('dzText').value;renderAll();}};
-[['dcW','doc','w'],['dcH','doc','h'],['hdTop','hide','top'],['hdLeft','hide','left']].forEach(([id,g,k])=>$(id).addEventListener('input',()=>{const v=parseFloat($(id).value);if(!Number.isFinite(v))return;layout[g][k]=g==='hide'?Math.max(0,v):Math.max(1,v);renderAll();}));
-$('dcPreset').onclick=()=>{layout.doc={w:60,h:60};layout.hide={top:20,left:0};syncInputs();renderAll();toast(t('admin.presetApplied'));};
-[['bsTop','topMm'],['bsSide','sideMm'],['bsEn','enSize'],['bsZh','zhSize'],['bsGap','gapMm']].forEach(([id,k])=>$(id).addEventListener('input',()=>{const v=parseFloat($(id).value);if(!Number.isFinite(v))return;layout.simple[k]=v;renderPreview();}));
-$('bsEnText').oninput=()=>{layout.simple.enText=$('bsEnText').value;renderPreview();};$('bsZhText').oninput=()=>{layout.simple.zhText=$('bsZhText').value;renderPreview();};
-[['smCls','cls'],['smNo','classNo'],['smEn','nameEn'],['smZh','nameZh'],['smCard','cardId']].forEach(([id,k])=>$(id).addEventListener('input',()=>{layout.sample[k]=$(id).value;renderAll();}));
-$('dzZoom').onchange=()=>{zoom=parseFloat($('dzZoom').value)||1.4;renderCanvas();};
-$('dzAdd').onclick=()=>{const id='b'+Date.now();layout.boxes.push({id,x:4,y:4,w:30,h:8,text:'{nameEn}',size:16,weight:600,align:'center',valign:'middle',color:'#000000',lineHeight:1.2});selId=id;renderAll();};
-$('dzDup').onclick=()=>{const b=selBox();if(!b)return toast(t('admin.selectBoxFirst'));const e=LL.eff(layout),c=LL.clone(b);c.id='b'+Date.now();c.x=clamp(c.x+2,0,e.w-c.w);c.y=clamp(c.y+2,0,e.h-c.h);layout.boxes.push(c);selId=c.id;renderAll();};
-$('dzDel').onclick=()=>{const b=selBox();if(!b)return toast(t('admin.selectBoxFirst'));layout.boxes=layout.boxes.filter(x=>x.id!==b.id);selId=layout.boxes[0]?.id||null;renderAll();};
-$('dzReset').onclick=()=>{if(!confirm(t('admin.resetConfirm')))return;layout=LL.norm(null);selId=layout.boxes[0]?.id||null;setMode(layout.mode);syncInputs();renderAll();};
-$('dzSave').onclick=async()=>{if(!guard())return;try{const p=LL.clone(layout);p.version=4;p.updatedAt=Date.now();await rootRef.child('labelLayout').set(p);toast(t('admin.layoutSaved'));}catch(e){werr(e);}};
-$('dzExport').onclick=()=>{const b=new Blob([JSON.stringify(layout,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='label-layout.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);toast(t('admin.exported'));};
-$('dzImport').onclick=()=>$('dzImportFile').click();
-$('dzImportFile').addEventListener('change',function(){const f=this.files[0];if(!f)return;const rd=new FileReader();rd.onload=e=>{try{layout=LL.norm(JSON.parse(e.target.result));selId=layout.boxes[0]?.id||null;setMode(layout.mode);syncInputs();renderAll();toast(t('admin.jsonLoaded'));}catch(err){toast(t('admin.jsonFail'));}};rd.readAsText(f);this.value='';});
+const PAGES = ['overview', 'operate', 'designer', 'attendance', 'stations', 'students', 'users', 'settings'];
+function showPage(p) { if (!PAGES.includes(p)) p = 'overview'; document.querySelectorAll('.side-link').forEach(b => b.classList.toggle('active', b.dataset.page === p)); document.querySelectorAll('.admin-page').forEach(s => s.classList.toggle('active', s.id === 'page-' + p)); if (location.hash.slice(1) !== p) history.replaceState(null, '', '#' + p); if (p === 'designer') renderAll(); }
+document.querySelectorAll('.side-link').forEach(b => b.onclick = () => showPage(b.dataset.page));
+document.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => showPage(b.dataset.goto));
+addEventListener('hashchange', () => showPage(location.hash.slice(1)));
+showPage(location.hash.slice(1) || 'overview');
 
-let att={},attDay=dayKey(),attRef=null;
-function attachAtt(day){if(attRef)attRef.off();attDay=day;att={};attRef=rootRef.child('attendance/'+day);attRef.on('value',s=>{att=s.val()||{};renderAttendance();doSearch();renderOverview();},werr);}
-async function markAtt(k,status,by,day=dayKey()){const s=students[k];if(!s)return;await rootRef.child('attendance/'+day+'/'+k).set({status,time:Date.now(),by,cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',cardId:s.cardId||''});}
-window.attMark=async(k,st)=>{if(!guard())return;try{await markAtt(k,st,'admin',attDay);toast((st==='present'?t('remote.markedPresent'):t('remote.markedAbsent'))+' '+(students[k]?.nameEn||''));}catch(e){werr(e);}};
-window.attClear=async k=>{if(!guard())return;try{await rootRef.child('attendance/'+attDay+'/'+k).remove();toast(t('admin.cleared'));}catch(e){werr(e);}};
-const attBadge=a=>a?(a.status==='present'?'<span class="att-badge p">'+esc(t('common.present'))+' <span class="att-t">'+fmtT(a.time)+'</span></span>':'<span class="att-badge a">'+esc(t('common.absent'))+' <span class="att-t">'+fmtT(a.time)+'</span></span>'):'<span class="att-badge">'+esc(t('common.unmarked'))+'</span>';
-function attRows(){const cf=$('attCls').value;return Object.entries(students).filter(([k,s])=>!cf||String(s.cls||'').toUpperCase()===cf).sort((a,b)=>String(a[1].cls||'').localeCompare(String(b[1].cls||''))||(+a[1].classNo||0)-(+b[1].classNo||0));}
-function renderAttendance(){const classes=[...new Set(Object.values(students).map(s=>String(s.cls||'').toUpperCase()).filter(Boolean))].sort();const sel=$('attCls'),cur=sel.value;sel.innerHTML='<option value="">'+esc(t('common.all'))+'</option>'+classes.map(c=>'<option>'+esc(c)+'</option>').join('');if(classes.includes(cur))sel.value=cur;
-const rows=attRows();let p=0,a=0;rows.forEach(([k])=>{const r=att[k];if(r){r.status==='present'?p++:a++;}});$('attP').textContent=t('common.present')+' '+p;$('attA').textContent=t('common.absent')+' '+a;$('attN').textContent=t('common.unmarked')+' '+(rows.length-p-a);
-$('attBody').innerHTML=rows.slice(0,1000).map(([k,s])=>{const r=att[k];return '<tr><td>'+esc(s.cls)+'</td><td>'+esc(s.classNo)+'</td><td>'+esc(s.nameEn)+'</td><td>'+esc(s.nameZh)+'</td><td>'+attBadge(r)+'</td><td class="mono">'+(r?fmtT(r.time):'—')+'</td><td>'+esc(r?.by||'—')+'</td><td><button class="btn-ok mini" onclick="attMark(\''+k+'\',\'present\')">'+esc(t('common.present'))+'</button> <button class="btn-red mini" onclick="attMark(\''+k+'\',\'absent\')">'+esc(t('common.absent'))+'</button> '+(r?'<button class="btn-gray mini" onclick="attClear(\''+k+'\')">'+esc(t('admin.clear'))+'</button>':'')+'</td></tr>';}).join('')||'<tr><td colspan="8" style="text-align:center">'+esc(t('common.noData'))+'</td></tr>';}
-$('attDate').value=attDay;$('attDate').onchange=function(){attachAtt(this.value||dayKey());};$('attCls').onchange=renderAttendance;
-$('btnAbsAll').onclick=async()=>{if(!guard())return;const un=attRows().filter(([k])=>!att[k]);if(!un.length)return toast(t('admin.noUnmarked'));if(!confirm(t('admin.markAbsentConfirm',{n:un.length})))return;const upd={},now=Date.now();un.forEach(([k,s])=>upd[k]={status:'absent',time:now,by:'admin',cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',cardId:s.cardId||''});try{await rootRef.child('attendance/'+attDay).update(upd);toast(t('admin.markedAbsent'));}catch(e){werr(e);}};
-$('btnAttExport').onclick=()=>{if(typeof XLSX==='undefined')return toast(t('admin.excelNotLoaded'));const rows=attRows();if(!rows.length)return toast(t('admin.noStudents'));const aoa=[[t('common.date'),t('common.class'),t('common.classNo'),t('common.english'),t('common.chinese'),t('common.cardId'),t('common.status'),t('common.time'),t('admin.by')]];rows.forEach(([k,s])=>{const r=att[k];aoa.push([attDay,s.cls||'',s.classNo||'',s.nameEn||'',s.nameZh||'',s.cardId||'',r?(r.status==='present'?t('common.present'):t('common.absent')):t('common.unmarked'),r?new Date(r.time).toLocaleTimeString('en-GB'):'',r?.by||'']);});const ws=XLSX.utils.aoa_to_sheet(aoa),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Attendance');XLSX.writeFile(wb,'attendance_'+attDay+'.xlsx');};
+function renderOverview() {
+  const a = Object.entries(stations), on = a.filter(([k, v]) => online(v)).length; let pend = 0; Object.values(queues).forEach(q => pend += Object.keys(q || {}).length); let pres = 0; Object.values(att).forEach(r => { if (r && r.status === 'present') pres++; }); const pu = Object.values(users).filter(u => u.status === 'pending').length;
+  $('ovStudents').textContent = Object.keys(students).length; $('ovOnline').textContent = on + '/' + a.length; $('ovQueue').textContent = pend; $('ovPresent').textContent = pres; $('ovPending').textContent = pu; const b = $('pendingBadge'); b.textContent = pu; b.hidden = pu === 0;
+}
+function renderDock() {
+  const e = Object.entries(stations), sel = $('stationSel'); sel.innerHTML = '<option value="">— ' + esc(t('common.selectStation')) + ' —</option>' + e.map(([k, v]) => '<option value="' + k + '">' + esc(v.name) + ' (' + esc(v.token) + ')</option>').join(''); sel.value = selKey || '';
+  $('stationChips').innerHTML = e.map(([k, v]) => { const on = isOnline(v), q = queueCount(k); return '<button class="st-chip ' + (k === selKey ? 'active' : '') + ' ' + (on ? 'on' : 'off') + '" data-k="' + k + '"><span class="dot"></span><span>' + esc(v.name) + '</span><span class="tk">' + esc(v.token) + '</span><span class="q">' + q + '</span></button>'; }).join('') || '<span class="dock-empty">' + esc(t('remote.noStations')) + '</span>';
+  const st = stations[selKey], pill = $('onlinePill'); if (!st) { pill.textContent = t('common.notSelected'); pill.className = 'pill off'; } else if (isOnline(st)) { pill.textContent = t('common.online'); pill.className = 'pill'; } else { pill.textContent = t('common.offline'); pill.className = 'pill off'; }
+  $('queueInfo').textContent = t('common.queue') + ' ' + (selKey ? queueCount(selKey) : 0); const on = selKey && isOnline(st); $('stBtnText').textContent = selKey && st ? st.name : t('common.selectStation'); $('stBtnDot').className = 'dot' + (on ? ' on' : ''); $('stBtnQueue').textContent = t('common.queue') + ' ' + (selKey ? queueCount(selKey) : 0);
+}
+function openStation() { $('stationModal').classList.add('open'); } function closeStation() { $('stationModal').classList.remove('open'); }
+function selectStation(k) { selKey = k && stations[k] ? k : null; if (selKey) { localStorage.setItem(LS, selKey); toast(t('admin.stationSelected') + ': ' + stations[selKey].name); } else localStorage.removeItem(LS); renderDock(); closeStation(); }
+$('stationBtn').onclick = openStation; $('stationClose').onclick = closeStation; $('stationSel').onchange = function () { selectStation(this.value || null); }; $('stationChips').onclick = e => { const b = e.target.closest('.st-chip'); if (b) selectStation(b.dataset.k); }; $('stationModal').addEventListener('click', e => { if (e.target === $('stationModal')) closeStation(); });
 
-function renderStations(){$('stBody').innerHTML=Object.entries(stations).map(([k,v])=>{const q=queueCount(k),on=isOnline(v);return '<tr><td><b>'+esc(v.name)+'</b></td><td>'+esc(v.token)+'</td><td>'+esc(t('admin.globalLayout'))+'</td><td><span class="dot '+(on?'on':'')+'"></span> '+esc(t(on?'common.online':'common.offline'))+'<br><span class="muted">'+esc(t('common.queue'))+' '+q+'</span></td><td><button class="btn-gray mini" onclick="editStation(\''+k+'\')">'+esc(t('common.edit'))+'</button> <button class="btn-red mini" onclick="delStation(\''+k+'\')">'+esc(t('common.delete'))+'</button></td></tr>';}).join('')||'<tr><td colspan="5" style="text-align:center">'+esc(t('admin.noStations'))+'</td></tr>';}
-$('btnAddStation').onclick=async()=>{if(!guard())return;const n=$('nsName').value.trim(),tk=$('nsToken').value.trim().toUpperCase();if(!n||!tk)return toast(t('admin.needNameToken'));if(Object.values(stations).some(v=>String(v.token||'').toUpperCase()===tk))return toast(t('admin.tokenExists'));try{const ref=await rootRef.child('stations').push({name:n,token:tk,settings:{},createdAt:Date.now(),lastSeen:0});$('nsName').value='';$('nsToken').value='';selectStation(ref.key);toast(t('admin.stationAdded'));}catch(e){werr(e);}};
-window.editStation=async k=>{if(!guard())return;const v=stations[k];if(!v)return;const n=prompt(t('admin.stationName'),v.name);if(n===null)return;const tk=prompt(t('admin.stationToken'),v.token);if(tk===null)return;try{await rootRef.child('stations/'+k).update({name:n.trim()||v.name,token:tk.trim().toUpperCase()||v.token});toast(t('admin.stationUpdated'));}catch(e){werr(e);}};
-window.delStation=async k=>{if(!guard())return;if(!confirm(t('admin.deleteStationConfirm')))return;try{await rootRef.child('stations/'+k).remove();await rootRef.child('queues/'+k).remove();if(selKey===k){selKey=null;localStorage.removeItem(LS);}renderDock();renderStations();toast(t('admin.stationDeleted'));}catch(e){werr(e);}};
+let layout = LL.norm(null), selId = null, zoom = 1.4, dzDrag = null;
+const dzScale = () => LL.MM * zoom, selBox = () => layout.boxes.find(b => b.id === selId) || null;
+function effText() { const e = LL.eff(layout); return t('admin.effArea') + ': ' + t('admin.origin') + ' (' + e.x + ', ' + e.y + ') · ' + t('admin.size') + ' ' + e.w + '×' + e.h + ' mm'; }
+function setMode(m) { layout.mode = m; $('modeBasic').classList.toggle('active', m === 'simple'); $('modeDesigner').classList.toggle('active', m === 'designer'); $('basicBox').style.display = m === 'simple' ? 'block' : 'none'; $('designerBox').style.display = m === 'designer' ? 'block' : 'none'; $('dzModeHint').textContent = m === 'simple' ? t('admin.basicHint') : t('admin.designerHint'); renderAll(); }
+function syncInputs() { $('dcW').value = layout.doc.w; $('dcH').value = layout.doc.h; $('hdTop').value = layout.hide.top; $('hdLeft').value = layout.hide.left; $('bsTop').value = layout.simple.topMm; $('bsSide').value = layout.simple.sideMm; $('bsEn').value = layout.simple.enSize; $('bsZh').value = layout.simple.zhSize; $('bsGap').value = layout.simple.gapMm; $('bsEnText').value = layout.simple.enText; $('bsZhText').value = layout.simple.zhText; $('smCls').value = layout.sample.cls || ''; $('smNo').value = layout.sample.classNo || ''; $('smEn').value = layout.sample.nameEn || ''; $('smZh').value = layout.sample.nameZh || ''; $('smCard').value = layout.sample.cardId || ''; $('effInfo').textContent = effText(); syncProps(); }
+function syncProps() { const b = selBox(); $('dzNoSel').style.display = b ? 'none' : 'block'; $('dzProps').style.display = b ? 'block' : 'none'; if (!b) return; $('dzText').value = b.text; $('dzX').value = b.x; $('dzY').value = b.y; $('dzW').value = b.w; $('dzH').value = b.h; $('dzSize').value = b.size; $('dzWeight').value = String(b.weight); $('dzLine').value = b.lineHeight; $('dzAlign').value = b.align; $('dzValign').value = b.valign; $('dzColor').value = b.color; }
+function renderChips() { $('dzChips').innerHTML = LL.PH.map(([k]) => '<button type="button" class="dz-chip" data-k="' + k + '">{' + k + '}<span class="hk"> ' + esc(t('label.' + k)) + '</span></button>').join(''); }
+function renderCanvas() { if (layout.mode !== 'designer') return; const e = LL.eff(layout), S = dzScale(), c = $('dzCanvas'); c.style.width = e.w * S + 'px'; c.style.height = e.h * S + 'px'; c.innerHTML = layout.boxes.map(b => { const j = b.valign === 'top' ? 'flex-start' : b.valign === 'bottom' ? 'flex-end' : 'center'; return '<div class="dz-box ' + (b.id === selId ? 'sel' : '') + '" data-id="' + esc(b.id) + '" style="left:' + b.x * S + 'px;top:' + b.y * S + 'px;width:' + b.w * S + 'px;height:' + b.h * S + 'px;font-size:' + b.size * zoom + 'px;font-weight:' + b.weight + ';text-align:' + b.align + ';color:' + b.color + ';line-height:' + b.lineHeight + ';justify-content:' + j + '">' + esc(LL.fill(b.text, layout.sample)).replace(/\n/g, '<br>') + '<span class="dz-handle"></span></div>'; }).join(''); }
+function renderPreview() { const e = LL.eff(layout), p = $('dzPreview'); p.style.width = e.w + 'mm'; p.style.height = e.h + 'mm'; p.innerHTML = LL.stageHTML(layout, layout.sample, false); $('dzInfo').textContent = effText(); }
+function renderAll() { renderChips(); renderCanvas(); renderPreview(); syncProps(); $('effInfo').textContent = effText(); }
+function selectBox(id) { selId = id; renderCanvas(); syncProps(); }
+function updateBoxEl(b) { const el = [...$('dzCanvas').querySelectorAll('.dz-box')].find(x => x.dataset.id === b.id); if (!el) return; const S = dzScale(); el.style.left = b.x * S + 'px'; el.style.top = b.y * S + 'px'; el.style.width = b.w * S + 'px'; el.style.height = b.h * S + 'px'; }
+setMode(layout.mode); syncInputs(); renderAll();
+$('modeBasic').onclick = () => setMode('simple'); $('modeDesigner').onclick = () => setMode('designer');
+$('dzChips').onclick = e => { const c = e.target.closest('.dz-chip'); if (!c) return; const b = selBox(); if (!b) return; const ta = $('dzText'), tx = '{' + c.dataset.k + '}', s = ta.selectionStart, en = ta.selectionEnd; ta.value = ta.value.slice(0, s) + tx + ta.value.slice(en); ta.selectionStart = ta.selectionEnd = s + tx.length; b.text = ta.value; ta.focus(); renderAll(); };
+$('dzCanvas').addEventListener('pointerdown', e => { const el = e.target.closest('.dz-box'); if (!el) return; const b = layout.boxes.find(x => x.id === el.dataset.id); if (!b) return; selectBox(b.id); dzDrag = { id: b.id, mode: e.target.classList.contains('dz-handle') ? 'resize' : 'move', sx: e.clientX, sy: e.clientY, ox: b.x, oy: b.y, ow: b.w, oh: b.h }; e.preventDefault(); });
+window.addEventListener('pointermove', e => { if (!dzDrag) return; const b = layout.boxes.find(x => x.id === dzDrag.id); if (!b) return; const ef = LL.eff(layout), S = dzScale(), dx = (e.clientX - dzDrag.sx) / S, dy = (e.clientY - dzDrag.sy) / S; if (dzDrag.mode === 'move') { b.x = +clamp(dzDrag.ox + dx, 0, Math.max(0, ef.w - b.w)).toFixed(2); b.y = +clamp(dzDrag.oy + dy, 0, Math.max(0, ef.h - b.h)).toFixed(2); } else { b.w = +clamp(dzDrag.ow + dx, 1, Math.max(1, ef.w - b.x)).toFixed(2); b.h = +clamp(dzDrag.oh + dy, 1, Math.max(1, ef.h - b.y)).toFixed(2); } updateBoxEl(b); renderPreview(); $('dzX').value = b.x; $('dzY').value = b.y; $('dzW').value = b.w; $('dzH').value = b.h; });
+window.addEventListener('pointerup', () => dzDrag = null); window.addEventListener('pointercancel', () => dzDrag = null);
+[['dzX', 'x'], ['dzY', 'y'], ['dzW', 'w'], ['dzH', 'h'], ['dzSize', 'size'], ['dzLine', 'lineHeight']].forEach(([id, k]) => $(id).addEventListener('input', () => { const b = selBox(); if (!b) return; const v = parseFloat($(id).value); if (!Number.isFinite(v)) return; b[k] = v; renderAll(); }));
+$('dzWeight').onchange = () => { const b = selBox(); if (b) { b.weight = parseInt($('dzWeight').value) || 600; renderAll(); } };
+$('dzAlign').onchange = () => { const b = selBox(); if (b) { b.align = $('dzAlign').value; renderAll(); } };
+$('dzValign').onchange = () => { const b = selBox(); if (b) { b.valign = $('dzValign').value; renderAll(); } };
+$('dzColor').oninput = () => { const b = selBox(); if (b) { b.color = $('dzColor').value; renderAll(); } };
+$('dzText').oninput = () => { const b = selBox(); if (b) { b.text = $('dzText').value; renderAll(); } };
+[['dcW', 'doc', 'w'], ['dcH', 'doc', 'h'], ['hdTop', 'hide', 'top'], ['hdLeft', 'hide', 'left']].forEach(([id, g, k]) => $(id).addEventListener('input', () => { const v = parseFloat($(id).value); if (!Number.isFinite(v)) return; layout[g][k] = g === 'hide' ? Math.max(0, v) : Math.max(1, v); renderAll(); }));
+$('dcPreset').onclick = () => { layout.doc = { w: 60, h: 60 }; layout.hide = { top: 20, left: 0 }; syncInputs(); renderAll(); toast(t('admin.presetApplied')); };
+[['bsTop', 'topMm'], ['bsSide', 'sideMm'], ['bsEn', 'enSize'], ['bsZh', 'zhSize'], ['bsGap', 'gapMm']].forEach(([id, k]) => $(id).addEventListener('input', () => { const v = parseFloat($(id).value); if (!Number.isFinite(v)) return; layout.simple[k] = v; renderPreview(); }));
+$('bsEnText').oninput = () => { layout.simple.enText = $('bsEnText').value; renderPreview(); }; $('bsZhText').oninput = () => { layout.simple.zhText = $('bsZhText').value; renderPreview(); };
+[['smCls', 'cls'], ['smNo', 'classNo'], ['smEn', 'nameEn'], ['smZh', 'nameZh'], ['smCard', 'cardId']].forEach(([id, k]) => $(id).addEventListener('input', () => { layout.sample[k] = $(id).value; renderAll(); }));
+$('dzZoom').onchange = () => { zoom = parseFloat($('dzZoom').value) || 1.4; renderCanvas(); };
+$('dzAdd').onclick = () => { const id = 'b' + Date.now(); layout.boxes.push({ id, x: 4, y: 4, w: 30, h: 8, text: '{nameEn}', size: 16, weight: 600, align: 'center', valign: 'middle', color: '#000000', lineHeight: 1.2 }); selId = id; renderAll(); };
+$('dzDup').onclick = () => { const b = selBox(); if (!b) return toast(t('admin.selectBoxFirst')); const e = LL.eff(layout), c = LL.clone(b); c.id = 'b' + Date.now(); c.x = clamp(c.x + 2, 0, e.w - c.w); c.y = clamp(c.y + 2, 0, e.h - c.h); layout.boxes.push(c); selId = c.id; renderAll(); };
+$('dzDel').onclick = () => { const b = selBox(); if (!b) return toast(t('admin.selectBoxFirst')); layout.boxes = layout.boxes.filter(x => x.id !== b.id); selId = layout.boxes[0]?.id || null; renderAll(); };
+$('dzReset').onclick = () => { if (!confirm(t('admin.resetConfirm'))) return; layout = LL.norm(null); selId = layout.boxes[0]?.id || null; setMode(layout.mode); syncInputs(); renderAll(); };
+$('dzSave').onclick = async () => { if (!guard()) return; try { const p = LL.clone(layout); p.version = 4; p.updatedAt = Date.now(); await rootRef.child('labelLayout').set(p); toast(t('admin.layoutSaved')); } catch (e) { werr(e); } };
+$('dzExport').onclick = () => { const b = new Blob([JSON.stringify(layout, null, 2)], { type: 'application/json' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'label-layout.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1500); toast(t('admin.exported')); };
+$('dzImport').onclick = () => $('dzImportFile').click();
+$('dzImportFile').addEventListener('change', function () { const f = this.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = e => { try { layout = LL.norm(JSON.parse(e.target.result)); selId = layout.boxes[0]?.id || null; setMode(layout.mode); syncInputs(); renderAll(); toast(t('admin.jsonLoaded')); } catch (err) { toast(t('admin.jsonFail')); } }; rd.readAsText(f); this.value = ''; });
 
-async function queueLabel(s,copies=1){if(!selKey||!stations[selKey]){toast(t('admin.needStation'));return false;}await new Promise(r=>setTimeout(r,2000));await rootRef.child('queues/'+selKey).push({type:'label',cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',cardId:s.cardId||'',copies,createdAt:Date.now(),done:false});sent++;renderScanStats();return true;}
-function renderScanStats(){$('lastScan').textContent=t('admin.lastScan')+': '+(lastScanCode||'—');$('sentCount').textContent=t('admin.sent')+' '+sent;}
-function renderScanReady(){const b=$('scanBox');setBox(b,'ready');b.innerHTML=esc(t('admin.scanReady'))+'<br><span class="en">'+esc(t('admin.scanReadyEn'))+'</span>';}
-let buf='',last=0,lastScanCode='';
-document.addEventListener('keydown',e=>{if(document.body.classList.contains('auth-locked')||$('dangerModal').classList.contains('open')||$('stationModal').classList.contains('open'))return;const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;const now=Date.now();if(now-last>120)buf='';last=now;if(e.key==='Enter'||e.key==='Tab'){if(buf.length>=4){e.preventDefault();handleScan(buf);}buf='';}else if(e.key.length===1)buf+=e.key;});
-async function handleScan(code){lastScanCode=code;renderScanStats();const box=$('scanBox'),k=byCard[normCard(code)];
-if(!k){unknownCard=code;setBox(box,'err');box.innerHTML=esc(t('admin.unregistered'))+': '+esc(code)+'<br><span class="en">'+esc(t('admin.bindHint'))+'</span>';$('bindHelp').style.display='block';$('bindHelp').innerHTML=esc(t('admin.bindHelp',{card:code}));doSearch();resetScanBox();return;}
-unknownCard=null;$('bindHelp').style.display='none';const s=students[k];setBox(box,'wait');box.innerHTML=esc(t('common.cardId'))+' '+esc(code)+'<br><span class="en">'+esc(t('admin.marking'))+'</span>';
-try{await markAtt(k,'present','scan');}catch(e){werr(e);}
-const tm=fmtT(Date.now());let printed=false;try{printed=(selKey&&stations[selKey])?await queueLabel(s,1):false;}catch(e){werr(e);}
-setBox(box,'ok');box.innerHTML=esc(s.nameEn)+'<br>'+esc(s.cls||'')+' '+esc(s.classNo||'')+' · '+esc(s.nameZh||'')+'<br><span class="en">'+esc(t('admin.markedPresent'))+' '+tm+(printed?' · → '+esc(stations[selKey].name):' · '+esc(t('admin.onlyMarked')))+'</span>';resetScanBox();}
-function resetScanBox(){setTimeout(renderScanReady,4000);}
+let att = {}, attDay = dayKey(), attRef = null;
+function attachAtt(day) { if (attRef) attRef.off(); attDay = day; att = {}; attRef = rootRef.child('attendance/' + day); attRef.on('value', s => { att = s.val() || {}; renderAttendance(); doSearch(); renderOverview(); }, werr); }
+async function markAtt(k, status, by, day = dayKey()) { const s = students[k]; if (!s) return; await rootRef.child('attendance/' + day + '/' + k).set({ status, time: Date.now(), by, cls: s.cls || '', classNo: s.classNo || '', nameEn: s.nameEn || '', nameZh: s.nameZh || '', cardId: s.cardId || '' }); }
+window.attMark = async (k, st) => { if (!guard()) return; try { await markAtt(k, st, 'admin', attDay); toast((st === 'present' ? t('remote.markedPresent') : t('remote.markedAbsent')) + ' ' + (students[k]?.nameEn || '')); } catch (e) { werr(e); } };
+window.attClear = async k => { if (!guard()) return; try { await rootRef.child('attendance/' + attDay + '/' + k).remove(); toast(t('admin.cleared')); } catch (e) { werr(e); } };
+const attBadge = a => a ? (a.status === 'present' ? '<span class="att-badge p">' + esc(t('common.present')) + ' <span class="att-t">' + fmtT(a.time) + '</span></span>' : '<span class="att-badge a">' + esc(t('common.absent')) + ' <span class="att-t">' + fmtT(a.time) + '</span></span>') : '<span class="att-badge">' + esc(t('common.unmarked')) + '</span>';
+function attRows() { const cf = $('attCls').value; return Object.entries(students).filter(([k, s]) => !cf || String(s.cls || '').toUpperCase() === cf).sort((a, b) => String(a[1].cls || '').localeCompare(String(b[1].cls || '')) || (+a[1].classNo || 0) - (+b[1].classNo || 0)); }
+function renderAttendance() {
+  const classes = [...new Set(Object.values(students).map(s => String(s.cls || '').toUpperCase()).filter(Boolean))].sort(); const sel = $('attCls'), cur = sel.value; sel.innerHTML = '<option value="">' + esc(t('common.all')) + '</option>' + classes.map(c => '<option>' + esc(c) + '</option>').join(''); if (classes.includes(cur)) sel.value = cur;
+  const rows = attRows(); let p = 0, a = 0; rows.forEach(([k]) => { const r = att[k]; if (r) { r.status === 'present' ? p++ : a++; } }); $('attP').textContent = t('common.present') + ' ' + p; $('attA').textContent = t('common.absent') + ' ' + a; $('attN').textContent = t('common.unmarked') + ' ' + (rows.length - p - a);
+  $('attBody').innerHTML = rows.slice(0, 1000).map(([k, s]) => { const r = att[k]; return '<tr><td>' + esc(s.cls) + '</td><td>' + esc(s.classNo) + '</td><td>' + esc(s.nameEn) + '</td><td>' + esc(s.nameZh) + '</td><td>' + attBadge(r) + '</td><td class="mono">' + (r ? fmtT(r.time) : '—') + '</td><td>' + esc(r?.by || '—') + '</td><td><button class="btn-ok mini" onclick="attMark(\'' + k + '\',\'present\')">' + esc(t('common.present')) + '</button> <button class="btn-red mini" onclick="attMark(\'' + k + '\',\'absent\')">' + esc(t('common.absent')) + '</button> ' + (r ? '<button class="btn-gray mini" onclick="attClear(\'' + k + '\')">' + esc(t('admin.clear')) + '</button>' : '') + '</td></tr>'; }).join('') || '<tr><td colspan="8" style="text-align:center">' + esc(t('common.noData')) + '</td></tr>';
+}
+$('attDate').value = attDay; $('attDate').onchange = function () { attachAtt(this.value || dayKey()); }; $('attCls').onchange = renderAttendance;
+$('btnAbsAll').onclick = async () => { if (!guard()) return; const un = attRows().filter(([k]) => !att[k]); if (!un.length) return toast(t('admin.noUnmarked')); if (!confirm(t('admin.markAbsentConfirm', { n: un.length }))) return; const upd = {}, now = Date.now(); un.forEach(([k, s]) => upd[k] = { status: 'absent', time: now, by: 'admin', cls: s.cls || '', classNo: s.classNo || '', nameEn: s.nameEn || '', nameZh: s.nameZh || '', cardId: s.cardId || '' }); try { await rootRef.child('attendance/' + attDay).update(upd); toast(t('admin.markedAbsent')); } catch (e) { werr(e); } };
+$('btnAttExport').onclick = () => { if (typeof XLSX === 'undefined') return toast(t('admin.excelNotLoaded')); const rows = attRows(); if (!rows.length) return toast(t('admin.noStudents')); const aoa = [[t('common.date'), t('common.class'), t('common.classNo'), t('common.english'), t('common.chinese'), t('common.cardId'), t('common.status'), t('common.time'), t('admin.by')]]; rows.forEach(([k, s]) => { const r = att[k]; aoa.push([attDay, s.cls || '', s.classNo || '', s.nameEn || '', s.nameZh || '', s.cardId || '', r ? (r.status === 'present' ? t('common.present') : t('common.absent')) : t('common.unmarked'), r ? new Date(r.time).toLocaleTimeString('en-GB') : '', r?.by || '']); }); const ws = XLSX.utils.aoa_to_sheet(aoa), wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Attendance'); XLSX.writeFile(wb, 'attendance_' + attDay + '.xlsx'); };
 
-function renderDB(){const q=($('dbSearch').value||'').trim().toLowerCase();let rows=Object.entries(students).sort((a,b)=>String(a[1].cls||'').localeCompare(String(b[1].cls||''))||(+a[1].classNo||0)-(+b[1].classNo||0));if(q)rows=rows.filter(([k,s])=>LL.searchMatch(s,q));$('dbCount').textContent=rows.length+' '+t('common.records');
-$('dbBody').innerHTML=rows.slice(0,800).map(([k,s])=>'<tr><td>'+esc(s.cardId||'—')+'</td><td>'+esc(s.cls)+'</td><td>'+esc(s.classNo)+'</td><td>'+esc(s.nameEn)+'</td><td>'+esc(s.nameZh)+'</td><td><button class="btn-amber mini" onclick="printOne(\''+k+'\')">'+esc(t('common.print'))+'</button> <button class="btn-red mini" onclick="delOne(\''+k+'\')">'+esc(t('common.delete'))+'</button></td></tr>').join('')||'<tr><td colspan="6" style="text-align:center">'+esc(t('common.noData'))+'</td></tr>';}
-$('dbSearch').addEventListener('input',renderDB);$('q').addEventListener('input',doSearch);
-function doSearch(){const q=$('q').value.trim().toLowerCase();if(!q){$('res').innerHTML='';return;}const hits=Object.entries(students).filter(([k,s])=>LL.searchMatch(s,q)).slice(0,40);
-$('res').innerHTML=hits.map(([k,s])=>'<div class="search-item"><div><b>'+esc(s.nameEn)+'</b> ／ '+esc(s.nameZh)+' '+attBadge(att[k])+'<br><span class="muted">'+esc(s.cls||'')+' '+esc(s.classNo||'')+' · '+esc(t('common.cardId'))+' '+esc(s.cardId||'—')+'</span></div><div class="row" style="margin:0"><button class="btn-amber mini" onclick="printOne(\''+k+'\')">'+esc(t('common.print'))+'</button> <button class="btn-ok mini" onclick="attMark(\''+k+'\',\'present\')">'+esc(t('common.present'))+'</button> <button class="btn-red mini" onclick="attMark(\''+k+'\',\'absent\')">'+esc(t('common.absent'))+'</button> '+(unknownCard?'<button class="btn-gray mini" onclick="bindCard(\''+k+'\')">'+esc(t('admin.bindCard'))+'</button>':'')+'</div></div>').join('')||'<p class="muted">'+esc(t('common.noMatch'))+'</p>';}
-window.printOne=async k=>{if(!guard())return;const s=students[k];if(!s)return;if(!selKey)return toast(t('admin.needStation'));if(!confirm(t('admin.printConfirm',{name:s.nameEn})))return;try{if(await queueLabel(s,1))toast(t('admin.sentTo')+' '+stations[selKey].name);}catch(e){werr(e);}};
-window.bindCard=async k=>{if(!guard())return;if(!unknownCard)return;if(!confirm(t('admin.bindConfirm',{card:unknownCard,name:students[k].nameEn})))return;try{await rootRef.child('students/'+k).update({cardId:unknownCard});unknownCard=null;$('bindHelp').style.display='none';doSearch();toast(t('admin.bound'));}catch(e){werr(e);}};
-window.delOne=async k=>{if(!guard())return;if(!confirm(t('admin.deleteStudentConfirm')))return;try{await rootRef.child('students/'+k).remove();toast(t('admin.studentDeleted'));}catch(e){werr(e);}};
-$('btnAdd').onclick=async()=>{if(!guard())return;const rec={cardId:$('aCard').value.trim(),cls:$('aCls').value.trim().toUpperCase(),classNo:$('aNo').value.trim(),nameEn:$('aEn').value.trim(),nameZh:$('aZh').value.trim()};if(!rec.nameEn&&!rec.nameZh)return toast(t('admin.needName'));const k=rec.cardId?byCard[normCard(rec.cardId)]:null;try{if(k)await rootRef.child('students/'+k).update(rec);else await rootRef.child('students').push(rec);['aCard','aCls','aNo','aEn','aZh'].forEach(id=>$(id).value='');toast(t('admin.saved'));}catch(e){werr(e);}};
-const norm=s=>String(s).toLowerCase().replace(/[^a-z]/g,'');
-$('btnTpl').onclick=()=>{if(typeof XLSX==='undefined')return toast(t('admin.excelNotLoaded'));const ws=XLSX.utils.aoa_to_sheet([['Card ID','Class','Class No','English Name','Chinese Name'],['0001234567','3A','15','CHAN TAI MAN','陳大文']]),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Students');XLSX.writeFile(wb,'parent_label_template.xlsx');};
-$('fExcel').addEventListener('change',function(){if(!guard()){this.value='';return;}const f=this.files[0];if(!f)return;if(typeof XLSX==='undefined')return toast(t('admin.excelNotLoaded'));const rd=new FileReader();rd.onload=async e=>{try{const wb=XLSX.read(e.target.result,{type:'array'}),raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});const list=raw.map(r=>{const o={};Object.keys(r).forEach(k=>o[norm(k)]=r[k]);return{cardId:String(o.cardid||o.card||'').trim(),cls:String(o.class||o.form||'').trim().toUpperCase(),classNo:String(o.classno||o.no||'').trim(),nameEn:String(o.englishname||o.nameen||'').trim(),nameZh:String(o.chinesename||o.namezh||'').trim()};}).filter(x=>x.nameEn||x.nameZh);if(!list.length){$('impMsg').textContent=t('admin.noValidData');return;}let add=0,upd=0;for(const it of list){const k=it.cardId?byCard[normCard(it.cardId)]:null;if(k){await rootRef.child('students/'+k).update(it);upd++;}else{const ref=await rootRef.child('students').push(it);if(it.cardId)byCard[normCard(it.cardId)]=ref.key;add++;}}$('impMsg').textContent=t('admin.importResult',{add,upd});}catch(err){$('impMsg').textContent=err.message;}};rd.readAsArrayBuffer(f);this.value='';});
+function renderStations() { $('stBody').innerHTML = Object.entries(stations).map(([k, v]) => { const q = queueCount(k), on = isOnline(v); return '<tr><td><b>' + esc(v.name) + '</b></td><td>' + esc(v.token) + '</td><td>' + esc(t('admin.globalLayout')) + '</td><td><span class="dot ' + (on ? 'on' : '') + '"></span> ' + esc(t(on ? 'common.online' : 'common.offline')) + '<br><span class="muted">' + esc(t('common.queue')) + ' ' + q + '</span></td><td><button class="btn-gray mini" onclick="editStation(\'' + k + '\')">' + esc(t('common.edit')) + '</button> <button class="btn-red mini" onclick="delStation(\'' + k + '\')">' + esc(t('common.delete')) + '</button></td></tr>'; }).join('') || '<tr><td colspan="5" style="text-align:center">' + esc(t('admin.noStations')) + '</td></tr>'; }
+$('btnAddStation').onclick = async () => { if (!guard()) return; const n = $('nsName').value.trim(), tk = $('nsToken').value.trim().toUpperCase(); if (!n || !tk) return toast(t('admin.needNameToken')); if (Object.values(stations).some(v => String(v.token || '').toUpperCase() === tk)) return toast(t('admin.tokenExists')); try { const ref = await rootRef.child('stations').push({ name: n, token: tk, settings: {}, createdAt: Date.now(), lastSeen: 0 }); $('nsName').value = ''; $('nsToken').value = ''; selectStation(ref.key); toast(t('admin.stationAdded')); } catch (e) { werr(e); } };
+window.editStation = async k => { if (!guard()) return; const v = stations[k]; if (!v) return; const n = prompt(t('admin.stationName'), v.name); if (n === null) return; const tk = prompt(t('admin.stationToken'), v.token); if (tk === null) return; try { await rootRef.child('stations/' + k).update({ name: n.trim() || v.name, token: tk.trim().toUpperCase() || v.token }); toast(t('admin.stationUpdated')); } catch (e) { werr(e); } };
+window.delStation = async k => { if (!guard()) return; if (!confirm(t('admin.deleteStationConfirm'))) return; try { await rootRef.child('stations/' + k).remove(); await rootRef.child('queues/' + k).remove(); if (selKey === k) { selKey = null; localStorage.removeItem(LS); } renderDock(); renderStations(); toast(t('admin.stationDeleted')); } catch (e) { werr(e); } };
 
-function renderUsers(){const all=Object.entries(users);const rows=all.filter(([k,u])=>userFilter==='all'||u.status===userFilter).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));$('userCount').textContent=rows.length+' '+t('common.users');const me=Auth.user()?Auth.user().uid:'';
-$('usersBody').innerHTML=rows.map(([uid,u])=>{const self=uid===me;const acts=[];if(u.status!=='approved')acts.push('<button class="btn-ok mini" onclick="userSet(\''+uid+'\',{status:\'approved\'})">'+esc(t('admin.approve'))+'</button>');if(u.status!=='rejected')acts.push('<button class="btn-red mini" onclick="userSet(\''+uid+'\',{status:\'rejected\'})">'+esc(t('admin.reject'))+'</button>');if(u.status==='approved'&&!self)acts.push('<button class="btn-gray mini" onclick="userSet(\''+uid+'\',{status:\'pending\'})">'+esc(t('admin.revoke'))+'</button>');if(!self)acts.push('<button class="btn-gray mini" onclick="userSet(\''+uid+'\',{role:\''+(u.role==='admin'?'staff':'admin')+'\'})">'+esc(t(u.role==='admin'?'admin.makeStaff':'admin.makeAdmin'))+'</button>');
-return '<tr><td><b>'+esc(u.name||'—')+'</b>'+(self?' <span class="muted">'+esc(t('common.you'))+'</span>':'')+'</td><td>'+esc(u.email||'')+'</td><td><span class="user-role">'+esc(t(u.role==='admin'?'common.admin':'common.staff'))+'</span></td><td><span class="user-status '+esc(u.status||'pending')+'">'+esc(t('common.'+(u.status||'pending')))+'</span></td><td class="mono">'+fmtD(u.createdAt)+'</td><td>'+acts.join(' ')+'</td></tr>';}).join('')||'<tr><td colspan="6" style="text-align:center">'+esc(t('admin.noUsersView'))+'</td></tr>';renderOverview();}
-window.userSet=async(uid,patch)=>{if(!guard())return;const me=Auth.user().uid;if(uid===me&&(patch.status||patch.role))return toast(t('admin.cannotSelf'));if(patch.status==='rejected'&&!confirm(t('admin.rejectConfirm')))return;
-try{const p=Object.assign({},patch);if(patch.status==='approved'){p.approvedAt=Date.now();p.approvedBy=me;}await Auth.db.ref('users/'+uid).update(p);
-if(patch.role==='admin')await Auth.db.ref('admins/'+uid).set(true);if(patch.role==='staff')await Auth.db.ref('admins/'+uid).remove();
-toast(t('admin.userUpdated'));}catch(e){werr(e);}};
-$('userTabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;userFilter=b.dataset.f;document.querySelectorAll('#userTabs button').forEach(x=>x.classList.toggle('active',x===b));renderUsers();};
+async function queueLabel(s, copies = 1) { if (!selKey || !stations[selKey]) { toast(t('admin.needStation')); return false; } await new Promise(r => setTimeout(r, 2000)); await rootRef.child('queues/' + selKey).push({ type: 'label', cls: s.cls || '', classNo: s.classNo || '', nameEn: s.nameEn || '', nameZh: s.nameZh || '', cardId: s.cardId || '', copies, createdAt: Date.now(), done: false }); sent++; renderScanStats(); return true; }
+function renderScanStats() { $('lastScan').textContent = t('admin.lastScan') + ': ' + (lastScanCode || '—'); $('sentCount').textContent = t('admin.sent') + ' ' + sent; }
+function renderScanReady() { const b = $('scanBox'); setBox(b, 'ready'); b.innerHTML = esc(t('admin.scanReady')) + '<br><span class="en">' + esc(t('admin.scanReadyEn')) + '</span>'; }
+let buf = '', last = 0, lastScanCode = '';
+document.addEventListener('keydown', e => { if (document.body.classList.contains('auth-locked') || $('dangerModal').classList.contains('open') || $('stationModal').classList.contains('open') || $('userDeleteModal').classList.contains('open')) return; const a = document.activeElement; if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return; const now = Date.now(); if (now - last > 120) buf = ''; last = now; if (e.key === 'Enter' || e.key === 'Tab') { if (buf.length >= 4) { e.preventDefault(); handleScan(buf); } buf = ''; } else if (e.key.length === 1) buf += e.key; });
+async function handleScan(code) {
+  lastScanCode = code; renderScanStats(); const box = $('scanBox'), k = byCard[normCard(code)];
+  if (!k) { unknownCard = code; setBox(box, 'err'); box.innerHTML = esc(t('admin.unregistered')) + ': ' + esc(code) + '<br><span class="en">' + esc(t('admin.bindHint')) + '</span>'; $('bindHelp').style.display = 'block'; $('bindHelp').innerHTML = esc(t('admin.bindHelp', { card: code })); doSearch(); resetScanBox(); return; }
+  unknownCard = null; $('bindHelp').style.display = 'none'; const s = students[k]; setBox(box, 'wait'); box.innerHTML = esc(t('common.cardId')) + ' ' + esc(code) + '<br><span class="en">' + esc(t('admin.marking')) + '</span>';
+  try { await markAtt(k, 'present', 'scan'); } catch (e) { werr(e); }
+  const tm = fmtT(Date.now()); let printed = false; try { printed = (selKey && stations[selKey]) ? await queueLabel(s, 1) : false; } catch (e) { werr(e); }
+  setBox(box, 'ok'); box.innerHTML = esc(s.nameEn) + '<br>' + esc(s.cls || '') + ' ' + esc(s.classNo || '') + ' · ' + esc(s.nameZh || '') + '<br><span class="en">' + esc(t('admin.markedPresent')) + ' ' + tm + (printed ? ' · → ' + esc(stations[selKey].name) : ' · ' + esc(t('admin.onlyMarked'))) + '</span>'; resetScanBox();
+}
+function resetScanBox() { setTimeout(renderScanReady, 4000); }
 
-$('btnBackupAll').onclick=async()=>{if(!guard())return;try{const snap=await rootRef.once('value');const b=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),data:snap.val()||{}},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='parents-backup-'+Date.now()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);toast(t('admin.backupDownloaded'));}catch(e){werr(e);}};
-const DANGER={students:{title:'admin.deleteAllStudents',desc:'admin.deleteStudentsDesc',phrase:'DELETE',btn:'admin.deleteStudentsBtn'},all:{title:'admin.deleteAllData',desc:'admin.deleteAllDesc',phrase:'DELETE ALL',btn:'admin.deleteAllBtn'}};
-let dangerScope=null,dangerBusy=false;
-function openDanger(sc){if(!guard())return;dangerScope=sc;const c=DANGER[sc];$('dangerTitle').textContent=t(c.title);$('dangerDesc').textContent=t(c.desc);$('dangerPhraseLabel').textContent=t('admin.typeToConfirm',{phrase:c.phrase});$('dangerPhrase').value='';$('dangerPhrase').placeholder=c.phrase;$('dangerBackup').checked=true;$('dangerConfirm').textContent=t(c.btn);$('dangerConfirm').disabled=true;$('dangerCancel').disabled=false;$('dangerStatus').textContent='';$('dangerStatus').className='danger-status';$('dangerSummary').innerHTML='<div><span>'+esc(t('common.students'))+'</span><b>'+Object.keys(students).length+'</b></div>'+(sc==='all'?'<div><span>'+esc(t('common.station'))+'</span><b>'+Object.keys(stations).length+'</b></div><div><span>'+esc(t('admin.attendance'))+' + '+esc(t('admin.layout'))+'</span><b>'+esc(t('common.all'))+'</b></div>':'');$('dangerModal').classList.add('open');document.body.style.overflow='hidden';setTimeout(()=>$('dangerPhrase').focus(),30);}
-function closeDanger(){if(dangerBusy)return;$('dangerModal').classList.remove('open');document.body.style.overflow='';dangerScope=null;}
-$('dangerPhrase').addEventListener('input',()=>{const c=DANGER[dangerScope];if(c)$('dangerConfirm').disabled=$('dangerPhrase').value.trim().toUpperCase()!==c.phrase;});
-$('btnDelStudents').onclick=()=>openDanger('students');$('btnDelAll').onclick=()=>openDanger('all');$('dangerCancel').onclick=closeDanger;$('dangerModal').addEventListener('click',e=>{if(e.target===$('dangerModal'))closeDanger();});
-$('dangerConfirm').onclick=async()=>{const sc=dangerScope,c=DANGER[sc];if(!c||dangerBusy)return;if($('dangerPhrase').value.trim().toUpperCase()!==c.phrase)return;dangerBusy=true;$('dangerConfirm').disabled=true;$('dangerCancel').disabled=true;
-try{if($('dangerBackup').checked){const snap=await(sc==='all'?rootRef:rootRef.child('students')).once('value');const b=new Blob([JSON.stringify({scope:sc,exportedAt:new Date().toISOString(),data:snap.val()||{}},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='backup-'+sc+'-'+Date.now()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);}
-if(sc==='all')await rootRef.remove();else await rootRef.child('students').remove();if(sc==='all'){localStorage.removeItem(LS);selKey=null;}unknownCard=null;$('q').value='';$('res').innerHTML='';dangerBusy=false;closeDanger();toast(t('admin.deleted'));
-}catch(err){dangerBusy=false;$('dangerCancel').disabled=false;$('dangerStatus').textContent=t('admin.deleteFailed')+': '+err.message;$('dangerStatus').className='danger-status err';}};
-document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if($('dangerModal').classList.contains('open'))closeDanger();if($('stationModal').classList.contains('open'))closeStation();});
+function renderDB() {
+  const q = ($('dbSearch').value || '').trim().toLowerCase(); let rows = Object.entries(students).sort((a, b) => String(a[1].cls || '').localeCompare(String(b[1].cls || '')) || (+a[1].classNo || 0) - (+b[1].classNo || 0)); if (q) rows = rows.filter(([k, s]) => LL.searchMatch(s, q)); $('dbCount').textContent = rows.length + ' ' + t('common.records');
+  $('dbBody').innerHTML = rows.slice(0, 800).map(([k, s]) => '<tr><td>' + esc(s.cardId || '—') + '</td><td>' + esc(s.cls) + '</td><td>' + esc(s.classNo) + '</td><td>' + esc(s.nameEn) + '</td><td>' + esc(s.nameZh) + '</td><td><button class="btn-amber mini" onclick="printOne(\'' + k + '\')">' + esc(t('common.print')) + '</button> <button class="btn-red mini" onclick="delOne(\'' + k + '\')">' + esc(t('common.delete')) + '</button></td></tr>').join('') || '<tr><td colspan="6" style="text-align:center">' + esc(t('common.noData')) + '</td></tr>';
+}
+$('dbSearch').addEventListener('input', renderDB); $('q').addEventListener('input', doSearch);
+function doSearch() {
+  const q = $('q').value.trim().toLowerCase(); if (!q) { $('res').innerHTML = ''; return; } const hits = Object.entries(students).filter(([k, s]) => LL.searchMatch(s, q)).slice(0, 40);
+  $('res').innerHTML = hits.map(([k, s]) => '<div class="search-item"><div><b>' + esc(s.nameEn) + '</b> ／ ' + esc(s.nameZh) + ' ' + attBadge(att[k]) + '<br><span class="muted">' + esc(s.cls || '') + ' ' + esc(s.classNo || '') + ' · ' + esc(t('common.cardId')) + ' ' + esc(s.cardId || '—') + '</span></div><div class="row" style="margin:0"><button class="btn-amber mini" onclick="printOne(\'' + k + '\')">' + esc(t('common.print')) + '</button> <button class="btn-ok mini" onclick="attMark(\'' + k + '\',\'present\')">' + esc(t('common.present')) + '</button> <button class="btn-red mini" onclick="attMark(\'' + k + '\',\'absent\')">' + esc(t('common.absent')) + '</button> ' + (unknownCard ? '<button class="btn-gray mini" onclick="bindCard(\'' + k + '\')">' + esc(t('admin.bindCard')) + '</button>' : '') + '</div></div>').join('') || '<p class="muted">' + esc(t('common.noMatch')) + '</p>';
+}
+window.printOne = async k => { if (!guard()) return; const s = students[k]; if (!s) return; if (!selKey) return toast(t('admin.needStation')); if (!confirm(t('admin.printConfirm', { name: s.nameEn }))) return; try { if (await queueLabel(s, 1)) toast(t('admin.sentTo') + ' ' + stations[selKey].name); } catch (e) { werr(e); } };
+window.bindCard = async k => { if (!guard()) return; if (!unknownCard) return; if (!confirm(t('admin.bindConfirm', { card: unknownCard, name: students[k].nameEn }))) return; try { await rootRef.child('students/' + k).update({ cardId: unknownCard }); unknownCard = null; $('bindHelp').style.display = 'none'; doSearch(); toast(t('admin.bound')); } catch (e) { werr(e); } };
+window.delOne = async k => { if (!guard()) return; if (!confirm(t('admin.deleteStudentConfirm'))) return; try { await rootRef.child('students/' + k).remove(); toast(t('admin.studentDeleted')); } catch (e) { werr(e); } };
+$('btnAdd').onclick = async () => { if (!guard()) return; const rec = { cardId: $('aCard').value.trim(), cls: $('aCls').value.trim().toUpperCase(), classNo: $('aNo').value.trim(), nameEn: $('aEn').value.trim(), nameZh: $('aZh').value.trim() }; if (!rec.nameEn && !rec.nameZh) return toast(t('admin.needName')); const k = rec.cardId ? byCard[normCard(rec.cardId)] : null; try { if (k) await rootRef.child('students/' + k).update(rec); else await rootRef.child('students').push(rec);['aCard', 'aCls', 'aNo', 'aEn', 'aZh'].forEach(id => $(id).value = ''); toast(t('admin.saved')); } catch (e) { werr(e); } };
+const norm = s => String(s).toLowerCase().replace(/[^a-z]/g, '');
+$('btnTpl').onclick = () => { if (typeof XLSX === 'undefined') return toast(t('admin.excelNotLoaded')); const ws = XLSX.utils.aoa_to_sheet([['Card ID', 'Class', 'Class No', 'English Name', 'Chinese Name'], ['0001234567', '3A', '15', 'CHAN TAI MAN', '陳大文']]), wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Students'); XLSX.writeFile(wb, 'parent_label_template.xlsx'); };
+$('fExcel').addEventListener('change', function () { if (!guard()) { this.value = ''; return; } const f = this.files[0]; if (!f) return; if (typeof XLSX === 'undefined') return toast(t('admin.excelNotLoaded')); const rd = new FileReader(); rd.onload = async e => { try { const wb = XLSX.read(e.target.result, { type: 'array' }), raw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' }); const list = raw.map(r => { const o = {}; Object.keys(r).forEach(k => o[norm(k)] = r[k]); return { cardId: String(o.cardid || o.card || '').trim(), cls: String(o.class || o.form || '').trim().toUpperCase(), classNo: String(o.classno || o.no || '').trim(), nameEn: String(o.englishname || o.nameen || '').trim(), nameZh: String(o.chinesename || o.namezh || '').trim() }; }).filter(x => x.nameEn || x.nameZh); if (!list.length) { $('impMsg').textContent = t('admin.noValidData'); return; } let add = 0, upd = 0; for (const it of list) { const k = it.cardId ? byCard[normCard(it.cardId)] : null; if (k) { await rootRef.child('students/' + k).update(it); upd++; } else { const ref = await rootRef.child('students').push(it); if (it.cardId) byCard[normCard(it.cardId)] = ref.key; add++; } } $('impMsg').textContent = t('admin.importResult', { add, upd }); } catch (err) { $('impMsg').textContent = err.message; } }; rd.readAsArrayBuffer(f); this.value = ''; });
 
-function renderAllI18n(){I18N.apply();renderOverview();renderDock();renderStations();renderDB();renderAttendance();renderUsers();renderScanStats();renderScanReady();setMode(layout.mode);syncInputs();renderAll();if(dangerScope)openDanger(dangerScope);}
-document.addEventListener('langchange',renderAllI18n);
-renderScanStats();renderScanReady();renderDock();renderStations();renderDB();renderAttendance();renderUsers();renderOverview();
-Auth.start(function(user,prof){
-  if(prof.role!=='admin'){$('adminConsole').style.display='none';$('adminDenied').style.display='block';$('topChip').textContent=t('admin.staffNoAccess');return;}
-  $('topChip').textContent=t('admin.adminSignedIn');$('acctEmail').value=user.email||'';$('acctRole').value=t(prof.role==='admin'?'common.admin':'common.staff');$('acctUid').value=user.uid||'';
+/* ---- users: merge /users profiles with /admins flags ---- */
+function mergedUsers() {
+  const map = {};
+  Object.entries(users).forEach(([uid, u]) => { map[uid] = Object.assign({}, u, { _legacy: false }); });
+  Object.entries(adminFlags).forEach(([uid, v]) => {
+    if (v !== true) return;
+    if (map[uid]) { map[uid].role = 'admin'; map[uid].status = 'approved'; }
+    else map[uid] = { email: '', name: '', role: 'admin', status: 'approved', createdAt: 0, _legacy: true };
+  });
+  return map;
+}
+function renderUsers() {
+  const map = mergedUsers();
+  const rows = Object.entries(map).filter(([k, u]) => userFilter === 'all' || u.status === userFilter).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+  $('userCount').textContent = rows.length + ' ' + t('common.users');
+  $('usersFootNote').textContent = t('acct.usersFoot') + ' ' + t('acct.legacyNote');
+  const me = Auth.user() ? Auth.user().uid : '';
+  $('usersBody').innerHTML = rows.map(([uid, u]) => {
+    const self = uid === me, acts = [];
+    if (!u._legacy) {
+      if (u.status !== 'approved') acts.push('<button class="btn-ok mini" onclick="userSet(\'' + uid + '\',{status:\'approved\'})">' + esc(t('admin.approve')) + '</button>');
+      if (u.status !== 'rejected') acts.push('<button class="btn-red mini" onclick="userSet(\'' + uid + '\',{status:\'rejected\'})">' + esc(t('admin.reject')) + '</button>');
+      if (u.status === 'approved' && !self) acts.push('<button class="btn-gray mini" onclick="userSet(\'' + uid + '\',{status:\'pending\'})">' + esc(t('admin.revoke')) + '</button>');
+      if (!self) acts.push('<button class="btn-gray mini" onclick="userSet(\'' + uid + '\',{role:\'' + (u.role === 'admin' ? 'staff' : 'admin') + '\'})">' + esc(t(u.role === 'admin' ? 'admin.makeStaff' : 'admin.makeAdmin')) + '</button>');
+    }
+    if (!self) acts.push('<button class="btn-red mini" onclick="openUserDelete(\'' + uid + '\')">' + esc(t('acct.delete')) + '</button>');
+    const emailCell = u.email ? esc(u.email) : '<span class="muted">' + esc(t('acct.unknownEmail')) + '</span><br><span class="ud-uid">' + esc(uid) + '</span>';
+    return '<tr><td><b>' + esc(u.name || '—') + '</b>' + (self ? ' <span class="muted">' + esc(t('common.you')) + '</span>' : '') + (u._legacy ? '<span class="user-legacy">' + esc(t('acct.legacy')) + '</span>' : '') + '</td><td>' + emailCell + '</td><td><span class="user-role">' + esc(t(u.role === 'admin' ? 'common.admin' : 'common.staff')) + '</span></td><td><span class="user-status ' + esc(u.status || 'pending') + '">' + esc(t('common.' + (u.status || 'pending'))) + '</span></td><td class="mono">' + (u.createdAt ? fmtD(u.createdAt) : '—') + '</td><td>' + acts.join(' ') + '</td></tr>';
+  }).join('') || '<tr><td colspan="6" style="text-align:center">' + esc(t('admin.noUsersView')) + '</td></tr>';
+  renderOverview();
+}
+window.userSet = async (uid, patch) => {
+  if (!guard()) return; const me = Auth.user().uid;
+  if (uid === me && (patch.status || patch.role)) return toast(t('admin.cannotSelf'));
+  if (patch.status === 'rejected' && !confirm(t('admin.rejectConfirm'))) return;
+  try {
+    const p = Object.assign({}, patch); if (patch.status === 'approved') { p.approvedAt = Date.now(); p.approvedBy = me; }
+    await Auth.db.ref('users/' + uid).update(p);
+    if (patch.role === 'admin') await Auth.db.ref('admins/' + uid).set(true);
+    if (patch.role === 'staff') await Auth.db.ref('admins/' + uid).remove();
+    toast(t('admin.userUpdated'));
+  } catch (e) { werr(e); }
+};
+$('userTabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; userFilter = b.dataset.f; document.querySelectorAll('#userTabs button').forEach(x => x.classList.toggle('active', x === b)); renderUsers(); };
+
+/* ---- delete account ---- */
+let udUid = null, udBusy = false;
+const udRecord = () => udUid ? mergedUsers()[udUid] : null;
+const udToken = u => (u && u.email ? String(u.email) : String(udUid || ''));
+function renderUserDelete() {
+  const u = udRecord(); if (!u) return;
+  $('udEyebrow').textContent = t('acct.delete');
+  $('udTitle').textContent = t('acct.deleteTitle');
+  $('udDesc').textContent = t('acct.deleteDesc');
+  const rows = [[t('common.name'), u.name || '—'], [t('common.email'), u.email || t('acct.unknownEmail')], [t('acct.uid'), udUid], [t('common.role'), t(u.role === 'admin' ? 'common.admin' : 'common.staff')], [t('common.status'), t('common.' + (u.status || 'pending'))]];
+  $('udSummary').innerHTML = rows.map(([k, v]) => '<div><span>' + esc(k) + '</span><b>' + esc(v) + '</b></div>').join('');
+  let note = '<b>' + esc(t('acct.deleteWhat')) + '</b><ul class="ud-list"><li>' + esc(t('acct.removeProfile')) + '</li><li>' + esc(t('acct.removeAdmin')) + '</li><li>' + esc(t('acct.removeAuth')) + '</li></ul>'
+    + '<div style="margin-top:8px">' + esc(AUTH_DELETE_ENDPOINT ? t('acct.authWillDelete') : t('acct.authManual')) + '</div>'
+    + '<div style="margin-top:8px">' + esc(t('acct.reRequestNote')) + '</div>';
+  if (u.role === 'admin') note += '<div class="ud-warn">' + esc(t('acct.adminWarn')) + '</div>';
+  $('udNote').innerHTML = note;
+  $('udConsoleRow').style.display = AUTH_DELETE_ENDPOINT ? 'none' : 'flex';
+  $('udConsole').textContent = t('acct.openConsole'); $('udConsole').href = consoleUsersUrl();
+  $('udLabel').textContent = u.email ? t('acct.typeEmail') : t('acct.typeUid');
+  $('udEmail').placeholder = udToken(u);
+  $('udCancel').textContent = t('common.cancel');
+  $('udConfirm').textContent = t('acct.confirmDelete');
+  validateUserDelete();
+}
+function validateUserDelete() {
+  const u = udRecord(); if (!u) { $('udConfirm').disabled = true; return; }
+  $('udConfirm').disabled = udBusy || $('udEmail').value.trim().toLowerCase() !== udToken(u).toLowerCase();
+}
+window.openUserDelete = uid => {
+  if (!guard()) return;
+  if (Auth.user() && uid === Auth.user().uid) return toast(t('acct.cannotSelfDelete'));
+  udUid = uid; udBusy = false;
+  $('udEmail').value = ''; $('udEmail').disabled = false; $('udCancel').disabled = false;
+  $('udStatus').textContent = ''; $('udStatus').className = 'danger-status';
+  renderUserDelete();
+  $('userDeleteModal').classList.add('open'); $('userDeleteModal').setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => $('udEmail').focus(), 30);
+};
+function closeUserDelete() {
+  if (udBusy) return;
+  $('userDeleteModal').classList.remove('open'); $('userDeleteModal').setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = ''; udUid = null;
+}
+async function callAuthDelete(uid) {
+  const token = await Auth.user().getIdToken();
+  const res = await fetch(AUTH_DELETE_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ data: { uid } }) });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok || j.error) throw new Error((j.error && j.error.message) || ('HTTP ' + res.status));
+  return true;
+}
+async function confirmUserDelete() {
+  const u = udRecord(); if (!u || udBusy) return;
+  if (!guard()) return;
+  if (Auth.user() && udUid === Auth.user().uid) return toast(t('acct.cannotSelfDelete'));
+  if ($('udEmail').value.trim().toLowerCase() !== udToken(u).toLowerCase()) return;
+  udBusy = true; $('udConfirm').disabled = true; $('udCancel').disabled = true; $('udEmail').disabled = true;
+  $('udStatus').textContent = t('common.processing'); $('udStatus').className = 'danger-status';
+  const uid = udUid; let authDeleted = false;
+  try {
+    if (AUTH_DELETE_ENDPOINT) authDeleted = await callAuthDelete(uid);
+    await Auth.db.ref('admins/' + uid).remove();
+    await Auth.db.ref('users/' + uid).remove();
+    udBusy = false; closeUserDelete();
+    toast(authDeleted ? t('acct.authDeleted') : (AUTH_DELETE_ENDPOINT ? t('acct.deleted') : t('acct.authStillExists')));
+  } catch (e) {
+    udBusy = false; $('udCancel').disabled = false; $('udEmail').disabled = false; validateUserDelete();
+    $('udStatus').textContent = t('acct.deleteFailed') + ': ' + (e.message || e); $('udStatus').className = 'danger-status err';
+  }
+}
+$('udCancel').onclick = closeUserDelete;
+$('udConfirm').onclick = confirmUserDelete;
+$('udEmail').addEventListener('input', validateUserDelete);
+$('udEmail').addEventListener('keydown', e => { if (e.key === 'Enter' && !$('udConfirm').disabled) confirmUserDelete(); });
+$('userDeleteModal').addEventListener('click', e => { if (e.target === $('userDeleteModal')) closeUserDelete(); });
+
+$('btnBackupAll').onclick = async () => { if (!guard()) return; try { const snap = await rootRef.once('value'); const b = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), data: snap.val() || {} }, null, 2)], { type: 'application/json' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'parents-backup-' + Date.now() + '.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); toast(t('admin.backupDownloaded')); } catch (e) { werr(e); } };
+const DANGER = { students: { title: 'admin.deleteAllStudents', desc: 'admin.deleteStudentsDesc', phrase: 'DELETE', btn: 'admin.deleteStudentsBtn' }, all: { title: 'admin.deleteAllData', desc: 'admin.deleteAllDesc', phrase: 'DELETE ALL', btn: 'admin.deleteAllBtn' } };
+let dangerScope = null, dangerBusy = false;
+function openDanger(sc) { if (!guard()) return; dangerScope = sc; const c = DANGER[sc]; $('dangerTitle').textContent = t(c.title); $('dangerDesc').textContent = t(c.desc); $('dangerPhraseLabel').textContent = t('admin.typeToConfirm', { phrase: c.phrase }); $('dangerPhrase').value = ''; $('dangerPhrase').placeholder = c.phrase; $('dangerBackup').checked = true; $('dangerConfirm').textContent = t(c.btn); $('dangerConfirm').disabled = true; $('dangerCancel').disabled = false; $('dangerStatus').textContent = ''; $('dangerStatus').className = 'danger-status'; $('dangerSummary').innerHTML = '<div><span>' + esc(t('common.students')) + '</span><b>' + Object.keys(students).length + '</b></div>' + (sc === 'all' ? '<div><span>' + esc(t('common.station')) + '</span><b>' + Object.keys(stations).length + '</b></div><div><span>' + esc(t('admin.attendance')) + ' + ' + esc(t('admin.layout')) + '</span><b>' + esc(t('common.all')) + '</b></div>' : ''); $('dangerModal').classList.add('open'); document.body.style.overflow = 'hidden'; setTimeout(() => $('dangerPhrase').focus(), 30); }
+function closeDanger() { if (dangerBusy) return; $('dangerModal').classList.remove('open'); document.body.style.overflow = ''; dangerScope = null; }
+$('dangerPhrase').addEventListener('input', () => { const c = DANGER[dangerScope]; if (c) $('dangerConfirm').disabled = $('dangerPhrase').value.trim().toUpperCase() !== c.phrase; });
+$('btnDelStudents').onclick = () => openDanger('students'); $('btnDelAll').onclick = () => openDanger('all'); $('dangerCancel').onclick = closeDanger; $('dangerModal').addEventListener('click', e => { if (e.target === $('dangerModal')) closeDanger(); });
+$('dangerConfirm').onclick = async () => {
+  const sc = dangerScope, c = DANGER[sc]; if (!c || dangerBusy) return; if ($('dangerPhrase').value.trim().toUpperCase() !== c.phrase) return; dangerBusy = true; $('dangerConfirm').disabled = true; $('dangerCancel').disabled = true;
+  try {
+    if ($('dangerBackup').checked) { const snap = await (sc === 'all' ? rootRef : rootRef.child('students')).once('value'); const b = new Blob([JSON.stringify({ scope: sc, exportedAt: new Date().toISOString(), data: snap.val() || {} }, null, 2)], { type: 'application/json' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'backup-' + sc + '-' + Date.now() + '.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+    if (sc === 'all') await rootRef.remove(); else await rootRef.child('students').remove();
+    if (sc === 'all') { localStorage.removeItem(LS); selKey = null; } unknownCard = null; $('q').value = ''; $('res').innerHTML = ''; dangerBusy = false; closeDanger(); toast(t('admin.deleted'));
+  } catch (err) { dangerBusy = false; $('dangerCancel').disabled = false; $('dangerStatus').textContent = t('admin.deleteFailed') + ': ' + err.message; $('dangerStatus').className = 'danger-status err'; }
+};
+document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if ($('userDeleteModal').classList.contains('open')) closeUserDelete(); if ($('dangerModal').classList.contains('open')) closeDanger(); if ($('stationModal').classList.contains('open')) closeStation(); });
+
+function renderAllI18n() { I18N.apply(); renderOverview(); renderDock(); renderStations(); renderDB(); renderAttendance(); renderUsers(); renderScanStats(); renderScanReady(); setMode(layout.mode); syncInputs(); renderAll(); if (dangerScope) openDanger(dangerScope); if (udUid) renderUserDelete(); }
+document.addEventListener('langchange', renderAllI18n);
+renderScanStats(); renderScanReady(); renderDock(); renderStations(); renderDB(); renderAttendance(); renderUsers(); renderOverview();
+Auth.start(function (user, prof) {
+  if (prof.role !== 'admin') { $('adminConsole').style.display = 'none'; $('adminDenied').style.display = 'block'; $('topChip').textContent = t('admin.staffNoAccess'); return; }
+  $('topChip').textContent = t('admin.adminSignedIn'); $('acctEmail').value = user.email || ''; $('acctRole').value = t(prof.role === 'admin' ? 'common.admin' : 'common.staff'); $('acctUid').value = user.uid || '';
   attachAtt(attDay);
-  rootRef.child('labelLayout').on('value',s=>{const keep=selId;layout=LL.norm(s.val());if(keep&&layout.boxes.some(b=>b.id===keep))selId=keep;else selId=layout.boxes[0]?.id||null;setMode(layout.mode);syncInputs();renderAll();$('dzStatus').textContent=s.exists()?t('admin.layoutLoaded'):t('admin.layoutDefault');},werr);
-  rootRef.child('stations').on('value',s=>{stations=s.val()||{};if(selKey&&!stations[selKey]){selKey=null;localStorage.removeItem(LS);}renderDock();renderStations();renderOverview();},werr);
-  rootRef.child('queues').on('value',s=>{queues=s.val()||{};renderDock();renderStations();renderOverview();},werr);
-  rootRef.child('students').on('value',s=>{students=s.val()||{};byCard={};Object.entries(students).forEach(([k,v])=>{if(v.cardId)byCard[normCard(v.cardId)]=k;});renderDB();renderAttendance();doSearch();renderOverview();},werr);
-  Auth.db.ref('users').on('value',s=>{users=s.val()||{};renderUsers();},werr);
-  setInterval(()=>{renderDock();renderStations();renderOverview();},15000);
+  rootRef.child('labelLayout').on('value', s => { const keep = selId; layout = LL.norm(s.val()); if (keep && layout.boxes.some(b => b.id === keep)) selId = keep; else selId = layout.boxes[0]?.id || null; setMode(layout.mode); syncInputs(); renderAll(); $('dzStatus').textContent = s.exists() ? t('admin.layoutLoaded') : t('admin.layoutDefault'); }, werr);
+  rootRef.child('stations').on('value', s => { stations = s.val() || {}; if (selKey && !stations[selKey]) { selKey = null; localStorage.removeItem(LS); } renderDock(); renderStations(); renderOverview(); }, werr);
+  rootRef.child('queues').on('value', s => { queues = s.val() || {}; renderDock(); renderStations(); renderOverview(); }, werr);
+  rootRef.child('students').on('value', s => { students = s.val() || {}; byCard = {}; Object.entries(students).forEach(([k, v]) => { if (v.cardId) byCard[normCard(v.cardId)] = k; }); renderDB(); renderAttendance(); doSearch(); renderOverview(); }, werr);
+  Auth.db.ref('users').on('value', s => { users = s.val() || {}; renderUsers(); if (udUid) renderUserDelete(); }, werr);
+  Auth.db.ref('admins').on('value', s => { adminFlags = s.val() || {}; renderUsers(); if (udUid) renderUserDelete(); }, e => console.warn('admins read:', e && e.code));
+  setInterval(() => { renderDock(); renderStations(); renderOverview(); }, 15000);
 });
 </script>
 </body></html>
