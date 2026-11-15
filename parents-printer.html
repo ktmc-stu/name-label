@@ -1,4 +1,4 @@
-<!-- parents-printer.html · self-contained: does NOT need js/label-layout.js -->
+<!-- parents-printer.html -->
 <!doctype html><html lang="zh-HK"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Parent Printer 標籤列印端</title>
@@ -26,12 +26,10 @@
         <p class="muted" id="lyInfo">—</p>
         <div class="label-preview" id="prev"></div>
         <div class="g" style="margin-top:14px">
-          <div><label>Driver W 驅動寬 (mm)</label><input id="pDrvW" type="number" step="0.1"></div>
-          <div><label>Driver H 驅動高 (mm)</label><input id="pDrvH" type="number" step="0.1"></div>
-          <div><label>Label W 實際寬 (mm)</label><input id="pPhyW" type="number" step="0.1"></div>
-          <div><label>Label H 實際高 (mm)</label><input id="pPhyH" type="number" step="0.1"></div>
-          <div><label>Shift X (mm)</label><input id="pOffX" type="number" step="0.1"></div>
-          <div><label>Shift Y (mm)</label><input id="pOffY" type="number" step="0.1"></div>
+          <div><label>文件寬 File W (mm)</label><input id="pDcW" type="number" step="0.1" min="10"></div>
+          <div><label>文件高 File H (mm)</label><input id="pDcH" type="number" step="0.1" min="10"></div>
+          <div><label>隱藏·上 Hidden top (mm)</label><input id="pHdTop" type="number" step="0.1" min="0"></div>
+          <div><label>隱藏·左 Hidden left (mm)</label><input id="pHdLeft" type="number" step="0.1" min="0"></div>
         </div>
         <div id="pBasic">
           <div class="g" style="margin-top:12px">
@@ -44,8 +42,8 @@
           <div class="g" style="margin-top:10px"><div style="grid-column:1/-1"><label>EN text</label><input id="pEnText"></div><div style="grid-column:1/-1"><label>ZH text</label><input id="pZhText"></div></div>
         </div>
         <p class="muted" id="pDesignerNote" style="display:none;margin-top:10px">目前為自由排版模式，文字方塊請到 Admin 編輯。</p>
-        <div class="row" style="margin-top:12px"><button id="btnSaveCfg">Save 儲存設定</button><button id="btnPreset64" class="btn-gray">6×4 補償</button><a class="btn btn-gray" href="parents-admin.html#designer">Open Admin Designer</a></div>
-        <p class="muted" style="margin-top:10px">6×4 標籤：驅動 60×60、實際 60×40、Y 位移 −20mm（上方 20mm 移出邊緣）。</p>
+        <div class="row" style="margin-top:12px"><button id="btnSaveCfg">Save 儲存設定</button><button id="btnPreset" class="btn-gray">6×6 文件 · 頂部 2cm 隱藏</button><a class="btn btn-gray" href="parents-admin.html#designer">Open Admin Designer</a></div>
+        <p class="muted" style="margin-top:10px">預覽只畫有效列印區域；隱藏補償區只存在於打印文件，不會顯示。</p>
       </div>
       <div class="card"><h3>Station 站點</h3><p class="muted" id="stInfo">—</p><div class="row"><button id="btnTest" class="btn-amber">Test Print 測試列印</button><button id="btnClear" class="btn-gray">Clear Queue 清空隊列</button><button id="btnUnbind" class="btn-gray">Change Station 更換站點</button></div></div>
     </div>
@@ -53,48 +51,11 @@
 </div>
 <div id="printArea"></div><div class="toast" id="toast"></div>
 
-<script>
-/* inline label engine (identical to admin) */
-(function(){
-const MM=96/25.4;
-const DEF={mode:'simple',driver:{w:60,h:60},physical:{w:60,h:40},offset:{x:0,y:-20},
- simple:{topMm:26,sideMm:2,enSize:12,zhSize:30,gapMm:1.5,enText:'Parent of {class} {classNo} {nameEn}',zhText:'{nameZh}家長'},
- boxes:[{id:'en',x:2,y:24,w:56,h:6,text:'Parent of {class} {classNo} {nameEn}',size:12,weight:600,align:'center',valign:'middle',color:'#000000',lineHeight:1.2},
-        {id:'zh',x:2,y:31,w:56,h:13,text:'{nameZh}家長',size:30,weight:600,align:'center',valign:'middle',color:'#000000',lineHeight:1.15}],
- sample:{cls:'3A',classNo:'15',nameEn:'CHAN TAI MAN',nameZh:'陳大文',cardId:'0001234567'}};
-const clone=o=>JSON.parse(JSON.stringify(o));
-const num=(v,d)=>{const n=parseFloat(v);return Number.isFinite(n)?n:d;};
-const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function norm(l){const b=clone(DEF);if(!l||typeof l!=='object')return b;b.mode=l.mode==='designer'?'designer':'simple';
- b.driver={w:num(l.driver&&l.driver.w,60),h:num(l.driver&&l.driver.h,60)};b.physical={w:num(l.physical&&l.physical.w,60),h:num(l.physical&&l.physical.h,40)};
- b.offset={x:num(l.offset&&l.offset.x,0),y:num(l.offset&&l.offset.y,-20)};b.simple=Object.assign({},DEF.simple,l.simple||{});
- ['topMm','sideMm','enSize','zhSize','gapMm'].forEach(k=>b.simple[k]=num(b.simple[k],DEF.simple[k]));
- if(Array.isArray(l.boxes)&&l.boxes.length)b.boxes=l.boxes.map((x,i)=>({id:String(x.id||('b'+i)),x:num(x.x,0),y:num(x.y,0),w:num(x.w,20),h:num(x.h,8),text:x.text==null?'':String(x.text),size:num(x.size,16),weight:num(x.weight,600),align:['left','center','right'].includes(x.align)?x.align:'center',valign:['top','middle','bottom'].includes(x.valign)?x.valign:'middle',color:/^#[0-9a-fA-F]{6}$/.test(x.color||'')?x.color:'#000000',lineHeight:num(x.lineHeight,1.2)}));
- b.sample=Object.assign({},DEF.sample,l.sample||{});return b;}
-function fill(t,s){s=s||{};const cls=s.cls||s.class||'',no=s.classNo||s.no||'',en=s.nameEn||'',zh=s.nameZh||'',card=s.cardId||'';
- const m={class:cls,cls:cls,no:no,classNo:no,nameEn:en,nameZh:zh,cardId:card,parent:zh?zh+'家長':'',parentEn:'Parent of '+[cls,no,en].filter(Boolean).join(' '),date:new Date().toLocaleDateString('en-GB'),time:new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})};
- return String(t==null?'':t).replace(/\{([a-zA-Z]+)\}/g,(x,k)=>m[k]!=null?String(m[k]):x);}
-const just=v=>v==='top'?'flex-start':v==='bottom'?'flex-end':'center';
-function stageHTML(l,data){const off=`transform:translate(${l.offset.x}mm,${l.offset.y}mm)`;const sz=`width:${l.driver.w}mm;height:${l.driver.h}mm`;
- if(l.mode==='simple'){const s=l.simple;return `<div class="label-stage" style="${sz};${off}"><div class="simple-wrap" style="padding:${s.topMm}mm ${s.sideMm}mm 0 ${s.sideMm}mm"><div class="label-en" style="font-size:${s.enSize}px">${esc(fill(s.enText,data))}</div><div class="label-zh" style="font-size:${s.zhSize}px;margin-top:${s.gapMm}mm">${esc(fill(s.zhText,data))}</div></div></div>`;}
- const bx=(l.boxes||[]).map(b=>`<div class="lb" style="left:${b.x}mm;top:${b.y}mm;width:${b.w}mm;height:${b.h}mm;font-size:${b.size}px;font-weight:${b.weight};text-align:${b.align};color:${b.color};line-height:${b.lineHeight};justify-content:${just(b.valign)}">${esc(fill(b.text,data)).replace(/\n/g,'<br>')}</div>`).join('');
- return `<div class="label-stage" style="${sz};${off}">${bx}</div>`;}
-function printCss(l){return `#printArea{display:none}
-@media print{@page{size:${l.driver.w}mm ${l.driver.h}mm;margin:0}
-html,body{margin:0!important;padding:0!important;background:#fff!important;height:auto!important;min-height:0!important}
-body>*:not(#printArea){display:none!important}
-#printArea{display:block!important;position:relative!important;margin:0!important;padding:0!important;width:${l.driver.w}mm!important;height:${l.driver.h}mm!important;overflow:hidden!important;background:#fff!important;color:#000}
-#printArea .label-stage{position:absolute;left:0;top:0}
-#printArea .simple-wrap{display:flex;flex-direction:column;align-items:center;text-align:center;width:100%;height:100%;box-sizing:border-box;font-family:'Microsoft JhengHei','Noto Sans TC','PingFang HK',sans-serif}
-#printArea .label-en{font-weight:600;line-height:1.25;word-break:break-word;overflow-wrap:anywhere}
-#printArea .label-zh{font-weight:600;line-height:1.2;word-break:break-word;overflow-wrap:anywhere}
-#printArea .lb{position:absolute;display:flex;flex-direction:column;overflow:hidden;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;font-family:'Microsoft JhengHei','Noto Sans TC','PingFang HK',sans-serif}}`;}
-window.LL={MM,DEF,clone,norm,fill,esc,stageHTML,printCss};
-})();
-</script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="js/label-layout.js"></script>
 <script>
+const LL=window.LabelLayout;
 const $=id=>document.getElementById(id);const esc=LL.esc;
 const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);};
 const normCard=v=>String(v==null?'':v).trim().replace(/^0+/,'').toUpperCase();
@@ -108,18 +69,19 @@ let students={},byCard={},att={},attDay=dayKey(),attRef=null,busy=false;const jo
 const SC={ready:['#e7f1fd','#0851a8'],ok:['#e6f5ed','#177a4c'],err:['#fdecec','#c23b3b']};const setBox=(el,s)=>{el.style.background=SC[s][0];el.style.color=SC[s][1];};
 function showTab(n){document.querySelectorAll('.tabnav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===n));document.querySelectorAll('.tabpanel').forEach(p=>p.classList.toggle('active',p.id==='tab-'+n));}
 document.querySelectorAll('.tabnav button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
-function syncCfgInputs(){$('pDrvW').value=layout.driver.w;$('pDrvH').value=layout.driver.h;$('pPhyW').value=layout.physical.w;$('pPhyH').value=layout.physical.h;$('pOffX').value=layout.offset.x;$('pOffY').value=layout.offset.y;
+function effText(){const e=LL.eff(layout);return `有效列印區域：起點 (${e.x}, ${e.y}) · 大小 ${e.w}×${e.h} mm · 隱藏 頂${layout.hide.top}/左${layout.hide.left} mm`;}
+function syncCfgInputs(){$('pDcW').value=layout.doc.w;$('pDcH').value=layout.doc.h;$('pHdTop').value=layout.hide.top;$('pHdLeft').value=layout.hide.left;
  $('pTop').value=layout.simple.topMm;$('pSide').value=layout.simple.sideMm;$('pEn').value=layout.simple.enSize;$('pZh').value=layout.simple.zhSize;$('pGap').value=layout.simple.gapMm;$('pEnText').value=layout.simple.enText;$('pZhText').value=layout.simple.zhText;
- $('pBasic').style.display=layout.mode==='simple'?'block':'none';$('pDesignerNote').style.display=layout.mode==='designer'?'block':'none';}
-function renderPreview(){const p=$('prev');p.style.width=layout.physical.w+'mm';p.style.height=layout.physical.h+'mm';p.innerHTML=LL.stageHTML(layout,layout.sample);$('lyInfo').textContent=`模式 ${layout.mode} · 驅動 ${layout.driver.w}×${layout.driver.h} · 實際 ${layout.physical.w}×${layout.physical.h} · 位移 ${layout.offset.x},${layout.offset.y} mm`;}
+ $('pBasic').style.display=layout.mode==='simple'?'block':'none';$('pDesignerNote').style.display=layout.mode==='designer'?'block':'none';$('lyInfo').textContent=effText();}
+function renderPreview(){const e=LL.eff(layout),p=$('prev');p.style.width=e.w+'mm';p.style.height=e.h+'mm';p.innerHTML=LL.stageHTML(layout,layout.sample,false);}
 function applyCss(){$('labelCss').textContent=LL.printCss(layout);renderPreview();}
 syncCfgInputs();applyCss();
 if(rootRef)rootRef.child('labelLayout').on('value',s=>{layout=LL.norm(s.val());syncCfgInputs();applyCss();});
-[['pDrvW','driver','w'],['pDrvH','driver','h'],['pPhyW','physical','w'],['pPhyH','physical','h'],['pOffX','offset','x'],['pOffY','offset','y']].forEach(([id,g,k])=>$(id).addEventListener('input',()=>{const v=parseFloat($(id).value);if(!Number.isFinite(v))return;layout[g][k]=v;applyCss();}));
+[['pDcW','doc','w'],['pDcH','doc','h'],['pHdTop','hide','top'],['pHdLeft','hide','left']].forEach(([id,g,k])=>$(id).addEventListener('input',()=>{const v=parseFloat($(id).value);if(!Number.isFinite(v))return;layout[g][k]=(g==='hide')?Math.max(0,v):Math.max(1,v);applyCss();$('lyInfo').textContent=effText();}));
 [['pTop','topMm'],['pSide','sideMm'],['pEn','enSize'],['pZh','zhSize'],['pGap','gapMm']].forEach(([id,k])=>$(id).addEventListener('input',()=>{const v=parseFloat($(id).value);if(!Number.isFinite(v))return;layout.simple[k]=v;applyCss();}));
 $('pEnText').oninput=()=>{layout.simple.enText=$('pEnText').value;applyCss();};$('pZhText').oninput=()=>{layout.simple.zhText=$('pZhText').value;applyCss();};
-$('btnPreset64').onclick=()=>{layout.driver={w:60,h:60};layout.physical={w:60,h:40};layout.offset={x:0,y:-20};syncCfgInputs();applyCss();};
-$('btnSaveCfg').onclick=async()=>{if(!rootRef)return toast('Firebase 未連線');const p=LL.clone(layout);p.updatedAt=Date.now();await rootRef.child('labelLayout').set(p);toast('已儲存');};
+$('btnPreset').onclick=()=>{layout.doc={w:60,h:60};layout.hide={top:20,left:0};syncCfgInputs();applyCss();};
+$('btnSaveCfg').onclick=async()=>{if(!rootRef)return toast('Firebase 未連線');const p=LL.clone(layout);p.version=4;p.updatedAt=Date.now();await rootRef.child('labelLayout').set(p);toast('已儲存');};
 function attachAtt(day){if(!rootRef)return;if(attRef)attRef.off();attDay=day;att={};attRef=rootRef.child('attendance/'+day);attRef.on('value',s=>{att=s.val()||{};renderAttStats();doSearch();});}
 attachAtt(attDay);setInterval(()=>{const d=dayKey();if(d!==attDay)attachAtt(d);},30000);
 async function markAtt(k,st,by){const s=students[k];if(!s||!rootRef)return;await rootRef.child('attendance/'+attDay+'/'+k).set({status:st,time:Date.now(),by,cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',cardId:s.cardId||''});}
@@ -138,7 +100,7 @@ if(rootRef)rootRef.child('students').on('value',s=>{students=s.val()||{};byCard=
 if(rootRef)firebase.database().ref('.info/connected').on('value',s=>{if(s.val()===true){$('dot').classList.add('on');$('statusText').textContent='已連線 Online';}else{$('dot').classList.remove('on');$('statusText').textContent='等待連線 Connecting…';}});
 function updateCount(){$('queueChip').textContent='Queue 隊列：'+jobs.length;}
 function enqueue(k,j){if(seen[k])return;seen[k]=1;jobs.push(Object.assign({key:k},j));updateCount();log('收到任務 '+(j.nameEn||''));processJobs();}
-async function processJobs(){if(printing)return;printing=true;while(jobs.length){const j=jobs.shift();updateCount();await rootRef.child('queues/'+stationKey+'/'+j.key).remove().catch(()=>{});$('printArea').innerHTML=LL.stageHTML(layout,j);await new Promise(r=>setTimeout(r,2000));const c=Math.max(1,j.copies||1);for(let i=0;i<c;i++){window.print();log(`${j.nameEn||'LABEL'} ${i+1}/${c} 已發送`);if(i<c-1)await new Promise(r=>setTimeout(r,2000));}await new Promise(r=>setTimeout(r,2000));}printing=false;}
+async function processJobs(){if(printing)return;printing=true;while(jobs.length){const j=jobs.shift();updateCount();await rootRef.child('queues/'+stationKey+'/'+j.key).remove().catch(()=>{});$('printArea').innerHTML=LL.stageHTML(layout,j,true);await new Promise(r=>setTimeout(r,2000));const c=Math.max(1,j.copies||1);for(let i=0;i<c;i++){window.print();log(`${j.nameEn||'LABEL'} ${i+1}/${c} 已發送`);if(i<c-1)await new Promise(r=>setTimeout(r,2000));}await new Promise(r=>setTimeout(r,2000));}printing=false;}
 function pushJob(s){return rootRef.child('queues/'+stationKey).push({type:'label',cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',cardId:s.cardId||'',copies:1,createdAt:Date.now(),done:false});}
 let buf='',last=0;
 document.addEventListener('keydown',e=>{const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;if(!stationKey)return;const now=Date.now();if(now-last>120)buf='';last=now;if(e.key==='Enter'||e.key==='Tab'){if(buf.length>=4){e.preventDefault();scan(buf);}buf='';}else if(e.key.length===1)buf+=e.key;});
@@ -148,7 +110,7 @@ function doSearch(){const q=$('q').value.trim().toLowerCase();if(!q){$('res').in
  $('res').innerHTML=hits.map(([k,s])=>`<div class="stu-card"><div class="stu-head"><span class="stu-name">${esc(s.nameEn)}</span><span class="stu-sub">${esc(s.nameZh)}</span><span class="stu-sub">${esc(s.cls||'')} ${esc(s.classNo||'')}</span>${attBadge(att[k])}</div><div class="act-row"><button class="btn-lg" onclick="pLabel('${k}')">出席 + 列印</button><button class="btn-lg btn-ok" onclick="pMark('${k}','present')">出席</button><button class="btn-lg btn-red" onclick="pMark('${k}','absent')">缺席</button></div></div>`).join('')||'<p class="muted">No match</p>';}
 window.pMark=async(k,st)=>{const s=students[k];if(!s||!stationKey)return;await markAtt(k,st,'printer');toast((st==='present'?'已點名：出席 ':'已標記：缺席 ')+s.nameEn);};
 window.pLabel=async k=>{if(busy)return;busy=true;try{const s=students[k];if(!s||!stationKey)return;await markAtt(k,'present','printer');await pushJob(s);toast('已點名並加入隊列');}finally{busy=false;}};
-$('btnTest').onclick=async()=>{if(!confirm('Test print?'))return;$('printArea').innerHTML=LL.stageHTML(layout,layout.sample);await new Promise(r=>setTimeout(r,2000));window.print();log('測試列印已發送');};
+$('btnTest').onclick=async()=>{if(!confirm('Test print?'))return;$('printArea').innerHTML=LL.stageHTML(layout,layout.sample,true);await new Promise(r=>setTimeout(r,2000));window.print();log('測試列印已發送');};
 $('btnClear').onclick=async()=>{if(!confirm('清空隊列？'))return;await rootRef.child('queues/'+stationKey).remove();jobs.length=0;for(const k in seen)delete seen[k];updateCount();};
 </script>
 </body></html>
