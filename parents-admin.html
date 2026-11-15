@@ -7,12 +7,13 @@
 <link rel="stylesheet" href="css/lang.css">
 <style>
 .station-trigger{padding:0 0 14px;display:flex}
-#stationBtn{gap:8px}#stationBtn .dot{background:var(--faint)}#stationBtn .dot.on{background:var(--ok)}#stationBtn .muted{font-family:var(--mono);font-size:11px}
+#stationBtn{gap:8px;justify-content:flex-start}#stationBtn .dot{background:var(--faint)}#stationBtn .dot.on{background:var(--ok)}#stationBtn .muted{font-family:var(--mono);font-size:11px}
 #stationModal .dock-row{margin:0 0 10px}#stationModal .chips{margin:10px 0 0}#stationModal .dock-hint{margin:10px 0 0}
 #userDeleteModal .ud-list{margin:0;padding-left:18px;font-size:12.5px;line-height:1.75}
 #userDeleteModal .ud-warn{margin-top:10px;padding-top:10px;border-top:1px solid var(--accent-line);color:var(--warn)}
 #userDeleteModal .ud-uid{font-family:var(--mono);font-size:11px;color:var(--faint);word-break:break-all}
 .user-legacy{font-size:10.5px;padding:1px 7px;border-radius:999px;border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent-deep);margin-left:6px;white-space:nowrap}
+.mode-switch button,.tabnav button{justify-content:center}
 </style>
 </head><body class="auth-locked">
 <div class="topbar"><span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><span data-i18n="app.admin"></span></span><span class="chip" id="topChip">—</span></div>
@@ -25,6 +26,7 @@
     <button class="side-link" data-page="designer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg><span data-i18n="admin.designer"></span></button>
     <button class="side-link" data-page="attendance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M9 16l2 2 4-4"/></svg><span data-i18n="admin.attendance"></span></button>
     <div class="side-group" data-i18n="admin.manage"></div>
+    <button class="side-link" data-page="meetings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span data-i18n="meet.nav"></span><span class="badge" id="meetBadge" hidden>0</span></button>
     <button class="side-link" data-page="stations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg><span data-i18n="admin.stations"></span></button>
     <button class="side-link" data-page="students"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span data-i18n="admin.students"></span></button>
     <button class="side-link" data-page="users"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg><span data-i18n="admin.users"></span><span class="badge" id="pendingBadge" hidden>0</span></button>
@@ -40,6 +42,7 @@
       <div class="page-head"><h2 data-i18n="admin.overview"></h2><p data-i18n="admin.overviewDesc"></p></div>
       <div class="ov-grid">
         <div class="ov-card"><div class="n" id="ovStudents">0</div><div class="l" data-i18n="common.students"></div></div>
+        <div class="ov-card meet"><div class="n" id="ovMeetings">0</div><div class="l" data-i18n="meet.overview"></div></div>
         <div class="ov-card"><div class="n" id="ovOnline">0/0</div><div class="l" data-i18n="portal.stationsOnline"></div></div>
         <div class="ov-card"><div class="n" id="ovQueue">0</div><div class="l" data-i18n="portal.pendingLabels"></div></div>
         <div class="ov-card ok"><div class="n" id="ovPresent">0</div><div class="l" data-i18n="portal.presentToday"></div></div>
@@ -47,9 +50,9 @@
       </div>
       <div class="ov-links">
         <button class="ov-link" data-goto="operate"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span><span><b data-i18n="admin.quickOperate"></b><span data-i18n="admin.quickOperateDesc"></span></span></button>
-        <button class="ov-link" data-goto="users"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg></span><span><b data-i18n="admin.quickUsers"></b><span data-i18n="admin.quickUsersDesc"></span></span></button>
+        <button class="ov-link" data-goto="meetings"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span><b data-i18n="meet.quick"></b><span data-i18n="meet.quickDesc"></span></span></button>
         <button class="ov-link" data-goto="designer"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg></span><span><b data-i18n="admin.quickDesigner"></b><span data-i18n="admin.quickDesignerDesc"></span></span></button>
-        <button class="ov-link" data-goto="attendance"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><span><b data-i18n="admin.quickAttendance"></b><span data-i18n="admin.quickAttendanceDesc"></span></span></button>
+        <button class="ov-link" data-goto="users"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg></span><span><b data-i18n="admin.quickUsers"></b><span data-i18n="admin.quickUsersDesc"></span></span></button>
       </div>
     </section>
 
@@ -87,12 +90,18 @@
               <div><label data-i18n="admin.sideMargin"></label><input id="bsSide" type="number" step="0.1"></div>
               <div><label data-i18n="admin.enSize"></label><input id="bsEn" type="number" step="0.5"></div>
               <div><label data-i18n="admin.zhSize"></label><input id="bsZh" type="number" step="0.5"></div>
+              <div><label data-i18n="admin.meetSize"></label><input id="bsMeetSize" type="number" step="0.5"></div>
               <div><label data-i18n="admin.gap"></label><input id="bsGap" type="number" step="0.1"></div>
             </div>
-            <div class="g" style="margin-top:10px"><div style="grid-column:1/-1"><label data-i18n="admin.enText"></label><input id="bsEnText"></div><div style="grid-column:1/-1"><label data-i18n="admin.zhText"></label><input id="bsZhText"></div></div>
+            <div class="g" style="margin-top:10px">
+              <div style="grid-column:1/-1"><label data-i18n="admin.enText"></label><input id="bsEnText"></div>
+              <div style="grid-column:1/-1"><label data-i18n="admin.zhText"></label><input id="bsZhText"></div>
+              <div style="grid-column:1/-1"><label data-i18n="admin.meetText"></label><input id="bsMeetText"></div>
+            </div>
+            <p class="muted" style="margin-top:8px" data-i18n="admin.meetHint"></p>
           </div>
           <div id="designerBox" style="display:none">
-            <div class="dz-toolbar"><button class="btn-gray mini" id="dzAdd" data-i18n="admin.addText"></button><button class="btn-gray mini" id="dzDup" data-i18n="admin.duplicate"></button><button class="btn-red mini" id="dzDel" data-i18n="admin.deleteText"></button><span class="spacer"></span><label><span data-i18n="admin.zoom"></span> <select id="dzZoom"><option value="1">1×</option><option value="1.4" selected>1.4×</option><option value="2">2×</option><option value="2.6">2.6×</option></select></label></div>
+            <div class="dz-toolbar"><button class="btn-gray mini" id="dzAdd" data-i18n="admin.addText"></button><button class="btn-gray mini" id="dzAddMeet" data-i18n="meet.editTitle"></button><button class="btn-gray mini" id="dzDup" data-i18n="admin.duplicate"></button><button class="btn-red mini" id="dzDel" data-i18n="admin.deleteText"></button><span class="spacer"></span><label><span data-i18n="admin.zoom"></span> <select id="dzZoom"><option value="1">1×</option><option value="1.4" selected>1.4×</option><option value="2">2×</option><option value="2.6">2.6×</option></select></label></div>
             <div class="dz-canvas-wrap"><div class="dz-canvas" id="dzCanvas"></div></div>
             <div class="dz-hint" data-i18n="admin.canvasHint"></div>
             <div class="dz-section" style="margin-top:12px"><h4 data-i18n="admin.textBox"></h4>
@@ -117,7 +126,14 @@
             <div class="dz-preview-wrap"><div class="label-preview" id="dzPreview"></div></div>
             <p class="muted" id="dzInfo" style="margin-top:8px"></p>
             <h4 style="margin-top:12px" data-i18n="admin.sampleData"></h4>
-            <div class="g"><div><label data-i18n="common.class"></label><input id="smCls"></div><div><label data-i18n="common.classNo"></label><input id="smNo"></div><div><label data-i18n="common.english"></label><input id="smEn"></div><div><label data-i18n="common.chinese"></label><input id="smZh"></div><div><label data-i18n="common.cardId"></label><input id="smCard"></div></div>
+            <div class="g">
+              <div><label data-i18n="common.class"></label><input id="smCls"></div><div><label data-i18n="common.classNo"></label><input id="smNo"></div>
+              <div><label data-i18n="common.english"></label><input id="smEn"></div><div><label data-i18n="common.chinese"></label><input id="smZh"></div>
+              <div><label data-i18n="common.cardId"></label><input id="smCard"></div>
+              <div><label data-i18n="meet.time"></label><input id="smMeetTime"></div>
+              <div><label data-i18n="meet.teacher"></label><input id="smMeetTeacher"></div>
+              <div><label data-i18n="meet.room"></label><input id="smMeetRoom"></div>
+            </div>
           </div>
           <div class="dz-actions"><button id="dzSave" data-i18n="common.save"></button><button class="btn-gray" id="dzReset" data-i18n="common.reset"></button><button class="btn-gray" id="dzExport" data-i18n="admin.exportJson"></button><button class="btn-gray" id="dzImport" data-i18n="admin.importJson"></button><input type="file" id="dzImportFile" accept=".json" style="display:none"></div>
           <p class="muted" id="dzStatus" style="margin:0"></p>
@@ -138,6 +154,23 @@
       </div>
     </section>
 
+    <section class="admin-page" id="page-meetings">
+      <div class="page-head"><h2 data-i18n="meet.title"></h2><p data-i18n="meet.desc"></p></div>
+      <div class="card">
+        <div class="meet-controls">
+          <div class="att-field grow"><label data-i18n="meet.search"></label><input type="text" id="mtSearch" data-i18n-ph="meet.searchPh" autocomplete="off"></div>
+          <div class="att-field"><label data-i18n="meet.teacher"></label><select id="mtTeacher"></select></div>
+          <div class="att-field"><label data-i18n="meet.room"></label><select id="mtRoom"></select></div>
+          <label class="meet-check"><input type="checkbox" id="mtOnly"><span data-i18n="meet.onlyScheduled"></span></label>
+          <span class="spacer"></span>
+          <button class="btn-gray" id="mtExport" data-i18n="meet.export"></button>
+        </div>
+        <div class="statline" style="margin:0 0 12px"><span class="tag" id="mtStatScheduled"></span><span class="tag" id="mtStatUnscheduled"></span><span class="tag" id="mtStatTeachers"></span><span class="tag" id="mtStatRooms"></span></div>
+        <div style="overflow:auto;max-height:600px"><table><thead><tr><th data-i18n="common.class"></th><th data-i18n="common.classNo"></th><th data-i18n="common.english"></th><th data-i18n="common.chinese"></th><th data-i18n="meet.time"></th><th data-i18n="meet.teacher"></th><th data-i18n="meet.room"></th><th data-i18n="common.actions"></th></tr></thead><tbody id="mtBody"></tbody></table></div>
+        <p class="muted" style="margin-top:12px" data-i18n="meet.importNote"></p>
+      </div>
+    </section>
+
     <section class="admin-page" id="page-stations">
       <div class="page-head"><h2 data-i18n="admin.stations"></h2><p data-i18n="admin.stationsDesc"></p></div>
       <div class="card">
@@ -151,14 +184,21 @@
       <div class="page-head"><h2 data-i18n="admin.students"></h2><p data-i18n="admin.studentsDesc"></p></div>
       <div class="card"><h3 data-i18n="admin.importAdd"></h3>
         <p class="muted" data-i18n="admin.excelHeader"></p>
+        <p class="muted" data-i18n="meet.importNote"></p>
         <div class="row" style="margin-top:6px"><input type="file" id="fExcel" accept=".xlsx,.xls,.csv" style="flex:1"><button class="btn-gray" id="btnTpl" data-i18n="admin.template"></button></div>
         <p class="muted" id="impMsg" style="margin-top:8px"></p><hr>
-        <div class="g"><div><label data-i18n="common.cardId"></label><input id="aCard"></div><div><label data-i18n="common.class"></label><input id="aCls" placeholder="3A"></div><div><label data-i18n="common.classNo"></label><input id="aNo" placeholder="15"></div><div><label data-i18n="common.english"></label><input id="aEn"></div><div><label data-i18n="common.chinese"></label><input id="aZh"></div></div>
+        <div class="g">
+          <div><label data-i18n="common.cardId"></label><input id="aCard"></div><div><label data-i18n="common.class"></label><input id="aCls" placeholder="3A"></div><div><label data-i18n="common.classNo"></label><input id="aNo" placeholder="15"></div>
+          <div><label data-i18n="common.english"></label><input id="aEn"></div><div><label data-i18n="common.chinese"></label><input id="aZh"></div>
+          <div><label data-i18n="meet.time"></label><input id="aMeetTime" data-i18n-ph="meet.timePh"></div>
+          <div><label data-i18n="meet.teacher"></label><input id="aMeetTeacher" data-i18n-ph="meet.teacherPh"></div>
+          <div><label data-i18n="meet.room"></label><input id="aMeetRoom" data-i18n-ph="meet.roomPh"></div>
+        </div>
         <div class="row" style="margin-top:10px"><button id="btnAdd" data-i18n="admin.addUpdate"></button></div>
       </div>
       <div class="card"><h3 data-i18n="admin.studentRecords"></h3>
         <div class="row" style="margin-bottom:10px"><input type="text" id="dbSearch" data-i18n-ph="admin.searchRecordsPh" style="max-width:340px" autocomplete="off"><span class="tag" id="dbCount"></span></div>
-        <div style="overflow:auto;max-height:520px"><table><thead><tr><th data-i18n="common.cardId"></th><th data-i18n="common.class"></th><th data-i18n="common.classNo"></th><th data-i18n="common.english"></th><th data-i18n="common.chinese"></th><th data-i18n="common.actions"></th></tr></thead><tbody id="dbBody"></tbody></table></div>
+        <div style="overflow:auto;max-height:520px"><table><thead><tr><th data-i18n="common.cardId"></th><th data-i18n="common.class"></th><th data-i18n="common.classNo"></th><th data-i18n="common.english"></th><th data-i18n="common.chinese"></th><th data-i18n="meet.time"></th><th data-i18n="meet.teacher"></th><th data-i18n="meet.room"></th><th data-i18n="common.actions"></th></tr></thead><tbody id="dbBody"></tbody></table></div>
       </div>
     </section>
 
@@ -198,10 +238,24 @@
   <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn-gray" id="stationClose" data-i18n="common.close"></button></div>
 </div></div>
 
+<div class="modal-scrim" id="meetModal" aria-hidden="true"><div class="modal" role="dialog" aria-modal="true">
+  <span class="eyebrow" data-i18n="meet.nav"></span>
+  <h3 data-i18n="meet.editTitle"></h3>
+  <p class="mm-who" id="mmWho"></p>
+  <div class="g">
+    <div><label data-i18n="meet.time"></label><input id="mmTime" data-i18n-ph="meet.timePh" autocomplete="off"></div>
+    <div><label data-i18n="meet.teacher"></label><input id="mmTeacher" data-i18n-ph="meet.teacherPh" autocomplete="off"></div>
+    <div><label data-i18n="meet.room"></label><input id="mmRoom" data-i18n-ph="meet.roomPh" autocomplete="off"></div>
+  </div>
+  <h4 style="margin:16px 0 6px;font-size:13px;font-weight:600;color:var(--ink-2)" data-i18n="meet.preview"></h4>
+  <div class="dz-preview-wrap"><div class="label-preview" id="mmPreview"></div></div>
+  <p class="muted" style="margin-top:8px" data-i18n="meet.previewNote"></p>
+  <p class="danger-status" id="mmStatus"></p>
+  <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn-red" id="mmClear" data-i18n="meet.clear"></button><button class="btn-gray" id="mmCancel" data-i18n="common.cancel"></button><button id="mmSave" data-i18n="meet.save"></button></div>
+</div></div>
+
 <div class="modal-scrim" id="userDeleteModal" aria-hidden="true"><div class="modal" role="dialog" aria-modal="true">
-  <span class="eyebrow-danger" id="udEyebrow"></span>
-  <h3 id="udTitle"></h3>
-  <p class="muted" id="udDesc"></p>
+  <span class="eyebrow-danger" id="udEyebrow"></span><h3 id="udTitle"></h3><p class="muted" id="udDesc"></p>
   <div class="danger-summary" id="udSummary"></div>
   <div class="help" id="udNote"></div>
   <div class="row" id="udConsoleRow" style="margin-top:12px"><a class="btn btn-gray btn-sm" id="udConsole" target="_blank" rel="noopener"></a></div>
@@ -225,79 +279,55 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="js/i18n.js"></script>
+<script src="js/i18n-meet.js"></script>
 <script src="js/label-layout.js"></script>
 <script src="js/auth.js"></script>
 <script>
-/* Optional: URL of the deployed callable Cloud Function (see functions/index.js).
-   Leave empty to remove the profile and access only; the Firebase Authentication
-   login record must then be deleted in Firebase Console. */
 const AUTH_DELETE_ENDPOINT = '';
-
 const EXTRA = {
   zh: {
-    'acct.delete': '刪除帳戶',
-    'acct.deleteTitle': '刪除帳戶',
+    'acct.delete': '刪除帳戶', 'acct.deleteTitle': '刪除帳戶',
     'acct.deleteDesc': '此操作會移除該用戶的系統設定檔及管理員權限，並即時撤銷所有存取權。',
-    'acct.deleteWhat': '將會移除',
-    'acct.removeProfile': '用戶設定檔（users）',
-    'acct.removeAdmin': '管理員權限（admins）',
-    'acct.removeAuth': 'Firebase Authentication 登入紀錄',
+    'acct.deleteWhat': '將會移除', 'acct.removeProfile': '用戶設定檔（users）', 'acct.removeAdmin': '管理員權限（admins）', 'acct.removeAuth': 'Firebase Authentication 登入紀錄',
     'acct.authWillDelete': '已設定刪除服務，登入紀錄會一併刪除。',
     'acct.authManual': '此系統為純前端應用，無法直接刪除其他用戶的 Firebase Authentication 登入紀錄。移除設定檔後，該用戶仍可登入，但會顯示為「帳戶尚未設定」，且無法讀取或寫入任何資料。如需徹底移除登入紀錄，請到 Firebase Console → Authentication → Users 刪除該用戶。',
     'acct.openConsole': '開啟 Firebase Console — Authentication',
-    'acct.typeEmail': '輸入該用戶的電郵以確認',
-    'acct.typeUid': '輸入該用戶的 UID 以確認',
+    'acct.typeEmail': '輸入該用戶的電郵以確認', 'acct.typeUid': '輸入該用戶的 UID 以確認',
     'acct.cannotSelfDelete': '不能刪除自己的帳戶',
     'acct.adminWarn': '注意：此帳戶擁有管理員權限。刪除前請確認系統仍有其他管理員。',
     'acct.reRequestNote': '如該用戶再次登入並提交申請，會重新出現在「待批」名單，需要再次審批。',
-    'acct.deleted': '已刪除帳戶',
-    'acct.authDeleted': '已刪除帳戶及登入紀錄',
+    'acct.deleted': '已刪除帳戶', 'acct.authDeleted': '已刪除帳戶及登入紀錄',
     'acct.authStillExists': '已移除設定檔及存取權；登入紀錄請到 Firebase Console 刪除。',
-    'acct.deleteFailed': '刪除帳戶失敗',
-    'acct.confirmDelete': '刪除帳戶',
+    'acct.deleteFailed': '刪除帳戶失敗', 'acct.confirmDelete': '刪除帳戶',
     'acct.legacy': 'Firebase 管理員',
     'acct.legacyNote': '標示為「Firebase 管理員」的帳戶只在 admins 節點設定，沒有系統設定檔，因此只可刪除。',
     'acct.usersFoot': '刪除帳戶會即時撤銷存取權。如未設定刪除服務，Firebase Authentication 登入紀錄需於 Firebase Console 另行刪除。',
-    'acct.unknownEmail': '（沒有電郵紀錄）',
-    'acct.uid': '用戶 ID'
+    'acct.unknownEmail': '（沒有電郵紀錄）', 'acct.uid': '用戶 ID'
   },
   en: {
-    'acct.delete': 'Delete account',
-    'acct.deleteTitle': 'Delete account',
+    'acct.delete': 'Delete account', 'acct.deleteTitle': 'Delete account',
     'acct.deleteDesc': 'This removes the user profile and admin rights, and revokes all access immediately.',
-    'acct.deleteWhat': 'Will be removed',
-    'acct.removeProfile': 'User profile (users)',
-    'acct.removeAdmin': 'Admin rights (admins)',
-    'acct.removeAuth': 'Firebase Authentication login record',
+    'acct.deleteWhat': 'Will be removed', 'acct.removeProfile': 'User profile (users)', 'acct.removeAdmin': 'Admin rights (admins)', 'acct.removeAuth': 'Firebase Authentication login record',
     'acct.authWillDelete': 'A deletion service is configured, so the login record is removed as well.',
     'acct.authManual': 'This is a front-end only system and cannot delete another user’s Firebase Authentication record. After the profile is removed the user can still sign in, but will see “Account not provisioned” and cannot read or write any data. To remove the login record completely, delete the user in Firebase Console → Authentication → Users.',
     'acct.openConsole': 'Open Firebase Console — Authentication',
-    'acct.typeEmail': 'Type the user’s email to confirm',
-    'acct.typeUid': 'Type the user’s UID to confirm',
+    'acct.typeEmail': 'Type the user’s email to confirm', 'acct.typeUid': 'Type the user’s UID to confirm',
     'acct.cannotSelfDelete': 'You cannot delete your own account',
     'acct.adminWarn': 'Warning: this account has admin rights. Make sure another administrator remains.',
     'acct.reRequestNote': 'If the user signs in again and submits a request, they reappear in the Pending list and must be approved again.',
-    'acct.deleted': 'Account deleted',
-    'acct.authDeleted': 'Account and login record deleted',
+    'acct.deleted': 'Account deleted', 'acct.authDeleted': 'Account and login record deleted',
     'acct.authStillExists': 'Profile and access removed. Delete the login record in Firebase Console.',
-    'acct.deleteFailed': 'Failed to delete account',
-    'acct.confirmDelete': 'Delete account',
+    'acct.deleteFailed': 'Failed to delete account', 'acct.confirmDelete': 'Delete account',
     'acct.legacy': 'Firebase admin',
     'acct.legacyNote': 'Accounts marked “Firebase admin” exist only in the admins node and have no system profile, so they can only be deleted.',
     'acct.usersFoot': 'Deleting an account revokes access immediately. Without a deletion service, the Firebase Authentication login record must be removed separately in Firebase Console.',
-    'acct.unknownEmail': '(no email on record)',
-    'acct.uid': 'User ID'
+    'acct.unknownEmail': '(no email on record)', 'acct.uid': 'User ID'
   }
 };
-
 const $ = id => document.getElementById(id);
-const t = (k, v) => {
-  const l = I18N.lang, s = EXTRA[l] && EXTRA[l][k];
-  if (s != null) { let o = s; if (v) Object.keys(v).forEach(x => o = o.split('{' + x + '}').join(v[x])); return o; }
-  return I18N.t(k, v);
-};
+const t = (k, v) => { const l = I18N.lang, s = EXTRA[l] && EXTRA[l][k]; if (s != null) { let o = s; if (v) Object.keys(v).forEach(x => o = o.split('{' + x + '}').join(v[x])); return o; } return I18N.t(k, v); };
 const esc = LL.esc, rootRef = Auth.root();
-const toast = m => { const el = $('toast'); el.textContent = m; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 3200); };
+const toast = m => { const el = $('toast'); el.textContent = m; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 3000); };
 const normCard = v => String(v == null ? '' : v).trim().replace(/^0+/, '').toUpperCase();
 const dayKey = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 const fmtT = ts => ts ? new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—';
@@ -307,20 +337,29 @@ const SC = { ready: ['#e7f1fd', '#0851a8'], wait: ['#fdf3df', '#966712'], ok: ['
 const setBox = (el, s) => { el.style.background = SC[s][0]; el.style.color = SC[s][1]; };
 const guard = () => { if (!Auth.isAdmin()) { toast(t('admin.needAdmin')); return false; } return true; };
 const werr = e => { const c = (e && e.code) || ''; toast(/PERMISSION_DENIED/i.test(c + e) ? t('admin.writeDenied') : t('admin.opFail') + ': ' + (e.message || e)); };
+const meetOf = s => ({ meetTime: String(s.meetTime || ''), meetTeacher: String(s.meetTeacher || ''), meetRoom: String(s.meetRoom || '') });
+const meetStr = s => LL.meetLine(s);
+const meetHtml = s => { const m = meetStr(s); return m ? '<div class="meet-inline"><b>' + esc(t('meet.label')) + '</b> ' + esc(m) + '</div>' : ''; };
 let students = {}, byCard = {}, stations = {}, queues = {}, selKey = localStorage.getItem(LS) || null, unknownCard = null, sent = 0, users = {}, adminFlags = {}, userFilter = 'pending';
 const queueCount = k => Object.keys(queues[k] || {}).length;
 const consoleUsersUrl = () => 'https://console.firebase.google.com/project/' + (Auth.cfg.projectId || '') + '/authentication/users';
+const byClass = (a, b) => String(a[1].cls || '').localeCompare(String(b[1].cls || '')) || (+a[1].classNo || 0) - (+b[1].classNo || 0) || String(a[1].nameEn || '').localeCompare(String(b[1].nameEn || ''));
 
-const PAGES = ['overview', 'operate', 'designer', 'attendance', 'stations', 'students', 'users', 'settings'];
-function showPage(p) { if (!PAGES.includes(p)) p = 'overview'; document.querySelectorAll('.side-link').forEach(b => b.classList.toggle('active', b.dataset.page === p)); document.querySelectorAll('.admin-page').forEach(s => s.classList.toggle('active', s.id === 'page-' + p)); if (location.hash.slice(1) !== p) history.replaceState(null, '', '#' + p); if (p === 'designer') renderAll(); }
+const PAGES = ['overview', 'operate', 'designer', 'attendance', 'meetings', 'stations', 'students', 'users', 'settings'];
+function showPage(p) { if (!PAGES.includes(p)) p = 'overview'; document.querySelectorAll('.side-link').forEach(b => b.classList.toggle('active', b.dataset.page === p)); document.querySelectorAll('.admin-page').forEach(s => s.classList.toggle('active', s.id === 'page-' + p)); if (location.hash.slice(1) !== p) history.replaceState(null, '', '#' + p); if (p === 'designer') renderAll(); if (p === 'meetings') renderMeetings(); }
 document.querySelectorAll('.side-link').forEach(b => b.onclick = () => showPage(b.dataset.page));
 document.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => showPage(b.dataset.goto));
 addEventListener('hashchange', () => showPage(location.hash.slice(1)));
 showPage(location.hash.slice(1) || 'overview');
 
 function renderOverview() {
-  const a = Object.entries(stations), on = a.filter(([k, v]) => online(v)).length; let pend = 0; Object.values(queues).forEach(q => pend += Object.keys(q || {}).length); let pres = 0; Object.values(att).forEach(r => { if (r && r.status === 'present') pres++; }); const pu = Object.values(users).filter(u => u.status === 'pending').length;
-  $('ovStudents').textContent = Object.keys(students).length; $('ovOnline').textContent = on + '/' + a.length; $('ovQueue').textContent = pend; $('ovPresent').textContent = pres; $('ovPending').textContent = pu; const b = $('pendingBadge'); b.textContent = pu; b.hidden = pu === 0;
+  const a = Object.entries(stations), on = a.filter(([k, v]) => online(v)).length; let pend = 0; Object.values(queues).forEach(q => pend += Object.keys(q || {}).length);
+  let pres = 0; Object.values(att).forEach(r => { if (r && r.status === 'present') pres++; });
+  const pu = Object.values(users).filter(u => u.status === 'pending').length;
+  const mc = Object.values(students).filter(s => meetStr(s)).length;
+  $('ovStudents').textContent = Object.keys(students).length; $('ovMeetings').textContent = mc; $('ovOnline').textContent = on + '/' + a.length; $('ovQueue').textContent = pend; $('ovPresent').textContent = pres; $('ovPending').textContent = pu;
+  const b = $('pendingBadge'); b.textContent = pu; b.hidden = pu === 0;
+  const mb = $('meetBadge'); mb.textContent = mc; mb.hidden = mc === 0;
 }
 function renderDock() {
   const e = Object.entries(stations), sel = $('stationSel'); sel.innerHTML = '<option value="">— ' + esc(t('common.selectStation')) + ' —</option>' + e.map(([k, v]) => '<option value="' + k + '">' + esc(v.name) + ' (' + esc(v.token) + ')</option>').join(''); sel.value = selKey || '';
@@ -336,7 +375,14 @@ let layout = LL.norm(null), selId = null, zoom = 1.4, dzDrag = null;
 const dzScale = () => LL.MM * zoom, selBox = () => layout.boxes.find(b => b.id === selId) || null;
 function effText() { const e = LL.eff(layout); return t('admin.effArea') + ': ' + t('admin.origin') + ' (' + e.x + ', ' + e.y + ') · ' + t('admin.size') + ' ' + e.w + '×' + e.h + ' mm'; }
 function setMode(m) { layout.mode = m; $('modeBasic').classList.toggle('active', m === 'simple'); $('modeDesigner').classList.toggle('active', m === 'designer'); $('basicBox').style.display = m === 'simple' ? 'block' : 'none'; $('designerBox').style.display = m === 'designer' ? 'block' : 'none'; $('dzModeHint').textContent = m === 'simple' ? t('admin.basicHint') : t('admin.designerHint'); renderAll(); }
-function syncInputs() { $('dcW').value = layout.doc.w; $('dcH').value = layout.doc.h; $('hdTop').value = layout.hide.top; $('hdLeft').value = layout.hide.left; $('bsTop').value = layout.simple.topMm; $('bsSide').value = layout.simple.sideMm; $('bsEn').value = layout.simple.enSize; $('bsZh').value = layout.simple.zhSize; $('bsGap').value = layout.simple.gapMm; $('bsEnText').value = layout.simple.enText; $('bsZhText').value = layout.simple.zhText; $('smCls').value = layout.sample.cls || ''; $('smNo').value = layout.sample.classNo || ''; $('smEn').value = layout.sample.nameEn || ''; $('smZh').value = layout.sample.nameZh || ''; $('smCard').value = layout.sample.cardId || ''; $('effInfo').textContent = effText(); syncProps(); }
+function syncInputs() {
+  $('dcW').value = layout.doc.w; $('dcH').value = layout.doc.h; $('hdTop').value = layout.hide.top; $('hdLeft').value = layout.hide.left;
+  $('bsTop').value = layout.simple.topMm; $('bsSide').value = layout.simple.sideMm; $('bsEn').value = layout.simple.enSize; $('bsZh').value = layout.simple.zhSize; $('bsMeetSize').value = layout.simple.meetSize; $('bsGap').value = layout.simple.gapMm;
+  $('bsEnText').value = layout.simple.enText; $('bsZhText').value = layout.simple.zhText; $('bsMeetText').value = layout.simple.meetText;
+  $('smCls').value = layout.sample.cls || ''; $('smNo').value = layout.sample.classNo || ''; $('smEn').value = layout.sample.nameEn || ''; $('smZh').value = layout.sample.nameZh || ''; $('smCard').value = layout.sample.cardId || '';
+  $('smMeetTime').value = layout.sample.meetTime || ''; $('smMeetTeacher').value = layout.sample.meetTeacher || ''; $('smMeetRoom').value = layout.sample.meetRoom || '';
+  $('effInfo').textContent = effText(); syncProps();
+}
 function syncProps() { const b = selBox(); $('dzNoSel').style.display = b ? 'none' : 'block'; $('dzProps').style.display = b ? 'block' : 'none'; if (!b) return; $('dzText').value = b.text; $('dzX').value = b.x; $('dzY').value = b.y; $('dzW').value = b.w; $('dzH').value = b.h; $('dzSize').value = b.size; $('dzWeight').value = String(b.weight); $('dzLine').value = b.lineHeight; $('dzAlign').value = b.align; $('dzValign').value = b.valign; $('dzColor').value = b.color; }
 function renderChips() { $('dzChips').innerHTML = LL.PH.map(([k]) => '<button type="button" class="dz-chip" data-k="' + k + '">{' + k + '}<span class="hk"> ' + esc(t('label.' + k)) + '</span></button>').join(''); }
 function renderCanvas() { if (layout.mode !== 'designer') return; const e = LL.eff(layout), S = dzScale(), c = $('dzCanvas'); c.style.width = e.w * S + 'px'; c.style.height = e.h * S + 'px'; c.innerHTML = layout.boxes.map(b => { const j = b.valign === 'top' ? 'flex-start' : b.valign === 'bottom' ? 'flex-end' : 'center'; return '<div class="dz-box ' + (b.id === selId ? 'sel' : '') + '" data-id="' + esc(b.id) + '" style="left:' + b.x * S + 'px;top:' + b.y * S + 'px;width:' + b.w * S + 'px;height:' + b.h * S + 'px;font-size:' + b.size * zoom + 'px;font-weight:' + b.weight + ';text-align:' + b.align + ';color:' + b.color + ';line-height:' + b.lineHeight + ';justify-content:' + j + '">' + esc(LL.fill(b.text, layout.sample)).replace(/\n/g, '<br>') + '<span class="dz-handle"></span></div>'; }).join(''); }
@@ -358,15 +404,18 @@ $('dzColor').oninput = () => { const b = selBox(); if (b) { b.color = $('dzColor
 $('dzText').oninput = () => { const b = selBox(); if (b) { b.text = $('dzText').value; renderAll(); } };
 [['dcW', 'doc', 'w'], ['dcH', 'doc', 'h'], ['hdTop', 'hide', 'top'], ['hdLeft', 'hide', 'left']].forEach(([id, g, k]) => $(id).addEventListener('input', () => { const v = parseFloat($(id).value); if (!Number.isFinite(v)) return; layout[g][k] = g === 'hide' ? Math.max(0, v) : Math.max(1, v); renderAll(); }));
 $('dcPreset').onclick = () => { layout.doc = { w: 60, h: 60 }; layout.hide = { top: 20, left: 0 }; syncInputs(); renderAll(); toast(t('admin.presetApplied')); };
-[['bsTop', 'topMm'], ['bsSide', 'sideMm'], ['bsEn', 'enSize'], ['bsZh', 'zhSize'], ['bsGap', 'gapMm']].forEach(([id, k]) => $(id).addEventListener('input', () => { const v = parseFloat($(id).value); if (!Number.isFinite(v)) return; layout.simple[k] = v; renderPreview(); }));
-$('bsEnText').oninput = () => { layout.simple.enText = $('bsEnText').value; renderPreview(); }; $('bsZhText').oninput = () => { layout.simple.zhText = $('bsZhText').value; renderPreview(); };
-[['smCls', 'cls'], ['smNo', 'classNo'], ['smEn', 'nameEn'], ['smZh', 'nameZh'], ['smCard', 'cardId']].forEach(([id, k]) => $(id).addEventListener('input', () => { layout.sample[k] = $(id).value; renderAll(); }));
+[['bsTop', 'topMm'], ['bsSide', 'sideMm'], ['bsEn', 'enSize'], ['bsZh', 'zhSize'], ['bsMeetSize', 'meetSize'], ['bsGap', 'gapMm']].forEach(([id, k]) => $(id).addEventListener('input', () => { const v = parseFloat($(id).value); if (!Number.isFinite(v)) return; layout.simple[k] = v; renderPreview(); }));
+$('bsEnText').oninput = () => { layout.simple.enText = $('bsEnText').value; renderPreview(); };
+$('bsZhText').oninput = () => { layout.simple.zhText = $('bsZhText').value; renderPreview(); };
+$('bsMeetText').oninput = () => { layout.simple.meetText = $('bsMeetText').value; renderPreview(); };
+[['smCls', 'cls'], ['smNo', 'classNo'], ['smEn', 'nameEn'], ['smZh', 'nameZh'], ['smCard', 'cardId'], ['smMeetTime', 'meetTime'], ['smMeetTeacher', 'meetTeacher'], ['smMeetRoom', 'meetRoom']].forEach(([id, k]) => $(id).addEventListener('input', () => { layout.sample[k] = $(id).value; renderAll(); }));
 $('dzZoom').onchange = () => { zoom = parseFloat($('dzZoom').value) || 1.4; renderCanvas(); };
 $('dzAdd').onclick = () => { const id = 'b' + Date.now(); layout.boxes.push({ id, x: 4, y: 4, w: 30, h: 8, text: '{nameEn}', size: 16, weight: 600, align: 'center', valign: 'middle', color: '#000000', lineHeight: 1.2 }); selId = id; renderAll(); };
+$('dzAddMeet').onclick = () => { const e = LL.eff(layout), id = 'meet' + Date.now(); layout.boxes.push({ id, x: 2, y: clamp(e.h - 12, 0, Math.max(0, e.h - 7)), w: Math.max(10, e.w - 4), h: 7, text: '{meetTime} · {meetTeacher} · {meetRoom}', size: 11, weight: 500, align: 'center', valign: 'middle', color: '#000000', lineHeight: 1.25 }); selId = id; renderAll(); toast(t('meet.editTitle')); };
 $('dzDup').onclick = () => { const b = selBox(); if (!b) return toast(t('admin.selectBoxFirst')); const e = LL.eff(layout), c = LL.clone(b); c.id = 'b' + Date.now(); c.x = clamp(c.x + 2, 0, e.w - c.w); c.y = clamp(c.y + 2, 0, e.h - c.h); layout.boxes.push(c); selId = c.id; renderAll(); };
 $('dzDel').onclick = () => { const b = selBox(); if (!b) return toast(t('admin.selectBoxFirst')); layout.boxes = layout.boxes.filter(x => x.id !== b.id); selId = layout.boxes[0]?.id || null; renderAll(); };
 $('dzReset').onclick = () => { if (!confirm(t('admin.resetConfirm'))) return; layout = LL.norm(null); selId = layout.boxes[0]?.id || null; setMode(layout.mode); syncInputs(); renderAll(); };
-$('dzSave').onclick = async () => { if (!guard()) return; try { const p = LL.clone(layout); p.version = 4; p.updatedAt = Date.now(); await rootRef.child('labelLayout').set(p); toast(t('admin.layoutSaved')); } catch (e) { werr(e); } };
+$('dzSave').onclick = async () => { if (!guard()) return; try { const p = LL.clone(layout); p.version = 5; p.updatedAt = Date.now(); await rootRef.child('labelLayout').set(p); toast(t('admin.layoutSaved')); } catch (e) { werr(e); } };
 $('dzExport').onclick = () => { const b = new Blob([JSON.stringify(layout, null, 2)], { type: 'application/json' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'label-layout.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1500); toast(t('admin.exported')); };
 $('dzImport').onclick = () => $('dzImportFile').click();
 $('dzImportFile').addEventListener('change', function () { const f = this.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = e => { try { layout = LL.norm(JSON.parse(e.target.result)); selId = layout.boxes[0]?.id || null; setMode(layout.mode); syncInputs(); renderAll(); toast(t('admin.jsonLoaded')); } catch (err) { toast(t('admin.jsonFail')); } }; rd.readAsText(f); this.value = ''; });
@@ -377,7 +426,7 @@ async function markAtt(k, status, by, day = dayKey()) { const s = students[k]; i
 window.attMark = async (k, st) => { if (!guard()) return; try { await markAtt(k, st, 'admin', attDay); toast((st === 'present' ? t('remote.markedPresent') : t('remote.markedAbsent')) + ' ' + (students[k]?.nameEn || '')); } catch (e) { werr(e); } };
 window.attClear = async k => { if (!guard()) return; try { await rootRef.child('attendance/' + attDay + '/' + k).remove(); toast(t('admin.cleared')); } catch (e) { werr(e); } };
 const attBadge = a => a ? (a.status === 'present' ? '<span class="att-badge p">' + esc(t('common.present')) + ' <span class="att-t">' + fmtT(a.time) + '</span></span>' : '<span class="att-badge a">' + esc(t('common.absent')) + ' <span class="att-t">' + fmtT(a.time) + '</span></span>') : '<span class="att-badge">' + esc(t('common.unmarked')) + '</span>';
-function attRows() { const cf = $('attCls').value; return Object.entries(students).filter(([k, s]) => !cf || String(s.cls || '').toUpperCase() === cf).sort((a, b) => String(a[1].cls || '').localeCompare(String(b[1].cls || '')) || (+a[1].classNo || 0) - (+b[1].classNo || 0)); }
+function attRows() { const cf = $('attCls').value; return Object.entries(students).filter(([k, s]) => !cf || String(s.cls || '').toUpperCase() === cf).sort(byClass); }
 function renderAttendance() {
   const classes = [...new Set(Object.values(students).map(s => String(s.cls || '').toUpperCase()).filter(Boolean))].sort(); const sel = $('attCls'), cur = sel.value; sel.innerHTML = '<option value="">' + esc(t('common.all')) + '</option>' + classes.map(c => '<option>' + esc(c) + '</option>').join(''); if (classes.includes(cur)) sel.value = cur;
   const rows = attRows(); let p = 0, a = 0; rows.forEach(([k]) => { const r = att[k]; if (r) { r.status === 'present' ? p++ : a++; } }); $('attP').textContent = t('common.present') + ' ' + p; $('attA').textContent = t('common.absent') + ' ' + a; $('attN').textContent = t('common.unmarked') + ' ' + (rows.length - p - a);
@@ -385,54 +434,163 @@ function renderAttendance() {
 }
 $('attDate').value = attDay; $('attDate').onchange = function () { attachAtt(this.value || dayKey()); }; $('attCls').onchange = renderAttendance;
 $('btnAbsAll').onclick = async () => { if (!guard()) return; const un = attRows().filter(([k]) => !att[k]); if (!un.length) return toast(t('admin.noUnmarked')); if (!confirm(t('admin.markAbsentConfirm', { n: un.length }))) return; const upd = {}, now = Date.now(); un.forEach(([k, s]) => upd[k] = { status: 'absent', time: now, by: 'admin', cls: s.cls || '', classNo: s.classNo || '', nameEn: s.nameEn || '', nameZh: s.nameZh || '', cardId: s.cardId || '' }); try { await rootRef.child('attendance/' + attDay).update(upd); toast(t('admin.markedAbsent')); } catch (e) { werr(e); } };
-$('btnAttExport').onclick = () => { if (typeof XLSX === 'undefined') return toast(t('admin.excelNotLoaded')); const rows = attRows(); if (!rows.length) return toast(t('admin.noStudents')); const aoa = [[t('common.date'), t('common.class'), t('common.classNo'), t('common.english'), t('common.chinese'), t('common.cardId'), t('common.status'), t('common.time'), t('admin.by')]]; rows.forEach(([k, s]) => { const r = att[k]; aoa.push([attDay, s.cls || '', s.classNo || '', s.nameEn || '', s.nameZh || '', s.cardId || '', r ? (r.status === 'present' ? t('common.present') : t('common.absent')) : t('common.unmarked'), r ? new Date(r.time).toLocaleTimeString('en-GB') : '', r?.by || '']); }); const ws = XLSX.utils.aoa_to_sheet(aoa), wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Attendance'); XLSX.writeFile(wb, 'attendance_' + attDay + '.xlsx'); };
+$('btnAttExport').onclick = () => { if (typeof XLSX === 'undefined') return toast(t('admin.excelNotLoaded')); const rows = attRows(); if (!rows.length) return toast(t('admin.noStudents')); const aoa = [[t('common.date'), t('common.class'), t('common.classNo'), t('common.english'), t('common.chinese'), t('common.cardId'), t('meet.time'), t('meet.teacher'), t('meet.room'), t('common.status'), t('common.time'), t('admin.by')]]; rows.forEach(([k, s]) => { const r = att[k]; aoa.push([attDay, s.cls || '', s.classNo || '', s.nameEn || '', s.nameZh || '', s.cardId || '', s.meetTime || '', s.meetTeacher || '', s.meetRoom || '', r ? (r.status === 'present' ? t('common.present') : t('common.absent')) : t('common.unmarked'), r ? new Date(r.time).toLocaleTimeString('en-GB') : '', r?.by || '']); }); const ws = XLSX.utils.aoa_to_sheet(aoa), wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Attendance'); XLSX.writeFile(wb, 'attendance_' + attDay + '.xlsx'); };
+
+/* ---- meetings ---- */
+function meetRows() {
+  const q = ($('mtSearch').value || '').trim().toLowerCase(), tf = $('mtTeacher').value, rf = $('mtRoom').value, only = $('mtOnly').checked;
+  let rows = Object.entries(students);
+  if (only) rows = rows.filter(([k, s]) => meetStr(s));
+  if (tf) rows = rows.filter(([k, s]) => String(s.meetTeacher || '') === tf);
+  if (rf) rows = rows.filter(([k, s]) => String(s.meetRoom || '') === rf);
+  if (q) rows = rows.filter(([k, s]) => LL.searchMatch(s, q));
+  return rows.sort(byClass);
+}
+function fillMeetSelect(el, values, allLabel) {
+  const cur = el.value; el.innerHTML = '<option value="">' + esc(allLabel) + '</option>' + values.map(v => '<option value="' + esc(v) + '">' + esc(v) + '</option>').join('');
+  if (values.includes(cur)) el.value = cur;
+}
+function renderMeetings() {
+  const all = Object.values(students);
+  const teachers = [...new Set(all.map(s => String(s.meetTeacher || '').trim()).filter(Boolean))].sort();
+  const rooms = [...new Set(all.map(s => String(s.meetRoom || '').trim()).filter(Boolean))].sort();
+  fillMeetSelect($('mtTeacher'), teachers, t('meet.allTeachers')); fillMeetSelect($('mtRoom'), rooms, t('meet.allRooms'));
+  const sched = all.filter(s => meetStr(s)).length;
+  $('mtStatScheduled').textContent = t('meet.scheduled') + ' ' + sched;
+  $('mtStatUnscheduled').textContent = t('meet.unscheduled') + ' ' + (all.length - sched);
+  $('mtStatTeachers').textContent = t('meet.teachers') + ' ' + teachers.length;
+  $('mtStatRooms').textContent = t('meet.rooms') + ' ' + rooms.length;
+  const rows = meetRows();
+  $('mtBody').innerHTML = rows.slice(0, 1000).map(([k, s]) => {
+    const has = meetStr(s);
+    const cell = (v, mono) => v ? '<span class="meet-cell' + (mono ? ' meet-time' : '') + '">' + esc(v) + '</span>' : '<span class="meet-cell none">' + esc(t('meet.none')) + '</span>';
+    return '<tr><td>' + esc(s.cls) + '</td><td>' + esc(s.classNo) + '</td><td><b>' + esc(s.nameEn) + '</b></td><td>' + esc(s.nameZh) + '</td><td>' + cell(s.meetTime, true) + '</td><td>' + cell(s.meetTeacher) + '</td><td>' + cell(s.meetRoom) + '</td><td><button class="btn-gray mini" onclick="openMeet(\'' + k + '\')">' + esc(t('meet.edit')) + '</button> <button class="btn-amber mini" onclick="printOne(\'' + k + '\')">' + esc(t('common.print')) + '</button>' + (has ? ' <span class="meet-pill">' + esc(t('meet.scheduled')) + '</span>' : '') + '</td></tr>';
+  }).join('') || '<tr><td colspan="8" style="text-align:center">' + esc(Object.keys(students).length ? t('meet.empty') : t('meet.noStudents')) + '</td></tr>';
+  renderOverview();
+}
+['mtSearch', 'mtTeacher', 'mtRoom', 'mtOnly'].forEach(id => $(id).addEventListener(id === 'mtSearch' ? 'input' : 'change', renderMeetings));
+$('mtExport').onclick = () => {
+  if (typeof XLSX === 'undefined') return toast(t('admin.excelNotLoaded'));
+  const rows = meetRows(); if (!rows.length) return toast(t('meet.empty'));
+  const aoa = [['Class', 'Class No', 'English Name', 'Chinese Name', 'Card ID', 'Meeting Time', 'Meeting Teacher', 'Meeting Location']];
+  rows.forEach(([k, s]) => aoa.push([s.cls || '', s.classNo || '', s.nameEn || '', s.nameZh || '', s.cardId || '', s.meetTime || '', s.meetTeacher || '', s.meetRoom || '']));
+  const ws = XLSX.utils.aoa_to_sheet(aoa), wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Meetings'); XLSX.writeFile(wb, 'meetings.xlsx'); toast(t('admin.exported'));
+};
+let mmUid = null, mmBusy = false;
+function renderMeetPreview() {
+  const s = students[mmUid] || {};
+  const data = Object.assign({}, s, { meetTime: $('mmTime').value, meetTeacher: $('mmTeacher').value, meetRoom: $('mmRoom').value });
+  const e = LL.eff(layout), p = $('mmPreview'); p.style.width = e.w + 'mm'; p.style.height = e.h + 'mm'; p.innerHTML = LL.stageHTML(layout, data, false);
+}
+window.openMeet = k => {
+  if (!guard()) return; const s = students[k]; if (!s) return; mmUid = k; mmBusy = false;
+  $('mmWho').innerHTML = '<b>' + esc(s.nameEn || '') + '</b> ' + esc(s.nameZh || '') + ' · ' + esc(s.cls || '') + ' ' + esc(s.classNo || '') + ' · ' + esc(t('common.cardId')) + ' ' + esc(s.cardId || '—');
+  $('mmTime').value = s.meetTime || ''; $('mmTeacher').value = s.meetTeacher || ''; $('mmRoom').value = s.meetRoom || '';
+  $('mmStatus').textContent = ''; $('mmStatus').className = 'danger-status';
+  $('mmSave').disabled = false; $('mmCancel').disabled = false; $('mmClear').disabled = false;
+  I18N.apply($('meetModal')); renderMeetPreview();
+  $('meetModal').classList.add('open'); document.body.style.overflow = 'hidden'; setTimeout(() => $('mmTime').focus(), 30);
+};
+function closeMeet() { if (mmBusy) return; $('meetModal').classList.remove('open'); document.body.style.overflow = ''; mmUid = null; }
+['mmTime', 'mmTeacher', 'mmRoom'].forEach(id => $(id).addEventListener('input', renderMeetPreview));
+$('mmCancel').onclick = closeMeet;
+$('meetModal').addEventListener('click', e => { if (e.target === $('meetModal')) closeMeet(); });
+$('mmSave').onclick = async () => {
+  if (!guard() || !mmUid || mmBusy) return; mmBusy = true; $('mmSave').disabled = true; $('mmClear').disabled = true; $('mmCancel').disabled = true;
+  try {
+    await rootRef.child('students/' + mmUid).update({ meetTime: $('mmTime').value.trim(), meetTeacher: $('mmTeacher').value.trim(), meetRoom: $('mmRoom').value.trim() });
+    mmBusy = false; closeMeet(); toast(t('meet.saved'));
+  } catch (e) { mmBusy = false; $('mmSave').disabled = false; $('mmClear').disabled = false; $('mmCancel').disabled = false; $('mmStatus').textContent = t('admin.opFail') + ': ' + (e.message || e); $('mmStatus').className = 'danger-status err'; }
+};
+$('mmClear').onclick = async () => {
+  if (!guard() || !mmUid || mmBusy) return; if (!confirm(t('meet.clearConfirm'))) return; mmBusy = true; $('mmSave').disabled = true; $('mmClear').disabled = true;
+  try { await rootRef.child('students/' + mmUid).update({ meetTime: '', meetTeacher: '', meetRoom: '' }); mmBusy = false; closeMeet(); toast(t('meet.cleared')); }
+  catch (e) { mmBusy = false; $('mmSave').disabled = false; $('mmClear').disabled = false; $('mmStatus').textContent = t('admin.opFail') + ': ' + (e.message || e); $('mmStatus').className = 'danger-status err'; }
+};
 
 function renderStations() { $('stBody').innerHTML = Object.entries(stations).map(([k, v]) => { const q = queueCount(k), on = isOnline(v); return '<tr><td><b>' + esc(v.name) + '</b></td><td>' + esc(v.token) + '</td><td>' + esc(t('admin.globalLayout')) + '</td><td><span class="dot ' + (on ? 'on' : '') + '"></span> ' + esc(t(on ? 'common.online' : 'common.offline')) + '<br><span class="muted">' + esc(t('common.queue')) + ' ' + q + '</span></td><td><button class="btn-gray mini" onclick="editStation(\'' + k + '\')">' + esc(t('common.edit')) + '</button> <button class="btn-red mini" onclick="delStation(\'' + k + '\')">' + esc(t('common.delete')) + '</button></td></tr>'; }).join('') || '<tr><td colspan="5" style="text-align:center">' + esc(t('admin.noStations')) + '</td></tr>'; }
 $('btnAddStation').onclick = async () => { if (!guard()) return; const n = $('nsName').value.trim(), tk = $('nsToken').value.trim().toUpperCase(); if (!n || !tk) return toast(t('admin.needNameToken')); if (Object.values(stations).some(v => String(v.token || '').toUpperCase() === tk)) return toast(t('admin.tokenExists')); try { const ref = await rootRef.child('stations').push({ name: n, token: tk, settings: {}, createdAt: Date.now(), lastSeen: 0 }); $('nsName').value = ''; $('nsToken').value = ''; selectStation(ref.key); toast(t('admin.stationAdded')); } catch (e) { werr(e); } };
 window.editStation = async k => { if (!guard()) return; const v = stations[k]; if (!v) return; const n = prompt(t('admin.stationName'), v.name); if (n === null) return; const tk = prompt(t('admin.stationToken'), v.token); if (tk === null) return; try { await rootRef.child('stations/' + k).update({ name: n.trim() || v.name, token: tk.trim().toUpperCase() || v.token }); toast(t('admin.stationUpdated')); } catch (e) { werr(e); } };
 window.delStation = async k => { if (!guard()) return; if (!confirm(t('admin.deleteStationConfirm'))) return; try { await rootRef.child('stations/' + k).remove(); await rootRef.child('queues/' + k).remove(); if (selKey === k) { selKey = null; localStorage.removeItem(LS); } renderDock(); renderStations(); toast(t('admin.stationDeleted')); } catch (e) { werr(e); } };
 
-async function queueLabel(s, copies = 1) { if (!selKey || !stations[selKey]) { toast(t('admin.needStation')); return false; } await new Promise(r => setTimeout(r, 2000)); await rootRef.child('queues/' + selKey).push({ type: 'label', cls: s.cls || '', classNo: s.classNo || '', nameEn: s.nameEn || '', nameZh: s.nameZh || '', cardId: s.cardId || '', copies, createdAt: Date.now(), done: false }); sent++; renderScanStats(); return true; }
+async function queueLabel(s, copies = 1) {
+  if (!selKey || !stations[selKey]) { toast(t('admin.needStation')); return false; }
+  await new Promise(r => setTimeout(r, 2000));
+  await rootRef.child('queues/' + selKey).push(Object.assign({ type: 'label', cls: s.cls || '', classNo: s.classNo || '', nameEn: s.nameEn || '', nameZh: s.nameZh || '', cardId: s.cardId || '' }, meetOf(s), { copies, createdAt: Date.now(), done: false }));
+  sent++; renderScanStats(); return true;
+}
 function renderScanStats() { $('lastScan').textContent = t('admin.lastScan') + ': ' + (lastScanCode || '—'); $('sentCount').textContent = t('admin.sent') + ' ' + sent; }
 function renderScanReady() { const b = $('scanBox'); setBox(b, 'ready'); b.innerHTML = esc(t('admin.scanReady')) + '<br><span class="en">' + esc(t('admin.scanReadyEn')) + '</span>'; }
 let buf = '', last = 0, lastScanCode = '';
-document.addEventListener('keydown', e => { if (document.body.classList.contains('auth-locked') || $('dangerModal').classList.contains('open') || $('stationModal').classList.contains('open') || $('userDeleteModal').classList.contains('open')) return; const a = document.activeElement; if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return; const now = Date.now(); if (now - last > 120) buf = ''; last = now; if (e.key === 'Enter' || e.key === 'Tab') { if (buf.length >= 4) { e.preventDefault(); handleScan(buf); } buf = ''; } else if (e.key.length === 1) buf += e.key; });
+const anyModal = () => $('dangerModal').classList.contains('open') || $('stationModal').classList.contains('open') || $('userDeleteModal').classList.contains('open') || $('meetModal').classList.contains('open');
+document.addEventListener('keydown', e => { if (document.body.classList.contains('auth-locked') || anyModal()) return; const a = document.activeElement; if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return; const now = Date.now(); if (now - last > 120) buf = ''; last = now; if (e.key === 'Enter' || e.key === 'Tab') { if (buf.length >= 4) { e.preventDefault(); handleScan(buf); } buf = ''; } else if (e.key.length === 1) buf += e.key; });
 async function handleScan(code) {
   lastScanCode = code; renderScanStats(); const box = $('scanBox'), k = byCard[normCard(code)];
   if (!k) { unknownCard = code; setBox(box, 'err'); box.innerHTML = esc(t('admin.unregistered')) + ': ' + esc(code) + '<br><span class="en">' + esc(t('admin.bindHint')) + '</span>'; $('bindHelp').style.display = 'block'; $('bindHelp').innerHTML = esc(t('admin.bindHelp', { card: code })); doSearch(); resetScanBox(); return; }
   unknownCard = null; $('bindHelp').style.display = 'none'; const s = students[k]; setBox(box, 'wait'); box.innerHTML = esc(t('common.cardId')) + ' ' + esc(code) + '<br><span class="en">' + esc(t('admin.marking')) + '</span>';
   try { await markAtt(k, 'present', 'scan'); } catch (e) { werr(e); }
   const tm = fmtT(Date.now()); let printed = false; try { printed = (selKey && stations[selKey]) ? await queueLabel(s, 1) : false; } catch (e) { werr(e); }
-  setBox(box, 'ok'); box.innerHTML = esc(s.nameEn) + '<br>' + esc(s.cls || '') + ' ' + esc(s.classNo || '') + ' · ' + esc(s.nameZh || '') + '<br><span class="en">' + esc(t('admin.markedPresent')) + ' ' + tm + (printed ? ' · → ' + esc(stations[selKey].name) : ' · ' + esc(t('admin.onlyMarked'))) + '</span>'; resetScanBox();
+  setBox(box, 'ok'); box.innerHTML = esc(s.nameEn) + '<br>' + esc(s.cls || '') + ' ' + esc(s.classNo || '') + ' · ' + esc(s.nameZh || '') + meetHtml(s) + '<span class="en">' + esc(t('admin.markedPresent')) + ' ' + tm + (printed ? ' · → ' + esc(stations[selKey].name) : ' · ' + esc(t('admin.onlyMarked'))) + '</span>'; resetScanBox();
 }
 function resetScanBox() { setTimeout(renderScanReady, 4000); }
 
 function renderDB() {
-  const q = ($('dbSearch').value || '').trim().toLowerCase(); let rows = Object.entries(students).sort((a, b) => String(a[1].cls || '').localeCompare(String(b[1].cls || '')) || (+a[1].classNo || 0) - (+b[1].classNo || 0)); if (q) rows = rows.filter(([k, s]) => LL.searchMatch(s, q)); $('dbCount').textContent = rows.length + ' ' + t('common.records');
-  $('dbBody').innerHTML = rows.slice(0, 800).map(([k, s]) => '<tr><td>' + esc(s.cardId || '—') + '</td><td>' + esc(s.cls) + '</td><td>' + esc(s.classNo) + '</td><td>' + esc(s.nameEn) + '</td><td>' + esc(s.nameZh) + '</td><td><button class="btn-amber mini" onclick="printOne(\'' + k + '\')">' + esc(t('common.print')) + '</button> <button class="btn-red mini" onclick="delOne(\'' + k + '\')">' + esc(t('common.delete')) + '</button></td></tr>').join('') || '<tr><td colspan="6" style="text-align:center">' + esc(t('common.noData')) + '</td></tr>';
+  const q = ($('dbSearch').value || '').trim().toLowerCase(); let rows = Object.entries(students).sort(byClass); if (q) rows = rows.filter(([k, s]) => LL.searchMatch(s, q)); $('dbCount').textContent = rows.length + ' ' + t('common.records');
+  const dash = v => v ? esc(v) : '<span class="meet-cell none">—</span>';
+  $('dbBody').innerHTML = rows.slice(0, 800).map(([k, s]) => '<tr><td>' + esc(s.cardId || '—') + '</td><td>' + esc(s.cls) + '</td><td>' + esc(s.classNo) + '</td><td>' + esc(s.nameEn) + '</td><td>' + esc(s.nameZh) + '</td><td class="meet-time">' + dash(s.meetTime) + '</td><td>' + dash(s.meetTeacher) + '</td><td>' + dash(s.meetRoom) + '</td><td><button class="btn-gray mini" onclick="openMeet(\'' + k + '\')">' + esc(t('meet.edit')) + '</button> <button class="btn-amber mini" onclick="printOne(\'' + k + '\')">' + esc(t('common.print')) + '</button> <button class="btn-red mini" onclick="delOne(\'' + k + '\')">' + esc(t('common.delete')) + '</button></td></tr>').join('') || '<tr><td colspan="9" style="text-align:center">' + esc(t('common.noData')) + '</td></tr>';
 }
 $('dbSearch').addEventListener('input', renderDB); $('q').addEventListener('input', doSearch);
 function doSearch() {
   const q = $('q').value.trim().toLowerCase(); if (!q) { $('res').innerHTML = ''; return; } const hits = Object.entries(students).filter(([k, s]) => LL.searchMatch(s, q)).slice(0, 40);
-  $('res').innerHTML = hits.map(([k, s]) => '<div class="search-item"><div><b>' + esc(s.nameEn) + '</b> ／ ' + esc(s.nameZh) + ' ' + attBadge(att[k]) + '<br><span class="muted">' + esc(s.cls || '') + ' ' + esc(s.classNo || '') + ' · ' + esc(t('common.cardId')) + ' ' + esc(s.cardId || '—') + '</span></div><div class="row" style="margin:0"><button class="btn-amber mini" onclick="printOne(\'' + k + '\')">' + esc(t('common.print')) + '</button> <button class="btn-ok mini" onclick="attMark(\'' + k + '\',\'present\')">' + esc(t('common.present')) + '</button> <button class="btn-red mini" onclick="attMark(\'' + k + '\',\'absent\')">' + esc(t('common.absent')) + '</button> ' + (unknownCard ? '<button class="btn-gray mini" onclick="bindCard(\'' + k + '\')">' + esc(t('admin.bindCard')) + '</button>' : '') + '</div></div>').join('') || '<p class="muted">' + esc(t('common.noMatch')) + '</p>';
+  $('res').innerHTML = hits.map(([k, s]) => '<div class="search-item"><div><b>' + esc(s.nameEn) + '</b> ／ ' + esc(s.nameZh) + ' ' + attBadge(att[k]) + '<br><span class="muted">' + esc(s.cls || '') + ' ' + esc(s.classNo || '') + ' · ' + esc(t('common.cardId')) + ' ' + esc(s.cardId || '—') + '</span>' + meetHtml(s) + '</div><div class="row" style="margin:0"><button class="btn-amber mini" onclick="printOne(\'' + k + '\')">' + esc(t('common.print')) + '</button> <button class="btn-ok mini" onclick="attMark(\'' + k + '\',\'present\')">' + esc(t('common.present')) + '</button> <button class="btn-red mini" onclick="attMark(\'' + k + '\',\'absent\')">' + esc(t('common.absent')) + '</button> <button class="btn-gray mini" onclick="openMeet(\'' + k + '\')">' + esc(t('meet.edit')) + '</button> ' + (unknownCard ? '<button class="btn-gray mini" onclick="bindCard(\'' + k + '\')">' + esc(t('admin.bindCard')) + '</button>' : '') + '</div></div>').join('') || '<p class="muted">' + esc(t('common.noMatch')) + '</p>';
 }
-window.printOne = async k => { if (!guard()) return; const s = students[k]; if (!s) return; if (!selKey) return toast(t('admin.needStation')); if (!confirm(t('admin.printConfirm', { name: s.nameEn }))) return; try { if (await queueLabel(s, 1)) toast(t('admin.sentTo') + ' ' + stations[selKey].name); } catch (e) { werr(e); } };
+window.printOne = async k => { if (!guard()) return; const s = students[k]; if (!s) return; if (!selKey) { showPage('operate'); return toast(t('admin.needStation')); } if (!confirm(t('admin.printConfirm', { name: s.nameEn }))) return; try { if (await queueLabel(s, 1)) toast(t('admin.sentTo') + ' ' + stations[selKey].name); } catch (e) { werr(e); } };
 window.bindCard = async k => { if (!guard()) return; if (!unknownCard) return; if (!confirm(t('admin.bindConfirm', { card: unknownCard, name: students[k].nameEn }))) return; try { await rootRef.child('students/' + k).update({ cardId: unknownCard }); unknownCard = null; $('bindHelp').style.display = 'none'; doSearch(); toast(t('admin.bound')); } catch (e) { werr(e); } };
 window.delOne = async k => { if (!guard()) return; if (!confirm(t('admin.deleteStudentConfirm'))) return; try { await rootRef.child('students/' + k).remove(); toast(t('admin.studentDeleted')); } catch (e) { werr(e); } };
-$('btnAdd').onclick = async () => { if (!guard()) return; const rec = { cardId: $('aCard').value.trim(), cls: $('aCls').value.trim().toUpperCase(), classNo: $('aNo').value.trim(), nameEn: $('aEn').value.trim(), nameZh: $('aZh').value.trim() }; if (!rec.nameEn && !rec.nameZh) return toast(t('admin.needName')); const k = rec.cardId ? byCard[normCard(rec.cardId)] : null; try { if (k) await rootRef.child('students/' + k).update(rec); else await rootRef.child('students').push(rec);['aCard', 'aCls', 'aNo', 'aEn', 'aZh'].forEach(id => $(id).value = ''); toast(t('admin.saved')); } catch (e) { werr(e); } };
-const norm = s => String(s).toLowerCase().replace(/[^a-z]/g, '');
-$('btnTpl').onclick = () => { if (typeof XLSX === 'undefined') return toast(t('admin.excelNotLoaded')); const ws = XLSX.utils.aoa_to_sheet([['Card ID', 'Class', 'Class No', 'English Name', 'Chinese Name'], ['0001234567', '3A', '15', 'CHAN TAI MAN', '陳大文']]), wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Students'); XLSX.writeFile(wb, 'parent_label_template.xlsx'); };
-$('fExcel').addEventListener('change', function () { if (!guard()) { this.value = ''; return; } const f = this.files[0]; if (!f) return; if (typeof XLSX === 'undefined') return toast(t('admin.excelNotLoaded')); const rd = new FileReader(); rd.onload = async e => { try { const wb = XLSX.read(e.target.result, { type: 'array' }), raw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' }); const list = raw.map(r => { const o = {}; Object.keys(r).forEach(k => o[norm(k)] = r[k]); return { cardId: String(o.cardid || o.card || '').trim(), cls: String(o.class || o.form || '').trim().toUpperCase(), classNo: String(o.classno || o.no || '').trim(), nameEn: String(o.englishname || o.nameen || '').trim(), nameZh: String(o.chinesename || o.namezh || '').trim() }; }).filter(x => x.nameEn || x.nameZh); if (!list.length) { $('impMsg').textContent = t('admin.noValidData'); return; } let add = 0, upd = 0; for (const it of list) { const k = it.cardId ? byCard[normCard(it.cardId)] : null; if (k) { await rootRef.child('students/' + k).update(it); upd++; } else { const ref = await rootRef.child('students').push(it); if (it.cardId) byCard[normCard(it.cardId)] = ref.key; add++; } } $('impMsg').textContent = t('admin.importResult', { add, upd }); } catch (err) { $('impMsg').textContent = err.message; } }; rd.readAsArrayBuffer(f); this.value = ''; });
+$('btnAdd').onclick = async () => {
+  if (!guard()) return;
+  const rec = Object.assign({ cardId: $('aCard').value.trim(), cls: $('aCls').value.trim().toUpperCase(), classNo: $('aNo').value.trim(), nameEn: $('aEn').value.trim(), nameZh: $('aZh').value.trim() },
+    { meetTime: $('aMeetTime').value.trim(), meetTeacher: $('aMeetTeacher').value.trim(), meetRoom: $('aMeetRoom').value.trim() });
+  if (!rec.nameEn && !rec.nameZh) return toast(t('admin.needName'));
+  const k = rec.cardId ? byCard[normCard(rec.cardId)] : null;
+  try { if (k) await rootRef.child('students/' + k).update(rec); else await rootRef.child('students').push(rec);['aCard', 'aCls', 'aNo', 'aEn', 'aZh', 'aMeetTime', 'aMeetTeacher', 'aMeetRoom'].forEach(id => $(id).value = ''); toast(t('admin.saved')); } catch (e) { werr(e); }
+};
+const nk = s => String(s == null ? '' : s).toLowerCase().replace(/[\s_\-()（）:：.]/g, '');
+const HEADER = {
+  cardId: ['cardid', 'card', 'cardno', '卡號', '學生證號', '拍卡號'],
+  cls: ['class', 'form', '班別', '班級'],
+  classNo: ['classno', 'no', '班號', '學號', '座號'],
+  nameEn: ['englishname', 'nameen', 'english', '英文姓名', '英文名'],
+  nameZh: ['chinesename', 'namezh', 'chinese', '中文姓名', '中文名'],
+  meetTime: ['meettime', 'meetingtime', 'time', '會面時間', '見面時間', '約見時間', '時間'],
+  meetTeacher: ['meetteacher', 'meetingteacher', 'teacher', '會面老師', '約見老師', '老師', '教師'],
+  meetRoom: ['meetroom', 'meetingroom', 'room', 'location', 'venue', 'meetlocation', 'meetinglocation', '會面地點', '見面地點', '地點', '課室', '教室']
+};
+function mapRow(r) {
+  const o = {}; Object.keys(r).forEach(k => { o[nk(k)] = r[k]; });
+  const pick = keys => { for (const k of keys) if (o[k] != null && String(o[k]).trim() !== '') return String(o[k]).trim(); return ''; };
+  return { cardId: pick(HEADER.cardId), cls: pick(HEADER.cls).toUpperCase(), classNo: pick(HEADER.classNo), nameEn: pick(HEADER.nameEn), nameZh: pick(HEADER.nameZh), meetTime: pick(HEADER.meetTime), meetTeacher: pick(HEADER.meetTeacher), meetRoom: pick(HEADER.meetRoom) };
+}
+$('btnTpl').onclick = () => { if (typeof XLSX === 'undefined') return toast(t('admin.excelNotLoaded')); const ws = XLSX.utils.aoa_to_sheet([['Card ID', 'Class', 'Class No', 'English Name', 'Chinese Name', 'Meeting Time', 'Meeting Teacher', 'Meeting Location'], ['0001234567', '3A', '15', 'CHAN TAI MAN', '陳大文', '15:30–15:45', '陳老師', '204 室'], ['0001234568', '3A', '16', 'LEE SIU MING', '李小明', '15:45–16:00', '李老師', '禮堂']]), wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Students'); XLSX.writeFile(wb, 'parent_label_template.xlsx'); };
+$('fExcel').addEventListener('change', function () {
+  if (!guard()) { this.value = ''; return; } const f = this.files[0]; if (!f) return; if (typeof XLSX === 'undefined') return toast(t('admin.excelNotLoaded'));
+  const rd = new FileReader(); rd.onload = async e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' }), raw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+      const list = raw.map(mapRow).filter(x => x.nameEn || x.nameZh);
+      if (!list.length) { $('impMsg').textContent = t('admin.noValidData'); return; }
+      let add = 0, upd = 0;
+      for (const it of list) { const k = it.cardId ? byCard[normCard(it.cardId)] : null; if (k) { await rootRef.child('students/' + k).update(it); upd++; } else { const ref = await rootRef.child('students').push(it); if (it.cardId) byCard[normCard(it.cardId)] = ref.key; add++; } }
+      const mc = list.filter(x => x.meetTime || x.meetTeacher || x.meetRoom).length;
+      $('impMsg').textContent = t('admin.importResult', { add, upd }) + ' ' + t('meet.scheduled') + ': ' + mc;
+    } catch (err) { $('impMsg').textContent = err.message; }
+  }; rd.readAsArrayBuffer(f); this.value = '';
+});
 
-/* ---- users: merge /users profiles with /admins flags ---- */
 function mergedUsers() {
   const map = {};
   Object.entries(users).forEach(([uid, u]) => { map[uid] = Object.assign({}, u, { _legacy: false }); });
-  Object.entries(adminFlags).forEach(([uid, v]) => {
-    if (v !== true) return;
-    if (map[uid]) { map[uid].role = 'admin'; map[uid].status = 'approved'; }
-    else map[uid] = { email: '', name: '', role: 'admin', status: 'approved', createdAt: 0, _legacy: true };
-  });
+  Object.entries(adminFlags).forEach(([uid, v]) => { if (v !== true) return; if (map[uid]) { map[uid].role = 'admin'; map[uid].status = 'approved'; } else map[uid] = { email: '', name: '', role: 'admin', status: 'approved', createdAt: 0, _legacy: true }; });
   return map;
 }
 function renderUsers() {
@@ -459,91 +617,42 @@ window.userSet = async (uid, patch) => {
   if (!guard()) return; const me = Auth.user().uid;
   if (uid === me && (patch.status || patch.role)) return toast(t('admin.cannotSelf'));
   if (patch.status === 'rejected' && !confirm(t('admin.rejectConfirm'))) return;
-  try {
-    const p = Object.assign({}, patch); if (patch.status === 'approved') { p.approvedAt = Date.now(); p.approvedBy = me; }
-    await Auth.db.ref('users/' + uid).update(p);
-    if (patch.role === 'admin') await Auth.db.ref('admins/' + uid).set(true);
-    if (patch.role === 'staff') await Auth.db.ref('admins/' + uid).remove();
-    toast(t('admin.userUpdated'));
-  } catch (e) { werr(e); }
+  try { const p = Object.assign({}, patch); if (patch.status === 'approved') { p.approvedAt = Date.now(); p.approvedBy = me; } await Auth.db.ref('users/' + uid).update(p); if (patch.role === 'admin') await Auth.db.ref('admins/' + uid).set(true); if (patch.role === 'staff') await Auth.db.ref('admins/' + uid).remove(); toast(t('admin.userUpdated')); } catch (e) { werr(e); }
 };
 $('userTabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; userFilter = b.dataset.f; document.querySelectorAll('#userTabs button').forEach(x => x.classList.toggle('active', x === b)); renderUsers(); };
 
-/* ---- delete account ---- */
 let udUid = null, udBusy = false;
 const udRecord = () => udUid ? mergedUsers()[udUid] : null;
 const udToken = u => (u && u.email ? String(u.email) : String(udUid || ''));
 function renderUserDelete() {
   const u = udRecord(); if (!u) return;
-  $('udEyebrow').textContent = t('acct.delete');
-  $('udTitle').textContent = t('acct.deleteTitle');
-  $('udDesc').textContent = t('acct.deleteDesc');
+  $('udEyebrow').textContent = t('acct.delete'); $('udTitle').textContent = t('acct.deleteTitle'); $('udDesc').textContent = t('acct.deleteDesc');
   const rows = [[t('common.name'), u.name || '—'], [t('common.email'), u.email || t('acct.unknownEmail')], [t('acct.uid'), udUid], [t('common.role'), t(u.role === 'admin' ? 'common.admin' : 'common.staff')], [t('common.status'), t('common.' + (u.status || 'pending'))]];
   $('udSummary').innerHTML = rows.map(([k, v]) => '<div><span>' + esc(k) + '</span><b>' + esc(v) + '</b></div>').join('');
-  let note = '<b>' + esc(t('acct.deleteWhat')) + '</b><ul class="ud-list"><li>' + esc(t('acct.removeProfile')) + '</li><li>' + esc(t('acct.removeAdmin')) + '</li><li>' + esc(t('acct.removeAuth')) + '</li></ul>'
-    + '<div style="margin-top:8px">' + esc(AUTH_DELETE_ENDPOINT ? t('acct.authWillDelete') : t('acct.authManual')) + '</div>'
-    + '<div style="margin-top:8px">' + esc(t('acct.reRequestNote')) + '</div>';
+  let note = '<b>' + esc(t('acct.deleteWhat')) + '</b><ul class="ud-list"><li>' + esc(t('acct.removeProfile')) + '</li><li>' + esc(t('acct.removeAdmin')) + '</li><li>' + esc(t('acct.removeAuth')) + '</li></ul><div style="margin-top:8px">' + esc(AUTH_DELETE_ENDPOINT ? t('acct.authWillDelete') : t('acct.authManual')) + '</div><div style="margin-top:8px">' + esc(t('acct.reRequestNote')) + '</div>';
   if (u.role === 'admin') note += '<div class="ud-warn">' + esc(t('acct.adminWarn')) + '</div>';
   $('udNote').innerHTML = note;
-  $('udConsoleRow').style.display = AUTH_DELETE_ENDPOINT ? 'none' : 'flex';
-  $('udConsole').textContent = t('acct.openConsole'); $('udConsole').href = consoleUsersUrl();
-  $('udLabel').textContent = u.email ? t('acct.typeEmail') : t('acct.typeUid');
-  $('udEmail').placeholder = udToken(u);
-  $('udCancel').textContent = t('common.cancel');
-  $('udConfirm').textContent = t('acct.confirmDelete');
-  validateUserDelete();
+  $('udConsoleRow').style.display = AUTH_DELETE_ENDPOINT ? 'none' : 'flex'; $('udConsole').textContent = t('acct.openConsole'); $('udConsole').href = consoleUsersUrl();
+  $('udLabel').textContent = u.email ? t('acct.typeEmail') : t('acct.typeUid'); $('udEmail').placeholder = udToken(u);
+  $('udCancel').textContent = t('common.cancel'); $('udConfirm').textContent = t('acct.confirmDelete'); validateUserDelete();
 }
-function validateUserDelete() {
-  const u = udRecord(); if (!u) { $('udConfirm').disabled = true; return; }
-  $('udConfirm').disabled = udBusy || $('udEmail').value.trim().toLowerCase() !== udToken(u).toLowerCase();
-}
-window.openUserDelete = uid => {
-  if (!guard()) return;
-  if (Auth.user() && uid === Auth.user().uid) return toast(t('acct.cannotSelfDelete'));
-  udUid = uid; udBusy = false;
-  $('udEmail').value = ''; $('udEmail').disabled = false; $('udCancel').disabled = false;
-  $('udStatus').textContent = ''; $('udStatus').className = 'danger-status';
-  renderUserDelete();
-  $('userDeleteModal').classList.add('open'); $('userDeleteModal').setAttribute('aria-hidden', 'false');
-  document.body.style.overflow = 'hidden';
-  setTimeout(() => $('udEmail').focus(), 30);
-};
-function closeUserDelete() {
-  if (udBusy) return;
-  $('userDeleteModal').classList.remove('open'); $('userDeleteModal').setAttribute('aria-hidden', 'true');
-  document.body.style.overflow = ''; udUid = null;
-}
-async function callAuthDelete(uid) {
-  const token = await Auth.user().getIdToken();
-  const res = await fetch(AUTH_DELETE_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ data: { uid } }) });
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok || j.error) throw new Error((j.error && j.error.message) || ('HTTP ' + res.status));
-  return true;
-}
-async function confirmUserDelete() {
-  const u = udRecord(); if (!u || udBusy) return;
-  if (!guard()) return;
+function validateUserDelete() { const u = udRecord(); if (!u) { $('udConfirm').disabled = true; return; } $('udConfirm').disabled = udBusy || $('udEmail').value.trim().toLowerCase() !== udToken(u).toLowerCase(); }
+window.openUserDelete = uid => { if (!guard()) return; if (Auth.user() && uid === Auth.user().uid) return toast(t('acct.cannotSelfDelete')); udUid = uid; udBusy = false; $('udEmail').value = ''; $('udEmail').disabled = false; $('udCancel').disabled = false; $('udStatus').textContent = ''; $('udStatus').className = 'danger-status'; renderUserDelete(); $('userDeleteModal').classList.add('open'); document.body.style.overflow = 'hidden'; setTimeout(() => $('udEmail').focus(), 30); };
+function closeUserDelete() { if (udBusy) return; $('userDeleteModal').classList.remove('open'); document.body.style.overflow = ''; udUid = null; }
+async function callAuthDelete(uid) { const token = await Auth.user().getIdToken(); const res = await fetch(AUTH_DELETE_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ data: { uid } }) }); const j = await res.json().catch(() => ({})); if (!res.ok || j.error) throw new Error((j.error && j.error.message) || ('HTTP ' + res.status)); return true; }
+$('udCancel').onclick = closeUserDelete;
+$('udEmail').addEventListener('input', validateUserDelete);
+$('udEmail').addEventListener('keydown', e => { if (e.key === 'Enter' && !$('udConfirm').disabled) $('udConfirm').click(); });
+$('userDeleteModal').addEventListener('click', e => { if (e.target === $('userDeleteModal')) closeUserDelete(); });
+$('udConfirm').onclick = async () => {
+  const u = udRecord(); if (!u || udBusy || !guard()) return;
   if (Auth.user() && udUid === Auth.user().uid) return toast(t('acct.cannotSelfDelete'));
   if ($('udEmail').value.trim().toLowerCase() !== udToken(u).toLowerCase()) return;
-  udBusy = true; $('udConfirm').disabled = true; $('udCancel').disabled = true; $('udEmail').disabled = true;
-  $('udStatus').textContent = t('common.processing'); $('udStatus').className = 'danger-status';
+  udBusy = true; $('udConfirm').disabled = true; $('udCancel').disabled = true; $('udEmail').disabled = true; $('udStatus').textContent = t('common.processing');
   const uid = udUid; let authDeleted = false;
-  try {
-    if (AUTH_DELETE_ENDPOINT) authDeleted = await callAuthDelete(uid);
-    await Auth.db.ref('admins/' + uid).remove();
-    await Auth.db.ref('users/' + uid).remove();
-    udBusy = false; closeUserDelete();
-    toast(authDeleted ? t('acct.authDeleted') : (AUTH_DELETE_ENDPOINT ? t('acct.deleted') : t('acct.authStillExists')));
-  } catch (e) {
-    udBusy = false; $('udCancel').disabled = false; $('udEmail').disabled = false; validateUserDelete();
-    $('udStatus').textContent = t('acct.deleteFailed') + ': ' + (e.message || e); $('udStatus').className = 'danger-status err';
-  }
-}
-$('udCancel').onclick = closeUserDelete;
-$('udConfirm').onclick = confirmUserDelete;
-$('udEmail').addEventListener('input', validateUserDelete);
-$('udEmail').addEventListener('keydown', e => { if (e.key === 'Enter' && !$('udConfirm').disabled) confirmUserDelete(); });
-$('userDeleteModal').addEventListener('click', e => { if (e.target === $('userDeleteModal')) closeUserDelete(); });
+  try { if (AUTH_DELETE_ENDPOINT) authDeleted = await callAuthDelete(uid); await Auth.db.ref('admins/' + uid).remove(); await Auth.db.ref('users/' + uid).remove(); udBusy = false; closeUserDelete(); toast(authDeleted ? t('acct.authDeleted') : (AUTH_DELETE_ENDPOINT ? t('acct.deleted') : t('acct.authStillExists'))); }
+  catch (e) { udBusy = false; $('udCancel').disabled = false; $('udEmail').disabled = false; validateUserDelete(); $('udStatus').textContent = t('acct.deleteFailed') + ': ' + (e.message || e); $('udStatus').className = 'danger-status err'; }
+};
 
 $('btnBackupAll').onclick = async () => { if (!guard()) return; try { const snap = await rootRef.once('value'); const b = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), data: snap.val() || {} }, null, 2)], { type: 'application/json' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'parents-backup-' + Date.now() + '.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); toast(t('admin.backupDownloaded')); } catch (e) { werr(e); } };
 const DANGER = { students: { title: 'admin.deleteAllStudents', desc: 'admin.deleteStudentsDesc', phrase: 'DELETE', btn: 'admin.deleteStudentsBtn' }, all: { title: 'admin.deleteAllData', desc: 'admin.deleteAllDesc', phrase: 'DELETE ALL', btn: 'admin.deleteAllBtn' } };
@@ -554,25 +663,22 @@ $('dangerPhrase').addEventListener('input', () => { const c = DANGER[dangerScope
 $('btnDelStudents').onclick = () => openDanger('students'); $('btnDelAll').onclick = () => openDanger('all'); $('dangerCancel').onclick = closeDanger; $('dangerModal').addEventListener('click', e => { if (e.target === $('dangerModal')) closeDanger(); });
 $('dangerConfirm').onclick = async () => {
   const sc = dangerScope, c = DANGER[sc]; if (!c || dangerBusy) return; if ($('dangerPhrase').value.trim().toUpperCase() !== c.phrase) return; dangerBusy = true; $('dangerConfirm').disabled = true; $('dangerCancel').disabled = true;
-  try {
-    if ($('dangerBackup').checked) { const snap = await (sc === 'all' ? rootRef : rootRef.child('students')).once('value'); const b = new Blob([JSON.stringify({ scope: sc, exportedAt: new Date().toISOString(), data: snap.val() || {} }, null, 2)], { type: 'application/json' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'backup-' + sc + '-' + Date.now() + '.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
-    if (sc === 'all') await rootRef.remove(); else await rootRef.child('students').remove();
-    if (sc === 'all') { localStorage.removeItem(LS); selKey = null; } unknownCard = null; $('q').value = ''; $('res').innerHTML = ''; dangerBusy = false; closeDanger(); toast(t('admin.deleted'));
-  } catch (err) { dangerBusy = false; $('dangerCancel').disabled = false; $('dangerStatus').textContent = t('admin.deleteFailed') + ': ' + err.message; $('dangerStatus').className = 'danger-status err'; }
+  try { if ($('dangerBackup').checked) { const snap = await (sc === 'all' ? rootRef : rootRef.child('students')).once('value'); const b = new Blob([JSON.stringify({ scope: sc, exportedAt: new Date().toISOString(), data: snap.val() || {} }, null, 2)], { type: 'application/json' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'backup-' + sc + '-' + Date.now() + '.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); } if (sc === 'all') await rootRef.remove(); else await rootRef.child('students').remove(); if (sc === 'all') { localStorage.removeItem(LS); selKey = null; } unknownCard = null; $('q').value = ''; $('res').innerHTML = ''; dangerBusy = false; closeDanger(); toast(t('admin.deleted')); }
+  catch (err) { dangerBusy = false; $('dangerCancel').disabled = false; $('dangerStatus').textContent = t('admin.deleteFailed') + ': ' + err.message; $('dangerStatus').className = 'danger-status err'; }
 };
-document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if ($('userDeleteModal').classList.contains('open')) closeUserDelete(); if ($('dangerModal').classList.contains('open')) closeDanger(); if ($('stationModal').classList.contains('open')) closeStation(); });
+document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if ($('meetModal').classList.contains('open')) closeMeet(); if ($('userDeleteModal').classList.contains('open')) closeUserDelete(); if ($('dangerModal').classList.contains('open')) closeDanger(); if ($('stationModal').classList.contains('open')) closeStation(); });
 
-function renderAllI18n() { I18N.apply(); renderOverview(); renderDock(); renderStations(); renderDB(); renderAttendance(); renderUsers(); renderScanStats(); renderScanReady(); setMode(layout.mode); syncInputs(); renderAll(); if (dangerScope) openDanger(dangerScope); if (udUid) renderUserDelete(); }
+function renderAllI18n() { I18N.apply(); renderOverview(); renderDock(); renderStations(); renderDB(); renderAttendance(); renderMeetings(); renderUsers(); renderScanStats(); renderScanReady(); setMode(layout.mode); syncInputs(); renderAll(); doSearch(); if (dangerScope) openDanger(dangerScope); if (udUid) renderUserDelete(); if (mmUid) renderMeetPreview(); }
 document.addEventListener('langchange', renderAllI18n);
-renderScanStats(); renderScanReady(); renderDock(); renderStations(); renderDB(); renderAttendance(); renderUsers(); renderOverview();
+I18N.apply(); renderScanStats(); renderScanReady(); renderDock(); renderStations(); renderDB(); renderAttendance(); renderMeetings(); renderUsers(); renderOverview();
 Auth.start(function (user, prof) {
   if (prof.role !== 'admin') { $('adminConsole').style.display = 'none'; $('adminDenied').style.display = 'block'; $('topChip').textContent = t('admin.staffNoAccess'); return; }
   $('topChip').textContent = t('admin.adminSignedIn'); $('acctEmail').value = user.email || ''; $('acctRole').value = t(prof.role === 'admin' ? 'common.admin' : 'common.staff'); $('acctUid').value = user.uid || '';
   attachAtt(attDay);
-  rootRef.child('labelLayout').on('value', s => { const keep = selId; layout = LL.norm(s.val()); if (keep && layout.boxes.some(b => b.id === keep)) selId = keep; else selId = layout.boxes[0]?.id || null; setMode(layout.mode); syncInputs(); renderAll(); $('dzStatus').textContent = s.exists() ? t('admin.layoutLoaded') : t('admin.layoutDefault'); }, werr);
+  rootRef.child('labelLayout').on('value', s => { const keep = selId; layout = LL.norm(s.val()); if (keep && layout.boxes.some(b => b.id === keep)) selId = keep; else selId = layout.boxes[0]?.id || null; setMode(layout.mode); syncInputs(); renderAll(); if (mmUid) renderMeetPreview(); $('dzStatus').textContent = s.exists() ? t('admin.layoutLoaded') : t('admin.layoutDefault'); }, werr);
   rootRef.child('stations').on('value', s => { stations = s.val() || {}; if (selKey && !stations[selKey]) { selKey = null; localStorage.removeItem(LS); } renderDock(); renderStations(); renderOverview(); }, werr);
   rootRef.child('queues').on('value', s => { queues = s.val() || {}; renderDock(); renderStations(); renderOverview(); }, werr);
-  rootRef.child('students').on('value', s => { students = s.val() || {}; byCard = {}; Object.entries(students).forEach(([k, v]) => { if (v.cardId) byCard[normCard(v.cardId)] = k; }); renderDB(); renderAttendance(); doSearch(); renderOverview(); }, werr);
+  rootRef.child('students').on('value', s => { students = s.val() || {}; byCard = {}; Object.entries(students).forEach(([k, v]) => { if (v.cardId) byCard[normCard(v.cardId)] = k; }); renderDB(); renderAttendance(); renderMeetings(); doSearch(); renderOverview(); }, werr);
   Auth.db.ref('users').on('value', s => { users = s.val() || {}; renderUsers(); if (udUid) renderUserDelete(); }, werr);
   Auth.db.ref('admins').on('value', s => { adminFlags = s.val() || {}; renderUsers(); if (udUid) renderUserDelete(); }, e => console.warn('admins read:', e && e.code));
   setInterval(() => { renderDock(); renderStations(); renderOverview(); }, 15000);
