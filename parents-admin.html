@@ -1,4 +1,4 @@
-<!-- parents-admin.html · self-contained: does NOT need js/label-layout.js -->
+<!-- parents-admin.html -->
 <!doctype html><html lang="zh-HK"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Parent Label Admin 家長標籤管理端</title>
@@ -7,13 +7,12 @@
 <div class="topbar"><span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Parent Label Admin 家長標籤管理端</span><span class="chip" id="topChip">—</span></div>
 
 <div class="station-dock">
-  <div class="dock-row">
-    <span class="dock-label">送至 Send to</span>
+  <div class="dock-row"><span class="dock-label">送至 Send to</span>
     <select id="stationSel"><option value="">— 選擇列印站 Select station —</option></select>
     <span class="dock-meta"><span class="pill off" id="onlinePill">未選擇</span><span id="queueInfo">queue 0</span></span>
   </div>
   <div class="chips" id="stationChips"></div>
-  <div class="dock-hint">刷卡同時點名（出席）及列印；未選站點時只點名。所有列印端採用下方儲存的標籤設定。</div>
+  <div class="dock-hint">刷卡同時點名（出席）及列印；未選站點時只點名。排版只顯示有效列印區域，隱藏補償區不會畫出。</div>
 </div>
 
 <div class="wrap">
@@ -33,19 +32,19 @@
       <span class="muted" id="dzModeHint"></span>
     </div>
     <div class="designer">
-      <div class="dz-section"><h4>Page &amp; shift 頁面與位移</h4>
+      <div class="dz-section"><h4>文件 · 隱藏 · 有效區域</h4>
         <div class="g">
-          <div><label>Driver W 驅動寬 (mm)</label><input id="dzDrvW" type="number" step="0.1"></div>
-          <div><label>Driver H 驅動高 (mm)</label><input id="dzDrvH" type="number" step="0.1"></div>
-          <div><label>Label W 實際寬 (mm)</label><input id="dzPhyW" type="number" step="0.1"></div>
-          <div><label>Label H 實際高 (mm)</label><input id="dzPhyH" type="number" step="0.1"></div>
-          <div><label>Shift X 位移X (mm)</label><input id="dzOffX" type="number" step="0.1"></div>
-          <div><label>Shift Y 位移Y (mm)</label><input id="dzOffY" type="number" step="0.1"></div>
+          <div><label>文件寬 File W (mm)</label><input id="dcW" type="number" step="0.1" min="10"></div>
+          <div><label>文件高 File H (mm)</label><input id="dcH" type="number" step="0.1" min="10"></div>
+          <div><label>隱藏·上 Hidden top (mm)</label><input id="hdTop" type="number" step="0.1" min="0"></div>
+          <div><label>隱藏·左 Hidden left (mm)</label><input id="hdLeft" type="number" step="0.1" min="0"></div>
         </div>
-        <div class="row" style="margin-top:10px"><button class="btn-gray mini" id="dzPreset64">套用 6×4 補償（60×60 驅動，−20mm）</button></div>
+        <p class="muted" id="effInfo" style="margin-top:10px"></p>
+        <div class="row" style="margin-top:8px"><button class="btn-gray mini" id="dcPreset">6×6 文件 · 頂部 2cm 隱藏</button></div>
+        <p class="muted" style="margin-top:8px">紅色隱藏區不顯示；畫布與預覽只畫灰色有效列印區域。有效區域起點 = 隱藏左／上。</p>
       </div>
 
-      <div class="dz-section" id="basicBox"><h4>Basic label 基本標籤（舊版設定）</h4>
+      <div class="dz-section" id="basicBox"><h4>Basic label 基本標籤</h4>
         <div class="g">
           <div><label>Top 上留白 (mm)</label><input id="bsTop" type="number" step="0.1"></div>
           <div><label>Side 左右留白 (mm)</label><input id="bsSide" type="number" step="0.1"></div>
@@ -68,7 +67,7 @@
           <label>Zoom <select id="dzZoom"><option value="1">1×</option><option value="1.4" selected>1.4×</option><option value="2">2×</option><option value="2.6">2.6×</option></select></label>
         </div>
         <div class="dz-canvas-wrap"><div class="dz-canvas" id="dzCanvas"></div></div>
-        <div class="dz-hint">藍色虛線框 = 實際標籤範圍。方塊座標以驅動頁面為準；Y 位移 −20mm 把上方 20mm 推到邊緣外。拖曳移動，右下角調整大小。</div>
+        <div class="dz-hint">畫布 = 灰色有效列印區域。拖曳移動，右下角調整大小。隱藏區不在畫布內。</div>
         <div class="dz-section" style="margin-top:12px"><h4>Text box 文字方塊</h4>
           <div id="dzNoSel" class="muted">點選任何文字方塊開始編輯。</div>
           <div id="dzProps" style="display:none">
@@ -90,7 +89,7 @@
         </div>
       </div>
 
-      <div class="dz-section"><h4>Preview 預覽</h4>
+      <div class="dz-section"><h4>Preview 預覽（有效區域）</h4>
         <div class="dz-preview-wrap"><div class="label-preview" id="dzPreview"></div></div>
         <p class="muted" id="dzInfo" style="margin-top:8px"></p>
         <h4 style="margin-top:12px">Sample data 預覽數據</h4>
@@ -154,55 +153,13 @@
 </div></div>
 <div class="toast" id="toast"></div>
 
-<script>
-/* inline label engine (no external file) */
-(function(){
-const MM=96/25.4;
-const DEF={mode:'simple',driver:{w:60,h:60},physical:{w:60,h:40},offset:{x:0,y:-20},
- simple:{topMm:26,sideMm:2,enSize:12,zhSize:30,gapMm:1.5,enText:'Parent of {class} {classNo} {nameEn}',zhText:'{nameZh}家長'},
- boxes:[{id:'en',x:2,y:24,w:56,h:6,text:'Parent of {class} {classNo} {nameEn}',size:12,weight:600,align:'center',valign:'middle',color:'#000000',lineHeight:1.2},
-        {id:'zh',x:2,y:31,w:56,h:13,text:'{nameZh}家長',size:30,weight:600,align:'center',valign:'middle',color:'#000000',lineHeight:1.15}],
- sample:{cls:'3A',classNo:'15',nameEn:'CHAN TAI MAN',nameZh:'陳大文',cardId:'0001234567'}};
-const PH=[['class','班別'],['classNo','班號'],['nameEn','英文名'],['nameZh','中文名'],['cardId','卡號'],['parent','中文家長'],['parentEn','英文家長'],['date','日期'],['time','時間']];
-const clone=o=>JSON.parse(JSON.stringify(o));
-const num=(v,d)=>{const n=parseFloat(v);return Number.isFinite(n)?n:d;};
-const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function norm(l){const b=clone(DEF);if(!l||typeof l!=='object')return b;
- b.mode=l.mode==='designer'?'designer':'simple';
- b.driver={w:num(l.driver&&l.driver.w,60),h:num(l.driver&&l.driver.h,60)};
- b.physical={w:num(l.physical&&l.physical.w,60),h:num(l.physical&&l.physical.h,40)};
- b.offset={x:num(l.offset&&l.offset.x,0),y:num(l.offset&&l.offset.y,-20)};
- b.simple=Object.assign({},DEF.simple,l.simple||{});
- ['topMm','sideMm','enSize','zhSize','gapMm'].forEach(k=>b.simple[k]=num(b.simple[k],DEF.simple[k]));
- if(Array.isArray(l.boxes)&&l.boxes.length)b.boxes=l.boxes.map((x,i)=>({id:String(x.id||('b'+i)),x:num(x.x,0),y:num(x.y,0),w:num(x.w,20),h:num(x.h,8),text:x.text==null?'':String(x.text),size:num(x.size,16),weight:num(x.weight,600),align:['left','center','right'].includes(x.align)?x.align:'center',valign:['top','middle','bottom'].includes(x.valign)?x.valign:'middle',color:/^#[0-9a-fA-F]{6}$/.test(x.color||'')?x.color:'#000000',lineHeight:num(x.lineHeight,1.2)}));
- b.sample=Object.assign({},DEF.sample,l.sample||{});return b;}
-function fill(t,s){s=s||{};const cls=s.cls||s.class||'',no=s.classNo||s.no||'',en=s.nameEn||'',zh=s.nameZh||'',card=s.cardId||'';
- const m={class:cls,cls:cls,no:no,classNo:no,nameEn:en,nameZh:zh,cardId:card,parent:zh?zh+'家長':'',parentEn:'Parent of '+[cls,no,en].filter(Boolean).join(' '),date:new Date().toLocaleDateString('en-GB'),time:new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})};
- return String(t==null?'':t).replace(/\{([a-zA-Z]+)\}/g,(x,k)=>m[k]!=null?String(m[k]):x);}
-const just=v=>v==='top'?'flex-start':v==='bottom'?'flex-end':'center';
-function stageHTML(l,data){const off=`transform:translate(${l.offset.x}mm,${l.offset.y}mm)`;const sz=`width:${l.driver.w}mm;height:${l.driver.h}mm`;
- if(l.mode==='simple'){const s=l.simple;return `<div class="label-stage" style="${sz};${off}"><div class="simple-wrap" style="padding:${s.topMm}mm ${s.sideMm}mm 0 ${s.sideMm}mm"><div class="label-en" style="font-size:${s.enSize}px">${esc(fill(s.enText,data))}</div><div class="label-zh" style="font-size:${s.zhSize}px;margin-top:${s.gapMm}mm">${esc(fill(s.zhText,data))}</div></div></div>`;}
- const bx=(l.boxes||[]).map(b=>`<div class="lb" style="left:${b.x}mm;top:${b.y}mm;width:${b.w}mm;height:${b.h}mm;font-size:${b.size}px;font-weight:${b.weight};text-align:${b.align};color:${b.color};line-height:${b.lineHeight};justify-content:${just(b.valign)}">${esc(fill(b.text,data)).replace(/\n/g,'<br>')}</div>`).join('');
- return `<div class="label-stage" style="${sz};${off}">${bx}</div>`;}
-function printCss(l){return `#printArea{display:none}
-@media print{@page{size:${l.driver.w}mm ${l.driver.h}mm;margin:0}
-html,body{margin:0!important;padding:0!important;background:#fff!important;height:auto!important;min-height:0!important}
-body>*:not(#printArea){display:none!important}
-#printArea{display:block!important;position:relative!important;margin:0!important;padding:0!important;width:${l.driver.w}mm!important;height:${l.driver.h}mm!important;overflow:hidden!important;background:#fff!important;color:#000}
-#printArea .label-stage{position:absolute;left:0;top:0}
-#printArea .simple-wrap{display:flex;flex-direction:column;align-items:center;text-align:center;width:100%;height:100%;box-sizing:border-box;font-family:'Microsoft JhengHei','Noto Sans TC','PingFang HK',sans-serif}
-#printArea .label-en{font-weight:600;line-height:1.25;word-break:break-word;overflow-wrap:anywhere}
-#printArea .label-zh{font-weight:600;line-height:1.2;word-break:break-word;overflow-wrap:anywhere}
-#printArea .lb{position:absolute;display:flex;flex-direction:column;overflow:hidden;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;font-family:'Microsoft JhengHei','Noto Sans TC','PingFang HK',sans-serif}}`;}
-window.LL={MM,DEF,PH,clone,norm,fill,esc,stageHTML,printCss};
-})();
-</script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="js/label-layout.js"></script>
 <script>
-const $=id=>document.getElementById(id);
-const esc=LL.esc;
+const LL=window.LabelLayout;
+const $=id=>document.getElementById(id);const esc=LL.esc;
 const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);};
 const normCard=v=>String(v==null?'':v).trim().replace(/^0+/,'').toUpperCase();
 const dayKey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -216,35 +173,32 @@ let rootRef=null,students={},byCard={},stations={},queues={},selKey=localStorage
 const queueCount=k=>Object.keys(queues[k]||{}).length;
 try{firebase.initializeApp({apiKey:"AIzaSyDMBiSM4oGSDE3khRISIxtxDCJJTLaxm0",authDomain:"ktmc-queue-system.firebaseapp.com",databaseURL:"https://ktmc-queue-system-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"ktmc-queue-system",storageBucket:"ktmc-queue-system.firebasestorage.app",messagingSenderId:"1098822703041",appId:"1:1098822703041:web:c010a95bf5c71c478a0140"});rootRef=firebase.database().ref('parents');}catch(e){toast('Firebase 未連線，離線顯示預設');}
 
-/* ===== designer / basic ===== */
+/* ===== designer ===== */
 let layout=LL.norm(null),selId=null,zoom=1.4,dzDrag=null;
-const dzScale=()=>LL.MM*zoom;
-const selBox=()=>layout.boxes.find(b=>b.id===selId)||null;
-function setMode(m){layout.mode=m;$('modeBasic').classList.toggle('active',m==='simple');$('modeDesigner').classList.toggle('active',m==='designer');$('basicBox').style.display=m==='simple'?'block':'none';$('designerBox').style.display=m==='designer'?'block':'none';$('dzModeHint').textContent=m==='simple'?'基本兩行模式（舊版設定）':'自由放置文字方塊';renderAll();}
+const dzScale=()=>LL.MM*zoom;const selBox=()=>layout.boxes.find(b=>b.id===selId)||null;
+function setMode(m){layout.mode=m;$('modeBasic').classList.toggle('active',m==='simple');$('modeDesigner').classList.toggle('active',m==='designer');$('basicBox').style.display=m==='simple'?'block':'none';$('designerBox').style.display=m==='designer'?'block':'none';$('dzModeHint').textContent=m==='simple'?'基本兩行模式':'自由放置文字方塊';renderAll();}
+function effText(){const e=LL.eff(layout);return `有效列印區域：起點 (${e.x}, ${e.y}) · 大小 ${e.w}×${e.h} mm`; }
 function syncInputs(){
- $('dzDrvW').value=layout.driver.w;$('dzDrvH').value=layout.driver.h;$('dzPhyW').value=layout.physical.w;$('dzPhyH').value=layout.physical.h;$('dzOffX').value=layout.offset.x;$('dzOffY').value=layout.offset.y;
+ $('dcW').value=layout.doc.w;$('dcH').value=layout.doc.h;$('hdTop').value=layout.hide.top;$('hdLeft').value=layout.hide.left;
  $('bsTop').value=layout.simple.topMm;$('bsSide').value=layout.simple.sideMm;$('bsEn').value=layout.simple.enSize;$('bsZh').value=layout.simple.zhSize;$('bsGap').value=layout.simple.gapMm;$('bsEnText').value=layout.simple.enText;$('bsZhText').value=layout.simple.zhText;
  $('smCls').value=layout.sample.cls||'';$('smNo').value=layout.sample.classNo||'';$('smEn').value=layout.sample.nameEn||'';$('smZh').value=layout.sample.nameZh||'';$('smCard').value=layout.sample.cardId||'';
- syncProps();
-}
+ $('effInfo').textContent=effText();syncProps();}
 function syncProps(){const b=selBox();$('dzNoSel').style.display=b?'none':'block';$('dzProps').style.display=b?'block':'none';if(!b)return;
  $('dzText').value=b.text;$('dzX').value=b.x;$('dzY').value=b.y;$('dzW').value=b.w;$('dzH').value=b.h;$('dzSize').value=b.size;$('dzWeight').value=String(b.weight);$('dzLine').value=b.lineHeight;$('dzAlign').value=b.align;$('dzValign').value=b.valign;$('dzColor').value=b.color;}
-function renderCanvas(){if(layout.mode!=='designer')return;const S=dzScale(),c=$('dzCanvas');c.style.width=layout.driver.w*S+'px';c.style.height=layout.driver.h*S+'px';
- const la=`<div class="dz-labelarea" style="left:${-layout.offset.x*S}px;top:${-layout.offset.y*S}px;width:${layout.physical.w*S}px;height:${layout.physical.h*S}px"></div>`;
- const bx=layout.boxes.map(b=>{const j=b.valign==='top'?'flex-start':b.valign==='bottom'?'flex-end':'center';return `<div class="dz-box ${b.id===selId?'sel':''}" data-id="${esc(b.id)}" style="left:${b.x*S}px;top:${b.y*S}px;width:${b.w*S}px;height:${b.h*S}px;font-size:${b.size*zoom}px;font-weight:${b.weight};text-align:${b.align};color:${b.color};line-height:${b.lineHeight};justify-content:${j}">${esc(LL.fill(b.text,layout.sample)).replace(/\n/g,'<br>')}<span class="dz-handle"></span></div>`;}).join('');
- c.innerHTML=la+bx;}
-function renderPreview(){const p=$('dzPreview');p.style.width=layout.physical.w+'mm';p.style.height=layout.physical.h+'mm';p.innerHTML=LL.stageHTML(layout,layout.sample);$('dzInfo').textContent=`模式 ${layout.mode} · 驅動 ${layout.driver.w}×${layout.driver.h} · 實際 ${layout.physical.w}×${layout.physical.h} · 位移 ${layout.offset.x},${layout.offset.y} mm`;}
-function renderAll(){renderCanvas();renderPreview();syncProps();}
+function renderCanvas(){if(layout.mode!=='designer')return;const e=LL.eff(layout),S=dzScale(),c=$('dzCanvas');c.style.width=e.w*S+'px';c.style.height=e.h*S+'px';
+ c.innerHTML=layout.boxes.map(b=>{const j=b.valign==='top'?'flex-start':b.valign==='bottom'?'flex-end':'center';return `<div class="dz-box ${b.id===selId?'sel':''}" data-id="${esc(b.id)}" style="left:${b.x*S}px;top:${b.y*S}px;width:${b.w*S}px;height:${b.h*S}px;font-size:${b.size*zoom}px;font-weight:${b.weight};text-align:${b.align};color:${b.color};line-height:${b.lineHeight};justify-content:${j}">${esc(LL.fill(b.text,layout.sample)).replace(/\n/g,'<br>')}<span class="dz-handle"></span></div>`;}).join('');}
+function renderPreview(){const e=LL.eff(layout),p=$('dzPreview');p.style.width=e.w+'mm';p.style.height=e.h+'mm';p.innerHTML=LL.stageHTML(layout,layout.sample,false);$('dzInfo').textContent=effText();}
+function renderAll(){renderCanvas();renderPreview();syncProps();$('effInfo').textContent=effText();}
 function selectBox(id){selId=id;renderCanvas();syncProps();}
 function updateBoxEl(b){const el=[...$('dzCanvas').querySelectorAll('.dz-box')].find(x=>x.dataset.id===b.id);if(!el)return;const S=dzScale();el.style.left=b.x*S+'px';el.style.top=b.y*S+'px';el.style.width=b.w*S+'px';el.style.height=b.h*S+'px';}
 setMode(layout.mode);syncInputs();renderAll();
-if(rootRef)rootRef.child('labelLayout').on('value',s=>{const keep=selId;layout=LL.norm(s.val());if(keep&&layout.boxes.some(b=>b.id===keep))selId=keep;else selId=layout.boxes[0]?.id||null;setMode(layout.mode);syncInputs();renderAll();$('dzStatus').textContent=s.exists()?'已載入已儲存的設定。':'未儲存任何設定，顯示預設。';});
+if(rootRef)rootRef.child('labelLayout').on('value',s=>{const keep=selId;layout=LL.norm(s.val());if(keep&&layout.boxes.some(b=>b.id===keep))selId=keep;else selId=layout.boxes[0]?.id||null;setMode(layout.mode);syncInputs();renderAll();$('dzStatus').textContent=s.exists()?'已載入設定（舊排版已自動轉換）。':'未儲存設定，顯示預設。';});
 $('modeBasic').onclick=()=>setMode('simple');$('modeDesigner').onclick=()=>setMode('designer');
-$('dzChips').innerHTML=LL.PH.map(([k,l])=>`<button type="button" class="dz-chip" data-k="${k}">{${k}}<span class="hk"> ${l}</span></button>`).join('');
+$('dzChips').innerHTML=LL.PLACEHOLDERS.map(([k,l])=>`<button type="button" class="dz-chip" data-k="${k}">{${k}}<span class="hk"> ${l}</span></button>`).join('');
 $('dzChips').onclick=e=>{const c=e.target.closest('.dz-chip');if(!c)return;const b=selBox();if(!b)return;const ta=$('dzText'),t='{'+c.dataset.k+'}',s=ta.selectionStart,en=ta.selectionEnd;ta.value=ta.value.slice(0,s)+t+ta.value.slice(en);ta.selectionStart=ta.selectionEnd=s+t.length;b.text=ta.value;ta.focus();renderAll();};
 $('dzCanvas').addEventListener('pointerdown',e=>{const el=e.target.closest('.dz-box');if(!el)return;const b=layout.boxes.find(x=>x.id===el.dataset.id);if(!b)return;selectBox(b.id);dzDrag={id:b.id,mode:e.target.classList.contains('dz-handle')?'resize':'move',sx:e.clientX,sy:e.clientY,ox:b.x,oy:b.y,ow:b.w,oh:b.h};e.preventDefault();});
-window.addEventListener('pointermove',e=>{if(!dzDrag)return;const b=layout.boxes.find(x=>x.id===dzDrag.id);if(!b)return;const S=dzScale(),dx=(e.clientX-dzDrag.sx)/S,dy=(e.clientY-dzDrag.sy)/S;
- if(dzDrag.mode==='move'){b.x=+clamp(dzDrag.ox+dx,0,Math.max(0,layout.driver.w-b.w)).toFixed(2);b.y=+clamp(dzDrag.oy+dy,0,Math.max(0,layout.driver.h-b.h)).toFixed(2);}else{b.w=+clamp(dzDrag.ow+dx,1,Math.max(1,layout.driver.w-b.x)).toFixed(2);b.h=+clamp(dzDrag.oh+dy,1,Math.max(1,layout.driver.h-b.y)).toFixed(2);}
+window.addEventListener('pointermove',e=>{if(!dzDrag)return;const b=layout.boxes.find(x=>x.id===dzDrag.id);if(!b)return;const ef=LL.eff(layout),S=dzScale(),dx=(e.clientX-dzDrag.sx)/S,dy=(e.clientY-dzDrag.sy)/S;
+ if(dzDrag.mode==='move'){b.x=+clamp(dzDrag.ox+dx,0,Math.max(0,ef.w-b.w)).toFixed(2);b.y=+clamp(dzDrag.oy+dy,0,Math.max(0,ef.h-b.h)).toFixed(2);}else{b.w=+clamp(dzDrag.ow+dx,1,Math.max(1,ef.w-b.x)).toFixed(2);b.h=+clamp(dzDrag.oh+dy,1,Math.max(1,ef.h-b.y)).toFixed(2);}
  updateBoxEl(b);renderPreview();$('dzX').value=b.x;$('dzY').value=b.y;$('dzW').value=b.w;$('dzH').value=b.h;});
 window.addEventListener('pointerup',()=>dzDrag=null);window.addEventListener('pointercancel',()=>dzDrag=null);
 [['dzX','x'],['dzY','y'],['dzW','w'],['dzH','h'],['dzSize','size'],['dzLine','lineHeight']].forEach(([id,k])=>$(id).addEventListener('input',()=>{const b=selBox();if(!b)return;const v=parseFloat($(id).value);if(!Number.isFinite(v))return;b[k]=v;renderAll();}));
@@ -253,18 +207,17 @@ $('dzAlign').onchange=()=>{const b=selBox();if(b){b.align=$('dzAlign').value;ren
 $('dzValign').onchange=()=>{const b=selBox();if(b){b.valign=$('dzValign').value;renderAll();}};
 $('dzColor').oninput=()=>{const b=selBox();if(b){b.color=$('dzColor').value;renderAll();}};
 $('dzText').oninput=()=>{const b=selBox();if(b){b.text=$('dzText').value;renderAll();}};
-[['dzDrvW','driver','w'],['dzDrvH','driver','h'],['dzPhyW','physical','w'],['dzPhyH','physical','h'],['dzOffX','offset','x'],['dzOffY','offset','y']].forEach(([id,g,k])=>$(id).addEventListener('input',()=>{const v=parseFloat($(id).value);if(!Number.isFinite(v))return;layout[g][k]=v;renderAll();}));
+[['dcW','doc','w'],['dcH','doc','h'],['hdTop','hide','top'],['hdLeft','hide','left']].forEach(([id,g,k])=>$(id).addEventListener('input',()=>{const v=parseFloat($(id).value);if(!Number.isFinite(v))return;layout[g][k]=(g==='hide')?Math.max(0,v):Math.max(1,v);renderAll();}));
+$('dcPreset').onclick=()=>{layout.doc={w:60,h:60};layout.hide={top:20,left:0};syncInputs();renderAll();toast('已設定 6×6 文件、頂部 2cm 隱藏');};
 [['bsTop','topMm'],['bsSide','sideMm'],['bsEn','enSize'],['bsZh','zhSize'],['bsGap','gapMm']].forEach(([id,k])=>$(id).addEventListener('input',()=>{const v=parseFloat($(id).value);if(!Number.isFinite(v))return;layout.simple[k]=v;renderPreview();}));
-$('bsEnText').oninput=()=>{layout.simple.enText=$('bsEnText').value;renderPreview();};
-$('bsZhText').oninput=()=>{layout.simple.zhText=$('bsZhText').value;renderPreview();};
+$('bsEnText').oninput=()=>{layout.simple.enText=$('bsEnText').value;renderPreview();};$('bsZhText').oninput=()=>{layout.simple.zhText=$('bsZhText').value;renderPreview();};
 [['smCls','cls'],['smNo','classNo'],['smEn','nameEn'],['smZh','nameZh'],['smCard','cardId']].forEach(([id,k])=>$(id).addEventListener('input',()=>{layout.sample[k]=$(id).value;renderAll();}));
 $('dzZoom').onchange=()=>{zoom=parseFloat($('dzZoom').value)||1.4;renderCanvas();};
-$('dzAdd').onclick=()=>{const id='b'+Date.now();layout.boxes.push({id,x:Math.max(0,-layout.offset.x+4),y:Math.max(0,-layout.offset.y+4),w:30,h:8,text:'{nameEn}',size:16,weight:600,align:'center',valign:'middle',color:'#000000',lineHeight:1.2});selId=id;renderAll();};
-$('dzDup').onclick=()=>{const b=selBox();if(!b)return toast('請先選擇文字方塊');const c=LL.clone(b);c.id='b'+Date.now();c.x=clamp(c.x+2,0,layout.driver.w-c.w);c.y=clamp(c.y+2,0,layout.driver.h-c.h);layout.boxes.push(c);selId=c.id;renderAll();};
+$('dzAdd').onclick=()=>{const id='b'+Date.now();layout.boxes.push({id,x:4,y:4,w:30,h:8,text:'{nameEn}',size:16,weight:600,align:'center',valign:'middle',color:'#000000',lineHeight:1.2});selId=id;renderAll();};
+$('dzDup').onclick=()=>{const b=selBox();if(!b)return toast('請先選擇文字方塊');const e=LL.eff(layout),c=LL.clone(b);c.id='b'+Date.now();c.x=clamp(c.x+2,0,e.w-c.w);c.y=clamp(c.y+2,0,e.h-c.h);layout.boxes.push(c);selId=c.id;renderAll();};
 $('dzDel').onclick=()=>{const b=selBox();if(!b)return toast('請先選擇文字方塊');layout.boxes=layout.boxes.filter(x=>x.id!==b.id);selId=layout.boxes[0]?.id||null;renderAll();};
-$('dzPreset64').onclick=()=>{layout.driver={w:60,h:60};layout.physical={w:60,h:40};layout.offset={x:0,y:-20};syncInputs();renderAll();toast('已套用 6×4 補償');};
 $('dzReset').onclick=()=>{if(!confirm('重設為預設？'))return;layout=LL.norm(null);selId=layout.boxes[0]?.id||null;setMode(layout.mode);syncInputs();renderAll();};
-$('dzSave').onclick=async()=>{if(!rootRef)return toast('Firebase 未連線');const p=LL.clone(layout);p.updatedAt=Date.now();await rootRef.child('labelLayout').set(p);toast('已儲存，所有列印端即時採用');};
+$('dzSave').onclick=async()=>{if(!rootRef)return toast('Firebase 未連線');const p=LL.clone(layout);p.version=4;p.updatedAt=Date.now();await rootRef.child('labelLayout').set(p);toast('已儲存，所有列印端即時採用');};
 $('dzExport').onclick=()=>{const blob=new Blob([JSON.stringify(layout,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='label-layout.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);};
 
 /* ===== attendance ===== */
@@ -328,8 +281,6 @@ $('dangerConfirm').onclick=async()=>{const sc=dangerScope,c=DANGER[sc];if(!c||da
   if(sc==='all'){localStorage.removeItem(LS);selKey=null;}unknownCard=null;$('q').value='';$('res').innerHTML='';dangerBusy=false;$('dangerCancel').disabled=false;closeDanger();toast('已刪除');
  }catch(err){dangerBusy=false;$('dangerCancel').disabled=false;$('dangerStatus').textContent='失敗：'+err.message;$('dangerStatus').className='danger-status err';}};
 document.addEventListener('keydown',e=>{if($('dangerModal').classList.contains('open')&&e.key==='Escape')closeDanger();});
-
-/* initial empty renders + listeners */
 renderDock();renderStations();renderDB();renderAttendance();attachAtt(attDay);
 if(rootRef){
  rootRef.child('stations').on('value',s=>{stations=s.val()||{};if(selKey&&!stations[selKey]){selKey=null;localStorage.removeItem(LS);}renderDock();renderStations();});
