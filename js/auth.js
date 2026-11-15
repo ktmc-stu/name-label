@@ -1,225 +1,187 @@
-// js/auth.js
-(function () {
-  const CFG = {
-    apiKey: "AIzaSyCUL7DTytCGPc9jDF49GRLS0DznsZoiomM",
-    authDomain: "name-label.firebaseapp.com",
-    databaseURL: "https://name-label-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "name-label",
-    storageBucket: "name-label.firebasestorage.app",
-    messagingSenderId: "520022563247",
-    appId: "1:520022563247:web:9a7867b8ec843185ceb75a"
-  };
-  if (!firebase.apps.length) firebase.initializeApp(CFG);
-  const auth = firebase.auth(), db = firebase.database();
-  const t = (k, v) => (window.I18N ? I18N.t(k, v) : k);
-  let started = false, startFn = null, profile = null, profileRef = null, adminRef = null, reqName = '', booting = false;
+/* js/auth.js — email/password gate with admin approval. No bootstrap admin.
+   Load after firebase-app / firebase-auth / firebase-database and js/i18n.js. */
+(function(){
+const CFG={
+ apiKey:"AIzaSyCUL7DTytCGPc9jDF49GRLS0DznsZoiomM",
+ authDomain:"name-label.firebaseapp.com",
+ databaseURL:"https://name-label-default-rtdb.asia-southeast1.firebasedatabase.app",
+ projectId:"name-label",
+ storageBucket:"name-label.firebasestorage.app",
+ messagingSenderId:"520022563247",
+ appId:"1:520022563247:web:9a7867b8ec843185ceb75a"
+};
+const t=(k,v)=>window.I18N?I18N.t(k,v):k;
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const MARK='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>';
+const CLOCK='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+const BAN='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>';
 
-  const st = document.createElement('style');
-  st.textContent = `
-  #authGate{position:fixed;inset:0;z-index:30000;background:#f3f7fc;display:flex;align-items:center;justify-content:center;padding:20px;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","PingFang TC","PingFang HK","Microsoft JhengHei","Noto Sans TC",Helvetica,Arial,sans-serif;color:#10233c}
-  #authGate .ag-card{width:min(410px,100%);background:#fff;border:1px solid #dce7f4;border-radius:14px;padding:28px;box-shadow:0 18px 50px rgba(16,44,78,.14)}
-  #authGate .ag-mark{width:38px;height:38px;border-radius:10px;background:#0a66d0;color:#fff;display:grid;place-items:center;margin-bottom:14px}
-  #authGate .ag-mark.warn{background:#fdf3df;color:#966712;border:1px solid #ecd9ab}
-  #authGate .ag-mark.bad{background:#fdecec;color:#c23b3b;border:1px solid #f0c4c4}
-  #authGate h2{margin:0 0 4px;font-size:19px;font-weight:600;letter-spacing:-.01em}
-  #authGate p.sub{margin:0 0 18px;font-size:13px;color:#5c7492;line-height:1.6}
-  #authGate label{display:block;font-size:12px;font-weight:500;color:#5c7492;margin:0 0 5px}
-  #authGate input{width:100%;box-sizing:border-box;font-size:15px;font-family:inherit;color:#10233c;background:#fff;border:1px solid #c4d6ea;border-radius:8px;padding:10px 14px;min-height:44px;outline:none;margin-bottom:14px;transition:border-color .15s,box-shadow .15s}
-  #authGate input:focus{border-color:#0a66d0;box-shadow:0 0 0 3px rgba(10,102,208,.18)}
-  #authGate button{font-family:inherit;font-size:14px;font-weight:500;border:1px solid transparent;border-radius:8px;padding:11px 18px;min-height:44px;cursor:pointer;background:#0a66d0;color:#fff;width:100%;transition:background .15s}
-  #authGate button:hover{background:#0851a8}
-  #authGate button:disabled{opacity:.5;pointer-events:none}
-  #authGate .ag-err{margin:12px 0 0;font-size:12.5px;color:#c23b3b;min-height:18px;line-height:1.5}
-  #authGate .ag-ok{color:#177a4c}
-  #authGate .ag-foot{margin-top:16px;padding-top:14px;border-top:1px solid #e9f0f9;font-size:12px;color:#8ea4bf;line-height:1.6}
-  #authGate .ag-row{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:10px}
-  #authGate .ag-link{background:none;border:0;color:#0851a8;font-size:12.5px;padding:0;min-height:0;width:auto;cursor:pointer}
-  #authGate .ag-link:hover{background:none;text-decoration:underline}
-  #authGate .ag-spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:agspin .7s linear infinite;vertical-align:-2px;margin-right:8px}
-  @keyframes agspin{to{transform:rotate(360deg)}}
-  #authGate .ag-info{background:#f7faff;border:1px solid #dce7f4;border-radius:8px;padding:12px 14px;font-size:12.5px;color:#28425f;line-height:1.6;margin-bottom:14px}
-  #authGate .ag-lang{display:flex;justify-content:flex-end;margin:-6px 0 12px}
-  #authGate .ag-lang button{width:auto;min-height:0;padding:4px 10px;font-size:12px;background:#edf3fb;color:#28425f;border:1px solid #c4d6ea}
-  #authGate .ag-lang button:hover{background:#e2ecf8}
-  #authBar{display:inline-flex;align-items:center;gap:8px;flex:none}
-  #authBar .ab-mail{font-size:11.5px;color:#5c7492;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #authBar .ab-role{font-size:10.5px;padding:2px 8px;border-radius:999px;border:1px solid #bfe3cf;background:#e6f5ed;color:#177a4c;white-space:nowrap}
-  #authBar .ab-role.staff{border-color:#c4d6ea;background:#edf3fb;color:#5c7492}
-  #authBar button{font-family:inherit;font-size:12.5px;font-weight:500;border:1px solid #c4d6ea;background:#edf3fb;color:#28425f;border-radius:6px;padding:5px 11px;min-width:0;cursor:pointer;width:auto;min-height:0}
-  #authBar button:hover{background:#e2ecf8}
-  body.auth-locked .wrap,body.auth-locked .admin-wrap,body.auth-locked .remote-wrap,body.auth-locked .station-trigger,body.auth-locked .admin-shell,body.auth-locked main{visibility:hidden}
-  `;
-  document.head.appendChild(st);
+let auth=null,db=null,started=false,startFn=null,profile=null,user=null,booting=false,reqName='',state='signin',refs=[];
+const gate=document.createElement('div');gate.id='gate';
+function mount(){if(!gate.parentNode)document.body.appendChild(gate);}
+if(document.body)mount();else document.addEventListener('DOMContentLoaded',mount);
 
-  const gate = document.createElement('div'); gate.id = 'authGate';
-  const mount = () => document.body.appendChild(gate);
-  if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
+function screen(html){
+ mount();
+ gate.innerHTML='<div class="gc"><div class="top"><button class="lang-toggle" type="button" id="gLang">'+esc(t('c.lang'))+'</button></div>'+html+'</div>';
+ gate.style.display='flex';
+ document.getElementById('gLang').onclick=()=>I18N.set(I18N.lang==='zh'?'en':'zh');
+}
+const errText=x=>{const c=(x&&x.code)||'',k='au.e.'+c.replace(/^auth\//,''),m=t(k);return m===k?(t('c.fail')+': '+(c||(x&&x.message)||x)):m;};
+const setErr=s=>{const e=gate.querySelector('.err');if(e){e.textContent=s;e.className='err';}};
+const busy=(b,label)=>{const el=document.getElementById('gB');if(!el)return;el.disabled=b;el.innerHTML=b?'<span class="spin"></span>'+esc(t('c.processing')):esc(label);};
 
-  const MARK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>';
-  const CLOCK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
-  const BAN = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>';
-  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const langBtn = () => '<div class="ag-lang"><button type="button" id="agLang">' + esc(t('lang.toggle')) + '</button></div>';
+function showSignin(msg){
+ state='signin';
+ screen('<div class="mk">'+MARK+'</div><h2>'+esc(t('c.signIn'))+'</h2><p class="sub">'+esc(t('au.signInSub'))+'</p>'
+ +'<label>'+esc(t('c.email'))+'</label><input id="gE" type="email" autocomplete="username" placeholder="you@school.edu.hk">'
+ +'<label>'+esc(t('c.password'))+'</label><input id="gP" type="password" autocomplete="current-password">'
+ +'<button class="btn" id="gB">'+esc(t('c.signIn'))+'</button><p class="err'+(msg&&msg.ok?' ok':'')+'">'+esc(msg&&msg.text||'')+'</p>'
+ +'<div class="links"><button class="link" id="gReq">'+esc(t('au.request'))+'</button><button class="link" id="gF">'+esc(t('au.forgot'))+'</button></div>'
+ +'<div class="foot">'+esc(t('au.noFree'))+'<br>'+esc(t('au.preset'))+'</div>');
+ const go=async()=>{
+  const e=document.getElementById('gE').value.trim(),p=document.getElementById('gP').value;
+  if(!e||!p)return setErr(t('au.needEP'));
+  busy(true,t('c.signIn'));
+  try{await auth.signInWithEmailAndPassword(e,p);}catch(x){showSignin({text:errText(x)});}
+ };
+ document.getElementById('gB').onclick=go;
+ document.getElementById('gReq').onclick=showRequest;
+ document.getElementById('gF').onclick=()=>{
+  const e=document.getElementById('gE').value.trim();if(!e)return setErr(t('au.enterEmail'));
+  auth.sendPasswordResetEmail(e).then(()=>showSignin({text:t('au.resetSent')+' '+e,ok:true})).catch(x=>setErr(errText(x)));
+ };
+ gate.onkeydown=e=>{if(e.key==='Enter')go();};
+ setTimeout(()=>{const el=document.getElementById('gE');if(el)el.focus();},40);
+}
+function showRequest(){
+ state='request';
+ screen('<div class="mk">'+MARK+'</div><h2>'+esc(t('au.request'))+'</h2><p class="sub">'+esc(t('au.requestSub'))+'</p>'
+ +'<label>'+esc(t('c.name'))+'</label><input id="gN" autocomplete="name">'
+ +'<label>'+esc(t('c.email'))+'</label><input id="gE" type="email" autocomplete="username">'
+ +'<label>'+esc(t('c.password'))+'</label><input id="gP" type="password" autocomplete="new-password">'
+ +'<button class="btn" id="gB">'+esc(t('au.submit'))+'</button><p class="err"></p>'
+ +'<div class="links"><button class="link" id="gBack">'+esc(t('au.back'))+'</button></div>'
+ +'<div class="foot">'+esc(t('au.preset'))+'</div>');
+ const go=async()=>{
+  const n=document.getElementById('gN').value.trim(),e=document.getElementById('gE').value.trim(),p=document.getElementById('gP').value;
+  if(!n||!e||!p)return setErr(t('au.needAll'));
+  if(p.length<6)return setErr(t('au.short'));
+  busy(true,t('au.submit'));reqName=n;
+  try{
+   const c=await auth.createUserWithEmailAndPassword(e,p);
+   await db.ref('users/'+c.user.uid).set({email:e,name:n,status:'pending',role:'staff',createdAt:Date.now()});
+  }catch(x){reqName='';showRequest();setErr(errText(x));}
+ };
+ document.getElementById('gB').onclick=go;
+ document.getElementById('gBack').onclick=()=>showSignin();
+ gate.onkeydown=e=>{if(e.key==='Enter')go();};
+ setTimeout(()=>{const el=document.getElementById('gN');if(el)el.focus();},40);
+}
+function showPending(u,p){
+ state='pending';
+ screen('<div class="mk w">'+CLOCK+'</div><h2>'+esc(t('au.pending'))+'</h2><p class="sub">'+esc(t('au.pendingSub'))+'</p>'
+ +'<div class="info"><b>'+esc(p.name||u.email)+'</b><br>'+esc(u.email)+'<br>'+esc(t('au.pendingInfo'))+'</div>'
+ +'<button class="btn" id="gCheck">'+esc(t('au.check'))+'</button>'
+ +'<div class="links"><button class="link" id="gOut">'+esc(t('c.signOut'))+'</button></div>'
+ +'<div class="foot">'+esc(t('au.contact'))+'</div>');
+ document.getElementById('gCheck').onclick=async()=>{const p2=await loadProfile(u);if(p2)applyProfile(u,p2);else showNone(u);};
+ document.getElementById('gOut').onclick=()=>auth.signOut();
+}
+function showRejected(u,p){
+ state='rejected';
+ screen('<div class="mk b">'+BAN+'</div><h2>'+esc(t('au.rejected'))+'</h2><p class="sub">'+esc(t('au.rejectedSub'))+'</p>'
+ +'<div class="info"><b>'+esc(p.name||u.email)+'</b><br>'+esc(u.email)+'<br>'+esc(t('au.rejectedInfo'))+'</div>'
+ +'<div class="links"><button class="link" id="gOut">'+esc(t('c.signOut'))+'</button></div>'
+ +'<div class="foot">'+esc(t('au.question'))+'</div>');
+ document.getElementById('gOut').onclick=()=>auth.signOut();
+}
+function showNone(u){
+ state='none';
+ screen('<div class="mk w">'+CLOCK+'</div><h2>'+esc(t('au.none'))+'</h2><p class="sub">'+esc(t('au.noneSub'))+'</p>'
+ +'<div class="info"><b>'+esc(u.email)+'</b><br>'+esc(t('au.noneInfo'))+'</div>'
+ +'<button class="btn" id="gB">'+esc(t('au.request'))+'</button><p class="err"></p>'
+ +'<div class="links"><button class="link" id="gOut">'+esc(t('c.signOut'))+'</button></div>'
+ +'<div class="foot">'+esc(t('au.contact'))+'</div>');
+ document.getElementById('gB').onclick=async()=>{
+  busy(true,t('au.request'));
+  try{await db.ref('users/'+u.uid).set({email:u.email||'',name:reqName||u.displayName||(u.email||'').split('@')[0],status:'pending',role:'staff',createdAt:Date.now()});}
+  catch(x){setErr(errText(x));busy(false,t('au.request'));}
+ };
+ document.getElementById('gOut').onclick=()=>auth.signOut();
+}
+function showLoading(){state='loading';screen('<div class="mk">'+MARK+'</div><h2>'+esc(t('au.loading'))+'</h2><p class="sub">'+esc(t('au.loadingSub'))+'</p><button class="btn" disabled><span class="spin"></span>'+esc(t('au.wait'))+'</button>');}
+function showFatal(msg){state='fatal';screen('<div class="mk b">'+BAN+'</div><h2>'+esc(t('c.fail'))+'</h2><p class="sub">'+esc(msg)+'</p>');}
 
-  function screen(html) {
-    gate.innerHTML = '<div class="ag-card">' + langBtn() + html + '</div>';
-    gate.style.display = 'flex';
-    const lb = document.getElementById('agLang');
-    if (lb) lb.onclick = () => { if (window.I18N) I18N.set(I18N.lang === 'zh' ? 'en' : 'zh'); };
-  }
-  const errText = x => {
-    const code = x && x.code || '';
-    const key = 'auth.err.' + code.replace(/^auth\//, '');
-    const msg = t(key);
-    return msg === key ? (t('admin.opFail') + ': ' + (code || (x && x.message) || x)) : msg;
-  };
+async function loadProfile(u){
+ const read=async p=>{try{return (await db.ref(p).once('value')).val();}catch(e){return null;}};
+ const [us,ad]=await Promise.all([read('users/'+u.uid),read('admins/'+u.uid)]);
+ if(ad===true||(us&&us.role==='admin')){
+  return Object.assign({email:u.email||'',name:(us&&us.name)||u.displayName||(u.email||'').split('@')[0],createdAt:(us&&us.createdAt)||Date.now()},us||{},{status:'approved',role:'admin'});
+ }
+ return us||null;
+}
+function bar(u,p){
+ const tb=document.querySelector('.topbar .right')||document.querySelector('.topbar')||document.querySelector('.portal-nav');
+ if(!tb)return;
+ let b=document.getElementById('authBar');
+ if(!b){b=document.createElement('span');b.id='authBar';b.className='row';b.style.gap='8px';tb.appendChild(b);}
+ b.innerHTML='<span class="role'+(p.role==='admin'?'':' staff')+'">'+esc(t(p.role==='admin'?'c.admin':'c.staff'))+'</span><span class="mail" title="'+esc(u.email||'')+'">'+esc(u.email||'')+'</span><button class="iconbtn" id="abOut" type="button">'+esc(t('c.signOut'))+'</button>';
+ document.getElementById('abOut').onclick=()=>auth.signOut();
+}
+function applyProfile(u,p){
+ user=u;profile=p;
+ if(p.status==='approved'){
+  gate.style.display='none';document.body.classList.remove('auth-locked');bar(u,p);
+  if(!started&&typeof startFn==='function'){started=true;try{startFn(u,p);}catch(e){console.error(e);}}
+  else document.dispatchEvent(new CustomEvent('auth-profile',{detail:{user:u,profile:p}}));
+ }else if(p.status==='rejected'){document.body.classList.add('auth-locked');showRejected(u,p);}
+ else{document.body.classList.add('auth-locked');showPending(u,p);}
+}
+function clearRefs(){refs.forEach(r=>{try{r.off();}catch(e){}});refs=[];}
 
-  function showSignin(msg) {
-    screen('<div class="ag-mark">' + MARK + '</div><h2>' + esc(t('auth.signInTitle')) + '</h2><p class="sub">' + esc(t('auth.signInSub')) + '</p>'
-      + '<label>' + esc(t('common.email')) + '</label><input id="agE" type="email" autocomplete="username" placeholder="you@school.edu.hk">'
-      + '<label>' + esc(t('common.password')) + '</label><input id="agP" type="password" autocomplete="current-password">'
-      + '<button id="agB">' + esc(t('common.signIn')) + '</button><p class="ag-err' + (msg && msg.ok ? ' ag-ok' : '') + '">' + esc(msg && msg.text || '') + '</p>'
-      + '<div class="ag-row"><button class="ag-link" id="agReq">' + esc(t('auth.requestAccess')) + '</button><button class="ag-link" id="agF">' + esc(t('auth.forgot')) + '</button></div>'
-      + '<div class="ag-foot">' + esc(t('auth.noFreeCreate')) + '<br>' + esc(t('auth.adminPreset')) + '</div>');
-    const $ = id => document.getElementById(id);
-    const setErr = s => { const el = document.querySelector('#authGate .ag-err'); if (el) { el.textContent = s; el.className = 'ag-err'; } };
-    const go = async () => {
-      const e = $('agE').value.trim(), p = $('agP').value;
-      if (!e || !p) return setErr(t('auth.needEmailPassword'));
-      $('agB').disabled = true; $('agB').innerHTML = '<span class="ag-spin"></span>' + esc(t('common.processing'));
-      try { await auth.signInWithEmailAndPassword(e, p); } catch (x) { showSignin({ text: errText(x) }); }
-    };
-    $('agB').onclick = go;
-    $('agReq').onclick = showRequest;
-    $('agF').onclick = () => {
-      const e = $('agE').value.trim(); if (!e) return setErr(t('auth.enterEmailFirst'));
-      auth.sendPasswordResetEmail(e).then(() => showSignin({ text: t('auth.resetSent') + ' ' + e, ok: true })).catch(x => setErr(errText(x)));
-    };
-    gate.onkeydown = e => { if (e.key === 'Enter') go(); };
-    setTimeout(() => { const el = $('agE'); if (el) el.focus(); }, 40);
-  }
-
-  function showRequest() {
-    screen('<div class="ag-mark">' + MARK + '</div><h2>' + esc(t('auth.requestTitle')) + '</h2><p class="sub">' + esc(t('auth.requestSub')) + '</p>'
-      + '<label>' + esc(t('common.name')) + '</label><input id="agN" type="text" autocomplete="name">'
-      + '<label>' + esc(t('common.email')) + '</label><input id="agE" type="email" autocomplete="username" placeholder="you@school.edu.hk">'
-      + '<label>' + esc(t('common.password')) + '</label><input id="agP" type="password" autocomplete="new-password">'
-      + '<button id="agB">' + esc(t('auth.submitRequest')) + '</button><p class="ag-err"></p>'
-      + '<div class="ag-row"><button class="ag-link" id="agBack">' + esc(t('auth.backToSignIn')) + '</button></div>'
-      + '<div class="ag-foot">' + esc(t('auth.adminPreset')) + '</div>');
-    const $ = id => document.getElementById(id);
-    const setErr = s => { const el = document.querySelector('#authGate .ag-err'); if (el) { el.textContent = s; el.className = 'ag-err'; } };
-    const go = async () => {
-      const n = $('agN').value.trim(), e = $('agE').value.trim(), p = $('agP').value;
-      if (!n || !e || !p) return setErr(t('auth.needAll'));
-      if (p.length < 6) return setErr(t('auth.passwordShort'));
-      $('agB').disabled = true; $('agB').innerHTML = '<span class="ag-spin"></span>' + esc(t('common.processing')); reqName = n;
-      try {
-        const cred = await auth.createUserWithEmailAndPassword(e, p);
-        await db.ref('users/' + cred.user.uid).set({ email: e, name: n, status: 'pending', role: 'staff', createdAt: Date.now() });
-      } catch (x) { reqName = ''; showRequest(); setErr(errText(x)); }
-    };
-    $('agB').onclick = go; $('agBack').onclick = () => showSignin();
-    gate.onkeydown = e => { if (e.key === 'Enter') go(); };
-    setTimeout(() => { const el = $('agN'); if (el) el.focus(); }, 40);
-  }
-
-  function showPending(u, p) {
-    screen('<div class="ag-mark warn">' + CLOCK + '</div><h2>' + esc(t('auth.pendingTitle')) + '</h2><p class="sub">' + esc(t('auth.pendingSub')) + '</p>'
-      + '<div class="ag-info"><b>' + esc(p.name || u.email) + '</b><br>' + esc(u.email) + '<br>' + esc(t('auth.pendingInfo')) + '</div>'
-      + '<button id="agCheck">' + esc(t('auth.checkAgain')) + '</button><p class="ag-err"></p>'
-      + '<div class="ag-row"><button class="ag-link" id="agOut">' + esc(t('common.signOut')) + '</button></div>'
-      + '<div class="ag-foot">' + esc(t('auth.contactAdmin')) + '</div>');
-    document.getElementById('agCheck').onclick = async () => { const s = await db.ref('users/' + u.uid).once('value'); const pp = s.val(); if (pp) applyProfile(u, Object.assign({}, pp, { role: p.role, status: p.status })); };
-    document.getElementById('agOut').onclick = () => auth.signOut();
-  }
-
-  function showRejected(u, p) {
-    screen('<div class="ag-mark bad">' + BAN + '</div><h2>' + esc(t('auth.rejectedTitle')) + '</h2><p class="sub">' + esc(t('auth.rejectedSub')) + '</p>'
-      + '<div class="ag-info"><b>' + esc(p.name || u.email) + '</b><br>' + esc(u.email) + '<br>' + esc(t('auth.rejectedInfo')) + '</div>'
-      + '<div class="ag-row"><button class="ag-link" id="agOut">' + esc(t('common.signOut')) + '</button></div>'
-      + '<div class="ag-foot">' + esc(t('auth.contactAdminQuestion')) + '</div>');
-    document.getElementById('agOut').onclick = () => auth.signOut();
-  }
-
-  function showNotProvisioned(u) {
-    screen('<div class="ag-mark warn">' + CLOCK + '</div><h2>' + esc(t('auth.notProvisionedTitle')) + '</h2><p class="sub">' + esc(t('auth.notProvisionedSub')) + '</p>'
-      + '<div class="ag-info"><b>' + esc(u.email) + '</b><br>' + esc(t('auth.notProvisionedInfo')) + '</div>'
-      + '<button id="agReq2">' + esc(t('auth.requestAccess')) + '</button><p class="ag-err"></p>'
-      + '<div class="ag-row"><button class="ag-link" id="agOut">' + esc(t('common.signOut')) + '</button></div>'
-      + '<div class="ag-foot">' + esc(t('auth.contactAdmin')) + '</div>');
-    document.getElementById('agReq2').onclick = async () => {
-      const b = document.getElementById('agReq2'); b.disabled = true; b.innerHTML = '<span class="ag-spin"></span>' + esc(t('common.processing'));
-      try {
-        await db.ref('users/' + u.uid).set({ email: u.email || '', name: u.displayName || (u.email || '').split('@')[0], status: 'pending', role: 'staff', createdAt: Date.now() });
-      } catch (x) { const el = document.querySelector('#authGate .ag-err'); if (el) el.textContent = errText(x); b.disabled = false; b.textContent = t('auth.requestAccess'); }
-    };
-    document.getElementById('agOut').onclick = () => auth.signOut();
-  }
-
-  function showLoading() {
-    screen('<div class="ag-mark">' + MARK + '</div><h2>' + esc(t('auth.loadingTitle')) + '</h2><p class="sub">' + esc(t('auth.loadingSub')) + '</p><button disabled><span class="ag-spin"></span>' + esc(t('auth.wait')) + '</button>');
-  }
-
-  async function loadProfile(u) {
-    const [us, ad] = await Promise.all([db.ref('users/' + u.uid).once('value'), db.ref('admins/' + u.uid).once('value')]);
-    const urec = us.val(), legacyAdmin = ad.val() === true;
-    if (legacyAdmin) return { email: u.email || '', name: (urec && urec.name) || u.displayName || (u.email || '').split('@')[0], status: 'approved', role: 'admin', createdAt: (urec && urec.createdAt) || Date.now() };
-    return urec || null;
-  }
-
-  function bar(u, p) {
-    const tb = document.querySelector('.topbar') || document.querySelector('.portal-nav'); if (!tb) return;
-    let b = document.getElementById('authBar'); if (!b) { b = document.createElement('span'); b.id = 'authBar'; tb.appendChild(b); }
-    const admin = p.role === 'admin';
-    b.innerHTML = '<span class="ab-role' + (admin ? '' : ' staff') + '">' + esc(t(admin ? 'common.admin' : 'common.staff')) + '</span><span class="ab-mail" title="' + esc(u.email || '') + '">' + esc(u.email || '') + '</span><button id="abOut" type="button">' + esc(t('common.signOut')) + '</button>';
-    document.getElementById('abOut').onclick = () => auth.signOut();
-  }
-
-  function applyProfile(u, p) {
-    profile = p;
-    if (p.status === 'approved') {
-      gate.style.display = 'none'; document.body.classList.remove('auth-locked'); bar(u, p);
-      if (!started && typeof startFn === 'function') { started = true; try { startFn(u, p); } catch (e) { console.error(e); } }
-    } else if (p.status === 'rejected') {
-      document.body.classList.add('auth-locked'); showRejected(u, p);
-    } else {
-      document.body.classList.add('auth-locked'); showPending(u, p);
-    }
-  }
-
-  auth.onAuthStateChanged(async u => {
-    if (profileRef) { profileRef.off(); profileRef = null; }
-    if (adminRef) { adminRef.off(); adminRef = null; }
-    if (!u) { profile = null; started = false; document.body.classList.add('auth-locked'); const b = document.getElementById('authBar'); if (b) b.remove(); showSignin(); return; }
-    if (booting) return; booting = true; showLoading();
-    try {
-      const p = await loadProfile(u); reqName = '';
-      if (!p) { document.body.classList.add('auth-locked'); showNotProvisioned(u); }
-      else applyProfile(u, p);
-      profileRef = db.ref('users/' + u.uid);
-      profileRef.on('value', async s => { const pp = await loadProfile(u); if (pp) applyProfile(u, pp); else { document.body.classList.add('auth-locked'); showNotProvisioned(u); } });
-      adminRef = db.ref('admins/' + u.uid);
-      adminRef.on('value', async () => { const pp = await loadProfile(u); if (pp) applyProfile(u, pp); });
-    } catch (e) { showSignin({ text: t('auth.readProfileFail') + ': ' + (e.message || e) }); try { await auth.signOut(); } catch (_) { } }
-    booting = false;
-  });
-
-  document.addEventListener('langchange', () => {
-    const u = auth.currentUser;
-    if (!u) { showSignin(); return; }
-    if (profile) { if (profile.status === 'approved') bar(u, profile); else if (profile.status === 'rejected') showRejected(u, profile); else showPending(u, profile); }
-    else showNotProvisioned(u);
-  });
-
-  window.Auth = {
-    auth, db, cfg: CFG,
-    root: () => db.ref('parents'),
-    user: () => auth.currentUser,
-    profile: () => profile,
-    isAdmin: () => !!profile && profile.role === 'admin' && profile.status === 'approved',
-    isApproved: () => !!profile && profile.status === 'approved',
-    start(fn) { startFn = fn; if (auth.currentUser && profile && profile.status === 'approved' && !started) { started = true; fn(auth.currentUser, profile); } },
-    signOut: () => auth.signOut()
-  };
+function boot(){
+ if(typeof firebase==='undefined'){document.body.classList.add('auth-locked');showFatal(t('au.sdk'));return;}
+ try{
+  if(!firebase.apps.length)firebase.initializeApp(CFG);
+  auth=firebase.auth();db=firebase.database();
+ }catch(e){document.body.classList.add('auth-locked');showFatal(e.message||String(e));return;}
+ auth.onAuthStateChanged(async u=>{
+  clearRefs();
+  if(!u){user=null;profile=null;started=false;document.body.classList.add('auth-locked');
+   const b=document.getElementById('authBar');if(b)b.remove();showSignin();return;}
+  if(booting)return;booting=true;showLoading();
+  try{
+   const p=await loadProfile(u);reqName='';
+   if(!p){user=u;document.body.classList.add('auth-locked');showNone(u);}else applyProfile(u,p);
+   ['users/','admins/'].forEach(pre=>{
+    const r=db.ref(pre+u.uid);refs.push(r);
+    r.on('value',async()=>{const p2=await loadProfile(u);if(p2)applyProfile(u,p2);else{document.body.classList.add('auth-locked');showNone(u);}},()=>{});
+   });
+  }catch(e){showSignin({text:t('au.readFail')+': '+(e.message||e)});}
+  booting=false;
+ });
+ document.addEventListener('langchange',()=>{
+  if(gate.style.display==='none')
+   {if(user&&profile)bar(user,profile);return;}
+  if(state==='signin')showSignin();
+  else if(state==='request')showRequest();
+  else if(state==='loading')showLoading();
+  else if(user&&profile){if(state==='pending')showPending(user,profile);else if(state==='rejected')showRejected(user,profile);else showNone(user);}
+  else if(user)showNone(user);
+ });
+}
+window.Auth={
+ cfg:CFG,
+ get auth(){return auth;},
+ get db(){return db||firebase.database();},
+ root:()=>(db||firebase.database()).ref('parents'),
+ user:()=>user||(auth&&auth.currentUser),
+ profile:()=>profile,
+ isAdmin:()=>!!profile&&profile.role==='admin'&&profile.status==='approved',
+ isApproved:()=>!!profile&&profile.status==='approved',
+ start(fn){startFn=fn;if(user&&profile&&profile.status==='approved'&&!started){started=true;fn(user,profile);}},
+ signOut:()=>auth&&auth.signOut()
+};
+if(document.body)boot();else document.addEventListener('DOMContentLoaded',boot);
 })();
