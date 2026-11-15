@@ -1,63 +1,77 @@
 <!-- parents-printer.html -->
-<!doctype html><html lang="zh-HK"><head>
+<!doctype html><html lang="zh-Hant-HK"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Parent Printer 標籤列印端</title>
+<title>Parent Printer · 標籤列印端</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/lang.css">
 <style id="labelCss"></style>
-<style>.stu-meet{font-size:12.5px;color:var(--muted)}.stu-meet b{font-weight:500;color:var(--ink-2)}</style>
 </head><body class="auth-locked">
-<div class="topbar"><span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg><span data-i18n="app.printer"></span></span><span class="chip" id="stationChip"></span></div>
+<div class="topbar">
+  <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg><span data-i18n="app.printer"></span></div>
+  <div class="right"><span class="chip" id="stationChip"></span></div>
+</div>
+
 <div class="admin-wrap">
-  <div class="card" id="bindCard"><h3 data-i18n="printer.stationSetup"></h3>
-    <div class="bind-box"><p class="muted" style="margin-top:0" data-i18n="printer.bindHint"></p>
-      <div class="g" style="margin-top:10px"><div><label data-i18n="admin.stationToken"></label><input id="bToken" placeholder="e.g. LAB1" style="text-transform:uppercase"></div><div><label data-i18n="printer.newStationName"></label><input id="bName"></div></div>
-      <div class="row"><button id="btnBind" data-i18n="printer.bind"></button><button id="btnCreate" class="btn-amber" data-i18n="printer.createBind"></button></div>
-      <p class="muted" id="bindMsg" style="margin-top:8px"></p></div>
+  <div class="card" id="bindCard">
+    <h3 data-i18n="st.setup"></h3>
+    <div class="bind-box">
+      <p class="muted" style="margin-top:0" data-i18n="st.bindHint"></p>
+      <div class="g" style="margin-top:10px">
+        <div><label data-i18n="st.token"></label><input id="bToken" placeholder="e.g. LAB1" style="text-transform:uppercase"></div>
+        <div><label data-i18n="st.newName"></label><input id="bName"></div>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="btn" id="btnBind" data-i18n="st.bind"></button><button class="btn warn" id="btnCreate" data-i18n="st.create"></button></div>
+      <p class="muted" id="bindMsg" style="margin-top:8px"></p>
+    </div>
   </div>
+
   <div id="mainArea" style="display:none">
     <div class="card status-strip"><span class="dot" id="dot"></span><b id="statusText" style="font-size:15px;font-weight:500"></b><span class="chip" id="queueChip" style="margin-left:auto"></span></div>
-    <div class="tabnav"><button data-tab="operate" class="active" data-i18n="printer.operate"></button><button data-tab="log" data-i18n="printer.log"></button><button data-tab="settings" data-i18n="printer.settings"></button></div>
-    <div class="tabpanel active" id="tab-operate">
-      <div class="card"><h3 data-i18n="printer.cardScan"></h3><div class="scan-box" id="scanBox"></div><div class="row" style="margin-top:10px"><span class="tag" id="opAtt"></span></div></div>
-      <div class="card"><h3 data-i18n="printer.manual"></h3><p class="muted" data-i18n="printer.manualHint"></p><input type="text" id="q" data-i18n-ph="admin.searchPh" autocomplete="off"><div id="res"></div></div>
+    <div class="tabnav" id="tabs"><button data-tab="operate" class="on" data-i18n="pr.operate"></button><button data-tab="log" data-i18n="pr.log"></button><button data-tab="settings" data-i18n="pr.settings"></button></div>
+
+    <div class="tabpanel on" id="tab-operate">
+      <div class="card"><h3 data-i18n="pr.scan"></h3><div class="scan" id="scan"></div><div class="row" style="margin-top:10px"><span class="tag" id="opAtt"></span></div></div>
+      <div class="card"><h3 data-i18n="pr.manual"></h3><p class="muted" data-i18n="pr.manualHint"></p><input type="text" id="q" data-ph="op.searchPh" autocomplete="off"><div id="res"></div></div>
     </div>
-    <div class="tabpanel" id="tab-log"><div class="card"><h3 data-i18n="printer.printLog"></h3><div class="log" id="log"></div></div></div>
+
+    <div class="tabpanel" id="tab-log"><div class="card"><h3 data-i18n="pr.printLog"></h3><div class="log" id="log"></div></div></div>
+
     <div class="tabpanel" id="tab-settings">
-      <div class="card"><h3 data-i18n="printer.labelSettings"></h3>
+      <div class="card">
+        <h3 data-i18n="pr.labelSettings"></h3>
         <p class="muted" id="lyInfo"></p>
-        <div class="label-preview" id="prev"></div>
+        <div class="preview" id="prev"></div>
         <div class="g" style="margin-top:14px">
-          <div><label data-i18n="admin.fileW"></label><input id="pDcW" type="number" step="0.1" min="10"></div>
-          <div><label data-i18n="admin.fileH"></label><input id="pDcH" type="number" step="0.1" min="10"></div>
-          <div><label data-i18n="admin.hideTop"></label><input id="pHdTop" type="number" step="0.1" min="0"></div>
-          <div><label data-i18n="admin.hideLeft"></label><input id="pHdLeft" type="number" step="0.1" min="0"></div>
+          <div><label data-i18n="dz.fw"></label><input id="pDcW" type="number" step="0.1" min="10"></div>
+          <div><label data-i18n="dz.fh"></label><input id="pDcH" type="number" step="0.1" min="10"></div>
+          <div><label data-i18n="dz.ht"></label><input id="pHdT" type="number" step="0.1" min="0"></div>
+          <div><label data-i18n="dz.hl"></label><input id="pHdL" type="number" step="0.1" min="0"></div>
         </div>
         <div id="pBasic">
           <div class="g" style="margin-top:12px">
-            <div><label data-i18n="admin.topMargin"></label><input id="pTop" type="number" step="0.1"></div>
-            <div><label data-i18n="admin.sideMargin"></label><input id="pSide" type="number" step="0.1"></div>
-            <div><label data-i18n="admin.enSize"></label><input id="pEn" type="number" step="0.5"></div>
-            <div><label data-i18n="admin.zhSize"></label><input id="pZh" type="number" step="0.5"></div>
-            <div><label data-i18n="admin.meetSize"></label><input id="pMeetSize" type="number" step="0.5"></div>
-            <div><label data-i18n="admin.gap"></label><input id="pGap" type="number" step="0.1"></div>
+            <div><label data-i18n="dz.top"></label><input id="pTop" type="number" step="0.1"></div>
+            <div><label data-i18n="dz.side"></label><input id="pSide" type="number" step="0.1"></div>
+            <div><label data-i18n="dz.en"></label><input id="pEn" type="number" step="0.5"></div>
+            <div><label data-i18n="dz.zh"></label><input id="pZh" type="number" step="0.5"></div>
+            <div><label data-i18n="dz.ms"></label><input id="pMs" type="number" step="0.5"></div>
+            <div><label data-i18n="dz.gap"></label><input id="pGap" type="number" step="0.1"></div>
           </div>
-          <div class="g" style="margin-top:10px">
-            <div style="grid-column:1/-1"><label data-i18n="admin.enText"></label><input id="pEnText"></div>
-            <div style="grid-column:1/-1"><label data-i18n="admin.zhText"></label><input id="pZhText"></div>
-            <div style="grid-column:1/-1"><label data-i18n="admin.meetText"></label><input id="pMeetText"></div>
-          </div>
-          <p class="muted" style="margin-top:8px" data-i18n="admin.meetHint"></p>
+          <div style="margin-top:10px"><label data-i18n="dz.enText"></label><input id="pEnT"></div>
+          <div style="margin-top:10px"><label data-i18n="dz.zhText"></label><input id="pZhT"></div>
+          <div style="margin-top:10px"><label data-i18n="dz.meetText"></label><input id="pMeT"></div>
+          <p class="muted" style="margin-top:8px" data-i18n="dz.meetHint"></p>
         </div>
-        <p class="muted" id="pDesignerNote" style="display:none;margin-top:10px" data-i18n="printer.designerNote"></p>
-        <div class="row" style="margin-top:12px"><button id="btnSaveCfg" data-i18n="printer.saveSettings"></button><button id="btnPreset" class="btn-gray" data-i18n="admin.preset"></button><a class="btn btn-gray" href="parents-admin.html#designer" data-i18n="printer.openDesigner"></a></div>
-        <p class="muted" style="margin-top:10px" data-i18n="printer.previewNote"></p>
+        <p class="muted" id="pDesignerNote" style="display:none;margin-top:10px" data-i18n="pr.designerNote"></p>
+        <div class="row" style="margin-top:12px"><button class="btn" id="btnSaveCfg" data-i18n="pr.saveSettings"></button><button class="btn gray" id="btnPreset" data-i18n="dz.preset"></button><a class="btn gray" href="parents-admin.html#designer" data-i18n="pr.openDesigner"></a></div>
+        <p class="muted" style="margin-top:10px" data-i18n="pr.previewNote"></p>
       </div>
-      <div class="card"><h3 data-i18n="printer.station"></h3><p class="muted" id="stInfo"></p><div class="row"><button id="btnTest" class="btn-amber" data-i18n="printer.testPrint"></button><button id="btnClear" class="btn-gray" data-i18n="printer.clearQueue"></button><button id="btnUnbind" class="btn-gray" data-i18n="printer.changeStation"></button></div></div>
+      <div class="card"><h3 data-i18n="pr.station"></h3><p class="muted" id="stInfo"></p><div class="row"><button class="btn warn" id="btnTest" data-i18n="pr.test"></button><button class="btn gray" id="btnClear" data-i18n="pr.clear"></button><button class="btn gray" id="btnUnbind" data-i18n="st.change"></button></div></div>
     </div>
   </div>
 </div>
-<div id="printArea"></div><div class="toast" id="toast"></div>
+
+<div id="printArea"></div>
+<div class="toast" id="toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -66,87 +80,5 @@
 <script src="js/i18n-meet.js"></script>
 <script src="js/label-layout.js"></script>
 <script src="js/auth.js"></script>
-<script>
-const $ = id => document.getElementById(id), t = (k, v) => I18N.t(k, v), esc = LL.esc, rootRef = Auth.root();
-const toast = m => { const el = $('toast'); el.textContent = m; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 2600); };
-const normCard = v => String(v == null ? '' : v).trim().replace(/^0+/, '').toUpperCase();
-const dayKey = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-const fmtT = ts => ts ? new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—';
-function log(m) { const d = document.createElement('div'); d.textContent = '[' + new Date().toLocaleTimeString() + '] ' + m; $('log').prepend(d); }
-const needApproved = () => { if (!Auth.isApproved()) { toast(t('printer.needApproved')); return false; } return true; };
-const needAdmin = () => { if (!Auth.isAdmin()) { toast(t('printer.needAdminSave')); return false; } return true; };
-const werr = e => { const c = (e && e.code) || ''; toast(/PERMISSION_DENIED/i.test(c + e) ? t('admin.writeDenied') : t('admin.opFail') + ': ' + (e.message || e)); };
-const meetOf = s => ({ meetTime: String(s.meetTime || ''), meetTeacher: String(s.meetTeacher || ''), meetRoom: String(s.meetRoom || '') });
-const meetHtml = s => { const m = LL.meetLine(s); return m ? '<div class="stu-meet"><b>' + esc(t('meet.label')) + '</b> ' + esc(m) + '</div>' : ''; };
-const LS = 'parentStationToken';
-let stationKey = null, station = null, started = false, layout = LL.norm(null);
-let students = {}, byCard = {}, att = {}, attDay = dayKey(), attRef = null, busy = false; const jobs = [], seen = {}; let printing = false;
-const SC = { ready: ['#e7f1fd', '#0851a8'], ok: ['#e6f5ed', '#177a4c'], err: ['#fdecec', '#c23b3b'] }; const setBox = (el, s) => { el.style.background = SC[s][0]; el.style.color = SC[s][1]; };
-function showTab(n) { document.querySelectorAll('.tabnav button').forEach(b => b.classList.toggle('active', b.dataset.tab === n)); document.querySelectorAll('.tabpanel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + n)); }
-document.querySelectorAll('.tabnav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
-function effText() { const e = LL.eff(layout); return t('admin.effArea') + ': ' + t('admin.origin') + ' (' + e.x + ', ' + e.y + ') · ' + t('admin.size') + ' ' + e.w + '×' + e.h + ' mm · ' + t('portal.hide') + ' ' + t('portal.top') + ' ' + layout.hide.top + ' / ' + t('portal.left') + ' ' + layout.hide.left + ' mm'; }
-function syncCfgInputs() {
-  $('pDcW').value = layout.doc.w; $('pDcH').value = layout.doc.h; $('pHdTop').value = layout.hide.top; $('pHdLeft').value = layout.hide.left;
-  $('pTop').value = layout.simple.topMm; $('pSide').value = layout.simple.sideMm; $('pEn').value = layout.simple.enSize; $('pZh').value = layout.simple.zhSize; $('pMeetSize').value = layout.simple.meetSize; $('pGap').value = layout.simple.gapMm;
-  $('pEnText').value = layout.simple.enText; $('pZhText').value = layout.simple.zhText; $('pMeetText').value = layout.simple.meetText;
-  $('pBasic').style.display = layout.mode === 'simple' ? 'block' : 'none'; $('pDesignerNote').style.display = layout.mode === 'designer' ? 'block' : 'none'; $('lyInfo').textContent = effText();
-}
-function renderPreview() { const e = LL.eff(layout), p = $('prev'); p.style.width = e.w + 'mm'; p.style.height = e.h + 'mm'; p.innerHTML = LL.stageHTML(layout, layout.sample, false); }
-function applyCss() { $('labelCss').textContent = LL.printCss(layout); renderPreview(); }
-function renderScanReady() { const b = $('scanBox'); setBox(b, 'ready'); b.innerHTML = esc(t('admin.scanReady')) + '<br><span class="en">' + esc(t('admin.scanReadyEn')) + '</span>'; }
-function renderAttStats() { let p = 0, a = 0; Object.values(att).forEach(r => r.status === 'present' ? p++ : a++); $('opAtt').textContent = t('printer.today') + ': ' + t('common.present') + ' ' + p + ' · ' + t('common.absent') + ' ' + a + ' · ' + t('common.unmarked') + ' ' + Math.max(0, Object.keys(students).length - p - a); }
-function updateCount() { $('queueChip').textContent = t('printer.queue') + ' ' + jobs.length; }
-function renderStationText() { $('stationChip').textContent = station ? station.name + ' (' + station.token + ')' : t('printer.notBound'); $('stInfo').textContent = station ? t('printer.thisStation') + ': ' + station.name + ' · ' + t('admin.stationToken') + ' ' + station.token : '—'; }
-function renderStatus() { const on = $('dot').classList.contains('on'); $('statusText').textContent = on ? t('printer.online') : t('printer.connecting'); }
-syncCfgInputs(); applyCss(); renderScanReady(); renderAttStats(); updateCount(); renderStationText(); renderStatus();
-[['pDcW', 'doc', 'w'], ['pDcH', 'doc', 'h'], ['pHdTop', 'hide', 'top'], ['pHdLeft', 'hide', 'left']].forEach(([id, g, k]) => $(id).addEventListener('input', () => { const v = parseFloat($(id).value); if (!Number.isFinite(v)) return; layout[g][k] = g === 'hide' ? Math.max(0, v) : Math.max(1, v); applyCss(); $('lyInfo').textContent = effText(); }));
-[['pTop', 'topMm'], ['pSide', 'sideMm'], ['pEn', 'enSize'], ['pZh', 'zhSize'], ['pMeetSize', 'meetSize'], ['pGap', 'gapMm']].forEach(([id, k]) => $(id).addEventListener('input', () => { const v = parseFloat($(id).value); if (!Number.isFinite(v)) return; layout.simple[k] = v; applyCss(); }));
-$('pEnText').oninput = () => { layout.simple.enText = $('pEnText').value; applyCss(); };
-$('pZhText').oninput = () => { layout.simple.zhText = $('pZhText').value; applyCss(); };
-$('pMeetText').oninput = () => { layout.simple.meetText = $('pMeetText').value; applyCss(); };
-$('btnPreset').onclick = () => { layout.doc = { w: 60, h: 60 }; layout.hide = { top: 20, left: 0 }; syncCfgInputs(); applyCss(); };
-$('btnSaveCfg').onclick = async () => { if (!needAdmin()) return; try { const p = LL.clone(layout); p.version = 5; p.updatedAt = Date.now(); await rootRef.child('labelLayout').set(p); toast(t('admin.saved')); } catch (e) { werr(e); } };
-function attachAtt(day) { if (attRef) attRef.off(); attDay = day; att = {}; attRef = rootRef.child('attendance/' + day); attRef.on('value', s => { att = s.val() || {}; renderAttStats(); doSearch(); }, werr); }
-async function markAtt(k, st, by) { const s = students[k]; if (!s) return; await rootRef.child('attendance/' + attDay + '/' + k).set({ status: st, time: Date.now(), by, cls: s.cls || '', classNo: s.classNo || '', nameEn: s.nameEn || '', nameZh: s.nameZh || '', cardId: s.cardId || '' }); }
-const attBadge = a => a ? (a.status === 'present' ? '<span class="att-badge p">' + esc(t('common.present')) + ' <span class="att-t">' + fmtT(a.time) + '</span></span>' : '<span class="att-badge a">' + esc(t('common.absent')) + ' <span class="att-t">' + fmtT(a.time) + '</span></span>') : '<span class="att-badge">' + esc(t('common.unmarked')) + '</span>';
-async function findToken(tk) { const all = (await rootRef.child('stations').once('value')).val() || {}; return Object.entries(all).find(([k, v]) => String(v.token || '').toUpperCase() === tk); }
-$('btnBind').onclick = async () => { if (!needApproved()) return; const tk = $('bToken').value.trim().toUpperCase(); if (!tk) return $('bindMsg').textContent = t('printer.needToken'); try { const hit = await findToken(tk); if (!hit) return $('bindMsg').textContent = t('printer.tokenNotFound'); localStorage.setItem(LS, tk); bindStation(hit[0]); } catch (e) { werr(e); } };
-$('btnCreate').onclick = async () => { if (!needApproved()) return; const tk = $('bToken').value.trim().toUpperCase(), n = $('bName').value.trim(); if (!tk || !n) return $('bindMsg').textContent = t('printer.needTokenName'); try { if (await findToken(tk)) return $('bindMsg').textContent = t('printer.tokenExistsBind'); const ref = await rootRef.child('stations').push({ name: n, token: tk, settings: {}, createdAt: Date.now(), lastSeen: Date.now() }); localStorage.setItem(LS, tk); bindStation(ref.key); } catch (e) { werr(e); } };
-$('btnUnbind').onclick = () => { if (confirm(t('printer.unbindConfirm'))) { localStorage.removeItem(LS); location.reload(); } };
-function bindStation(key) {
-  stationKey = key; $('bindCard').style.display = 'none'; $('mainArea').style.display = 'block'; if (started) return; started = true;
-  rootRef.child('stations/' + key).on('value', s => { station = s.val(); if (!station) { toast(t('admin.stationDeletedNotice')); localStorage.removeItem(LS); setTimeout(() => location.reload(), 1500); return; } renderStationText(); }, werr);
-  rootRef.child('queues/' + key).on('value', snap => { const all = snap.val() || {}; Object.keys(all).forEach(k => { const j = all[k]; if (j && !j.done && !seen[k]) enqueue(k, j); }); }, werr);
-  const beat = () => rootRef.child('stations/' + key + '/lastSeen').set(Date.now()).catch(() => { }); beat(); setInterval(beat, 20000); log(t('printer.stationBound'));
-}
-function enqueue(k, j) { if (seen[k]) return; seen[k] = 1; jobs.push(Object.assign({ key: k }, j)); updateCount(); log(t('printer.jobReceived') + ': ' + (j.nameEn || '?') + (LL.meetLine(j) ? ' · ' + LL.meetLine(j) : '')); processJobs(); }
-async function processJobs() { if (printing) return; printing = true; while (jobs.length) { const j = jobs.shift(); updateCount(); await rootRef.child('queues/' + stationKey + '/' + j.key).remove().catch(() => { }); log(t('printer.preparing') + ' ' + (j.nameEn || '')); $('printArea').innerHTML = LL.stageHTML(layout, j, true); await new Promise(r => setTimeout(r, 2000)); const c = Math.max(1, j.copies || 1); for (let i = 0; i < c; i++) { window.print(); log((j.nameEn || 'LABEL') + ' ' + (i + 1) + '/' + c + ' ' + t('printer.sent')); if (i < c - 1) await new Promise(r => setTimeout(r, 2000)); } await new Promise(r => setTimeout(r, 2000)); } printing = false; }
-function pushJob(s) { return rootRef.child('queues/' + stationKey).push(Object.assign({ type: 'label', cls: s.cls || '', classNo: s.classNo || '', nameEn: s.nameEn || '', nameZh: s.nameZh || '', cardId: s.cardId || '' }, meetOf(s), { copies: 1, createdAt: Date.now(), done: false })); }
-let buf = '', last = 0;
-document.addEventListener('keydown', e => { if (document.body.classList.contains('auth-locked')) return; const a = document.activeElement; if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return; if (!stationKey) return; const now = Date.now(); if (now - last > 120) buf = ''; last = now; if (e.key === 'Enter' || e.key === 'Tab') { if (buf.length >= 4) { e.preventDefault(); scan(buf); } buf = ''; } else if (e.key.length === 1) buf += e.key; });
-async function scan(code) {
-  showTab('operate'); const box = $('scanBox'), k = byCard[normCard(code)];
-  if (k) { const s = students[k]; setBox(box, 'ok'); try { await markAtt(k, 'present', 'scan'); await pushJob(s); box.innerHTML = esc(s.nameEn) + ' — ' + esc(t('printer.markedPrint', { t: fmtT(Date.now()) })) + meetHtml(s); } catch (e) { werr(e); } }
-  else { setBox(box, 'err'); box.innerHTML = esc(t('admin.unregistered')) + ': ' + esc(code); }
-  setTimeout(renderScanReady, 3500);
-}
-$('q').addEventListener('input', doSearch);
-function doSearch() {
-  const q = $('q').value.trim().toLowerCase(); if (!q) { $('res').innerHTML = ''; return; } const hits = Object.entries(students).filter(([k, s]) => LL.searchMatch(s, q)).slice(0, 30);
-  $('res').innerHTML = hits.map(([k, s]) => '<div class="stu-card"><div class="stu-head"><span class="stu-name">' + esc(s.nameEn) + '</span><span class="stu-sub">' + esc(s.nameZh) + '</span><span class="stu-sub">' + esc(s.cls || '') + ' ' + esc(s.classNo || '') + '</span>' + attBadge(att[k]) + '</div>' + meetHtml(s) + '<div class="act-row"><button class="btn-lg" onclick="pLabel(\'' + k + '\')">' + esc(t('remote.presentPrint')) + '</button><button class="btn-lg btn-ok" onclick="pMark(\'' + k + '\',\'present\')">' + esc(t('remote.presentOnly')) + '</button><button class="btn-lg btn-red" onclick="pMark(\'' + k + '\',\'absent\')">' + esc(t('remote.absentOnly')) + '</button></div></div>').join('') || '<p class="muted">' + esc(t('common.noMatch')) + '</p>';
-}
-window.pMark = async (k, st) => { if (!needApproved()) return; const s = students[k]; if (!s || !stationKey) return; try { await markAtt(k, st, 'printer'); toast((st === 'present' ? t('remote.markedPresent') : t('remote.markedAbsent')) + ' ' + s.nameEn); log(t('printer.marked') + ' ' + s.nameEn + ' ' + (st === 'present' ? t('common.present') : t('common.absent'))); } catch (e) { werr(e); } };
-window.pLabel = async k => { if (!needApproved()) return; if (busy) return; busy = true; try { const s = students[k]; if (!s || !stationKey) return; await markAtt(k, 'present', 'printer'); await pushJob(s); toast(t('printer.addedQueue')); log(t('remote.sessionPresentPrint') + ' ' + s.nameEn + (LL.meetLine(s) ? ' · ' + LL.meetLine(s) : '')); } catch (e) { werr(e); } finally { busy = false; } };
-$('btnTest').onclick = async () => { if (!confirm(t('printer.testConfirm'))) return; $('printArea').innerHTML = LL.stageHTML(layout, layout.sample, true); await new Promise(r => setTimeout(r, 2000)); window.print(); log(t('printer.testSent')); };
-$('btnClear').onclick = async () => { if (!needApproved()) return; if (!confirm(t('printer.clearConfirm'))) return; try { await rootRef.child('queues/' + stationKey).remove(); jobs.length = 0; for (const k in seen) delete seen[k]; updateCount(); log(t('printer.queueCleared')); } catch (e) { werr(e); } };
-document.addEventListener('langchange', () => { I18N.apply(); syncCfgInputs(); applyCss(); renderScanReady(); renderAttStats(); updateCount(); renderStationText(); renderStatus(); doSearch(); });
-I18N.apply();
-Auth.start(function () {
-  attachAtt(attDay); setInterval(() => { const d = dayKey(); if (d !== attDay) attachAtt(d); }, 30000);
-  rootRef.child('labelLayout').on('value', s => { layout = LL.norm(s.val()); syncCfgInputs(); applyCss(); }, werr);
-  rootRef.child('students').on('value', s => { students = s.val() || {}; byCard = {}; Object.entries(students).forEach(([k, v]) => { if (v.cardId) byCard[normCard(v.cardId)] = k; }); renderAttStats(); doSearch(); }, werr);
-  Auth.db.ref('.info/connected').on('value', s => { if (s.val() === true) $('dot').classList.add('on'); else $('dot').classList.remove('on'); renderStatus(); });
-  (async () => { const tk = localStorage.getItem(LS); if (tk) { try { const hit = await findToken(tk); if (hit) bindStation(hit[0]); } catch (e) { } } })();
-});
-</script>
+<script src="js/printer.js"></script>
 </body></html>
