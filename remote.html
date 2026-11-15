@@ -1,37 +1,39 @@
 <!-- remote.html -->
-<!doctype html><html lang="zh-HK"><head>
+<!doctype html><html lang="zh-Hant-HK"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Remote 遙控終端</title>
+<title>Remote · 遙控終端</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/lang.css">
-<style>
-.station-trigger{max-width:640px;margin:0 auto;padding:12px 14px 0;display:flex}
-#stationBtn{gap:8px;justify-content:flex-start}#stationBtn .dot{background:var(--faint)}#stationBtn .dot.on{background:var(--ok)}#stationBtn .muted{font-family:var(--mono);font-size:11px}
-#stationModal .dock-row{margin:0 0 10px}#stationModal .chips{margin:10px 0 0}
-.stu-meet{font-size:12.5px;color:var(--muted)}.stu-meet b{font-weight:500;color:var(--ink-2)}
-</style>
+<style>.station-trigger{max-width:660px;margin:0 auto;padding:12px 14px 0;display:flex}#stBtn{justify-content:flex-start;gap:8px}#stBtn .dot{background:var(--faint)}#stBtn .dot.on{background:var(--ok)}</style>
 </head><body class="auth-locked">
-<div class="topbar"><span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg><span data-i18n="app.remote"></span></span><span class="chip" id="dayChip">—</span></div>
+<div class="topbar">
+  <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg><span data-i18n="app.remote"></span></div>
+  <div class="right"><span class="chip" id="dayChip">—</span></div>
+</div>
 
-<div class="station-trigger"><button class="btn btn-ghost btn-sm" id="stationBtn"><span class="dot" id="stBtnDot"></span><span id="stBtnText"></span><span class="muted" id="stBtnQueue"></span></button></div>
-<div class="modal-scrim" id="stationModal" aria-hidden="true"><div class="modal" role="dialog" aria-modal="true">
-  <h3 data-i18n="common.selectStation"></h3>
-  <div class="dock-row"><select id="stationSel"></select><span class="dock-meta"><span class="pill off" id="onlinePill"></span><span id="queueInfo"></span></span></div>
-  <div class="chips" id="stationChips"></div>
-  <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn-gray" id="stationClose" data-i18n="common.close"></button></div>
-</div></div>
+<div class="station-trigger"><button class="btn ghost sm" id="stBtn" type="button"><span class="dot" id="stDot"></span><span id="stTxt"></span><span class="mono faint" id="stQ"></span></button></div>
 
 <div class="remote-wrap">
-  <div class="card"><h3 data-i18n="remote.today"></h3>
+  <div class="card">
+    <h3 data-i18n="rm.today"></h3>
     <div class="row" style="gap:8px"><span class="tag" id="sP"></span><span class="tag" id="sA"></span><span class="tag" id="sN"></span><span class="tag" id="sM"></span></div>
-    <p class="muted" style="margin-top:10px" data-i18n="remote.noReader"></p>
+    <p class="muted" style="margin-top:10px" data-i18n="rm.noReader"></p>
   </div>
-  <div class="card"><h3 data-i18n="remote.searchStudent"></h3>
-    <input type="text" id="q" data-i18n-ph="meet.searchPh" autocomplete="off">
+  <div class="card">
+    <h3 data-i18n="rm.search"></h3>
+    <input type="text" id="q" data-ph="m.searchPh" autocomplete="off">
     <div id="res"></div>
   </div>
-  <div class="card"><h3 data-i18n="remote.session"></h3><div class="session" id="session"><div>—</div></div></div>
+  <div class="card"><h3 data-i18n="rm.session"></h3><div class="session" id="session"><div>—</div></div></div>
 </div>
+
+<div class="scrim" id="stModal"><div class="modal" role="dialog" aria-modal="true">
+  <h3 data-i18n="c.selectStation"></h3>
+  <div class="row"><select id="stSel" style="flex:1 1 220px"></select><span class="pill off" id="stPill"></span><span class="tag" id="stQI"></span></div>
+  <div class="row" id="stChips" style="margin-top:12px"></div>
+  <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn gray" id="stClose" data-i18n="c.close"></button></div>
+</div></div>
+
 <div class="toast" id="toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -41,64 +43,5 @@
 <script src="js/i18n-meet.js"></script>
 <script src="js/label-layout.js"></script>
 <script src="js/auth.js"></script>
-<script>
-const $ = id => document.getElementById(id), t = (k, v) => I18N.t(k, v), rootRef = Auth.root();
-const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const toast = m => { const el = $('toast'); el.textContent = m; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 2600); };
-const dayKey = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-const fmtT = ts => ts ? new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—';
-const LS = 'parentRemoteStation', isOnline = st => st && st.lastSeen && (Date.now() - st.lastSeen < 60000);
-const needApproved = () => { if (!Auth.isApproved()) { toast(t('printer.needApproved')); return false; } return true; };
-const werr = e => { const c = (e && e.code) || ''; toast(/PERMISSION_DENIED/i.test(c + e) ? t('admin.writeDenied') : t('admin.opFail') + ': ' + (e.message || e)); };
-const meetOf = s => ({ meetTime: String(s.meetTime || ''), meetTeacher: String(s.meetTeacher || ''), meetRoom: String(s.meetRoom || '') });
-const meetHtml = s => { const m = LL.meetLine(s); return m ? '<div class="stu-meet"><b>' + esc(t('meet.label')) + '</b> ' + esc(m) + '</div>' : '<div class="stu-meet">' + esc(t('meet.none')) + '</div>'; };
-let students = {}, stations = {}, queues = {}, selKey = localStorage.getItem(LS) || null, att = {}, attDay = dayKey(), attRef = null, busy = false;
-const queueCount = k => Object.keys(queues[k] || {}).length;
-function sess(m) { const d = document.createElement('div'); d.textContent = '[' + fmtT(Date.now()) + '] ' + m; const s = $('session'); if (s.firstChild && s.firstChild.textContent === '—') s.innerHTML = ''; s.prepend(d); while (s.children.length > 12) s.lastChild.remove(); }
-function attachAtt(day) { if (attRef) attRef.off(); attDay = day; att = {}; $('dayChip').textContent = day; attRef = rootRef.child('attendance/' + day); attRef.on('value', s => { att = s.val() || {}; renderStats(); doSearch(); }, werr); }
-async function markAtt(k, status) { const s = students[k]; if (!s) return; await rootRef.child('attendance/' + attDay + '/' + k).set({ status, time: Date.now(), by: 'remote', cls: s.cls || '', classNo: s.classNo || '', nameEn: s.nameEn || '', nameZh: s.nameZh || '', cardId: s.cardId || '' }); }
-function renderStats() { let p = 0, a = 0; Object.values(att).forEach(r => r.status === 'present' ? p++ : a++); const mc = Object.values(students).filter(s => LL.meetLine(s)).length; $('sP').textContent = t('common.present') + ' ' + p; $('sA').textContent = t('common.absent') + ' ' + a; $('sN').textContent = t('common.unmarked') + ' ' + Math.max(0, Object.keys(students).length - p - a); $('sM').textContent = t('meet.scheduled') + ' ' + mc; }
-const attBadge = a => a ? (a.status === 'present' ? '<span class="att-badge p">' + esc(t('common.present')) + ' <span class="att-t">' + fmtT(a.time) + '</span></span>' : '<span class="att-badge a">' + esc(t('common.absent')) + ' <span class="att-t">' + fmtT(a.time) + '</span></span>') : '<span class="att-badge">' + esc(t('common.unmarked')) + '</span>';
-function renderDock() {
-  const e = Object.entries(stations), sel = $('stationSel'); sel.innerHTML = '<option value="">— ' + esc(t('common.selectStation')) + ' —</option>' + e.map(([k, v]) => '<option value="' + k + '">' + esc(v.name) + ' (' + esc(v.token) + ')</option>').join(''); sel.value = selKey || '';
-  $('stationChips').innerHTML = e.map(([k, v]) => { const on = isOnline(v), q = queueCount(k); return '<button class="st-chip ' + (k === selKey ? 'active' : '') + ' ' + (on ? 'on' : 'off') + '" data-k="' + k + '"><span class="dot"></span><span>' + esc(v.name) + '</span><span class="tk">' + esc(v.token) + '</span><span class="q">' + q + '</span></button>'; }).join('') || '<span class="dock-empty">' + esc(t('remote.noStations')) + '</span>';
-  const st = stations[selKey], pill = $('onlinePill'); if (!st) { pill.textContent = t('common.notSelected'); pill.className = 'pill off'; } else if (isOnline(st)) { pill.textContent = t('common.online'); pill.className = 'pill'; } else { pill.textContent = t('common.offline'); pill.className = 'pill off'; }
-  $('queueInfo').textContent = t('common.queue') + ' ' + (selKey ? queueCount(selKey) : 0); const on = selKey && isOnline(st);
-  $('stBtnText').textContent = selKey && st ? st.name : t('common.selectStation'); $('stBtnDot').className = 'dot' + (on ? ' on' : ''); $('stBtnQueue').textContent = t('common.queue') + ' ' + (selKey ? queueCount(selKey) : 0);
-}
-function openStation() { $('stationModal').classList.add('open'); } function closeStation() { $('stationModal').classList.remove('open'); }
-function selectStation(k) { selKey = k && stations[k] ? k : null; if (selKey) { localStorage.setItem(LS, selKey); toast(t('remote.stationSelected') + ': ' + stations[selKey].name); } else localStorage.removeItem(LS); renderDock(); closeStation(); }
-$('stationBtn').onclick = openStation; $('stationClose').onclick = closeStation;
-$('stationSel').onchange = function () { selectStation(this.value || null); };
-$('stationChips').onclick = e => { const b = e.target.closest('.st-chip'); if (b) selectStation(b.dataset.k); };
-$('stationModal').addEventListener('click', e => { if (e.target === $('stationModal')) closeStation(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('stationModal').classList.contains('open')) closeStation(); });
-$('q').addEventListener('input', doSearch);
-function doSearch() {
-  const q = $('q').value.trim().toLowerCase(); if (!q) { $('res').innerHTML = '<p class="muted" style="margin-top:10px">' + esc(t('common.typeToSearch')) + '</p>'; return; }
-  const hits = Object.entries(students).filter(([k, s]) => LL.searchMatch(s, q)).slice(0, 30);
-  $('res').innerHTML = hits.map(([k, s]) => '<div class="stu-card"><div class="stu-head"><span class="stu-name">' + esc(s.nameEn) + '</span><span class="stu-sub">' + esc(s.nameZh) + '</span><span class="stu-sub">' + esc(s.cls || '') + ' ' + esc(s.classNo || '') + '</span>' + attBadge(att[k]) + '</div>' + meetHtml(s) + '<div class="act-row"><button class="btn-lg" onclick="rLabel(\'' + k + '\')">' + esc(t('remote.presentPrint')) + '</button><button class="btn-lg btn-ok" onclick="rMark(\'' + k + '\',\'present\')">' + esc(t('remote.presentOnly')) + '</button><button class="btn-lg btn-red" onclick="rMark(\'' + k + '\',\'absent\')">' + esc(t('remote.absentOnly')) + '</button></div></div>').join('') || '<p class="muted" style="margin-top:10px">' + esc(t('common.noMatch')) + '</p>';
-}
-window.rMark = async (k, status) => { if (!needApproved()) return; const s = students[k]; if (!s) return; try { await markAtt(k, status); toast((status === 'present' ? t('remote.markedPresent') : t('remote.markedAbsent')) + ' ' + s.nameEn); sess(s.nameEn + ' ' + (status === 'present' ? t('remote.sessionPresent') : t('remote.sessionAbsent'))); } catch (e) { werr(e); } };
-window.rLabel = async k => {
-  if (!needApproved()) return; if (busy) return; busy = true;
-  try {
-    const s = students[k]; if (!s) return; await markAtt(k, 'present');
-    if (selKey && stations[selKey]) {
-      await new Promise(r => setTimeout(r, 2000));
-      await rootRef.child('queues/' + selKey).push(Object.assign({ type: 'label', cls: s.cls || '', classNo: s.classNo || '', nameEn: s.nameEn || '', nameZh: s.nameZh || '', cardId: s.cardId || '' }, meetOf(s), { copies: 1, createdAt: Date.now(), done: false }));
-      toast(t('remote.sentTo') + ' ' + stations[selKey].name); sess(s.nameEn + ' ' + t('remote.sessionPresentPrint') + ' → ' + stations[selKey].name + (LL.meetLine(s) ? ' · ' + LL.meetLine(s) : ''));
-    } else { toast(t('remote.markedNoPrint')); sess(s.nameEn + ' ' + t('remote.sessionNoPrint')); }
-  } catch (e) { werr(e); } finally { busy = false; }
-};
-document.addEventListener('langchange', () => { I18N.apply(); renderStats(); renderDock(); doSearch(); });
-I18N.apply(); renderStats(); renderDock(); doSearch();
-Auth.start(function () {
-  attachAtt(attDay); setInterval(() => { const d = dayKey(); if (d !== attDay) { attachAtt(d); toast(t('remote.newDay') + ' ' + d); } }, 30000);
-  rootRef.child('stations').on('value', s => { stations = s.val() || {}; if (selKey && !stations[selKey]) { selKey = null; localStorage.removeItem(LS); } renderDock(); }, werr);
-  rootRef.child('queues').on('value', s => { queues = s.val() || {}; renderDock(); }, werr);
-  rootRef.child('students').on('value', s => { students = s.val() || {}; renderStats(); doSearch(); }, werr);
-  setInterval(renderDock, 15000);
-});
-</script>
+<script src="js/remote.js"></script>
 </body></html>
