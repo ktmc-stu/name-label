@@ -1,15 +1,13 @@
-<!-- index.html -->
 <!doctype html><html lang="zh-HK"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>KTMC Parent Label · 家長標籤及考勤系統</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
 :root{--nav:60px}
-html{scroll-behavior:smooth;scroll-padding-top:calc(var(--nav) + 18px)}
-body{overflow-x:hidden}
-.portal-nav{position:fixed;top:0;left:0;right:0;height:var(--nav);z-index:9500;display:flex;align-items:center;gap:16px;padding:0 clamp(16px,4vw,40px);background:rgba(255,255,255,.94);border-bottom:1px solid transparent;transition:border-color .2s,box-shadow .2s}
+html{scroll-padding-top:calc(var(--nav) + 18px)}
+.portal-nav{position:fixed;top:0;left:0;right:0;height:var(--nav);z-index:9500;display:flex;align-items:center;gap:16px;padding:0 clamp(16px,4vw,40px);background:rgba(255,255,255,.95);border-bottom:1px solid transparent;transition:.2s}
 .portal-nav.scrolled{border-bottom-color:var(--line);box-shadow:0 6px 20px rgba(15,42,70,.06)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;color:var(--text)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px}
 .brand .mark{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:#fff;background:var(--accent)}
 .brand .mark svg{width:15px;height:15px}
 .brand small{display:block;font-size:10.5px;font-weight:400;color:var(--faint);letter-spacing:.04em}
@@ -32,7 +30,7 @@ body{overflow-x:hidden}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);margin-top:34px;border-top:1px solid var(--line)}
 .stat{padding:16px 18px 4px;border-left:1px solid var(--line)}
 .stat:first-child{border-left:0;padding-left:0}
-.stat .n{font-size:26px;font-weight:500;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--text)}
+.stat .n{font-size:26px;font-weight:500;font-family:var(--mono);font-variant-numeric:tabular-nums}
 .stat.present .n{color:var(--ok)}
 .stat .l{font-size:11px;color:var(--faint);font-weight:500;margin-top:2px;letter-spacing:.06em;text-transform:uppercase}
 .hero-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-sm);padding:24px}
@@ -46,7 +44,7 @@ body{overflow-x:hidden}
 .att-sample .att-by{margin-left:auto;color:var(--muted);font-family:var(--mono);font-size:11px}
 .hero-note{font-size:12.5px;color:var(--muted);margin-top:12px}
 .board{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
-.station{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;transition:border-color .15s,box-shadow .15s}
+.station{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;transition:.15s}
 .station:hover{border-color:var(--accent-line);box-shadow:var(--shadow-sm)}
 .st-top{display:flex;align-items:center;gap:9px}
 .st-dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
@@ -60,13 +58,13 @@ body{overflow-x:hidden}
 .qbadge{font-family:var(--mono);color:var(--ink-2)}.qbadge.hot{color:var(--bad)}
 .empty{grid-column:1/-1;text-align:center;padding:44px 20px;border:1px dashed var(--line-2);border-radius:12px;color:var(--muted)}
 .launch{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.launch-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:12px;transition:border-color .15s,box-shadow .15s}
+.launch-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:12px;transition:.15s}
 .launch-card:hover{border-color:var(--accent-line);box-shadow:var(--shadow-sm)}
 .lc-top{display:flex;align-items:center}
 .launch-card .ic{width:38px;height:38px;border:1px solid var(--accent-line);border-radius:9px;display:grid;place-items:center;color:var(--accent);background:var(--accent-soft)}
 .launch-card .ic svg{width:18px;height:18px}
 .launch-card .idx{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--faint)}
-.launch-card h3{margin:2px 0 0;font-size:20px;font-weight:600;letter-spacing:-.01em;border:0;padding:0}
+.launch-card h3{margin:2px 0 0;font-size:20px;font-weight:600;border:0;padding:0}
 .launch-card p{margin:0;font-size:13.5px;color:var(--muted)}
 .launch-card .feat{display:flex;gap:6px;flex-wrap:wrap}
 .launch-card .feat span{font-size:11px;color:var(--muted);background:var(--panel);border:1px solid var(--line);padding:3px 8px;border-radius:5px}
@@ -94,9 +92,9 @@ body{overflow-x:hidden}
 @media(max-width:900px){.hero,.launch,.setup-grid{grid-template-columns:1fr}.batbox{position:static}.navlinks{display:none}.stats{grid-template-columns:repeat(2,1fr)}.stat:nth-child(odd){border-left:0;padding-left:0}.stat{border-top:1px solid var(--line)}.stat:nth-child(-n+2){border-top:0}}
 @media(max-width:560px){.stats{grid-template-columns:1fr}.stat{border-left:0;padding:12px 0}.stat:first-child{border-top:0}.clock{display:none}.hero-cta .btn{flex:1}}
 </style>
-</head><body>
+</head><body class="auth-locked">
 <nav class="portal-nav" id="nav">
-  <div class="brand"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span><span>KTMC Parent Label<small>家長標籤及考勤系統</small></span></div>
+  <div class="brand"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span><span>KTMC Parent Label<small>家長標籤及考勤系統</small></span></div>
   <div class="navlinks"><a href="#overview" class="active">Overview</a><a href="#stations">Stations</a><a href="#launch">Launch</a><a href="#setup">Setup</a></div>
   <span class="clock" id="clock">--:--:--</span>
   <a class="btn btn-blue btn-sm" href="parents-admin.html">Open Admin</a>
@@ -137,9 +135,9 @@ body{overflow-x:hidden}
   <section id="launch" class="reveal">
     <div class="sec-head"><div><span class="eyebrow">Three ends</span><h2>Launch the system<span class="t-zh">啟動系統</span></h2></div></div>
     <div class="launch">
-      <div class="launch-card"><div class="lc-top"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span class="idx">01</span></div><h3>Admin<span class="t-zh">管理端</span></h3><p>Card scan with attendance, the layout designer, Excel import, station management and guarded delete-all actions.</p><div class="feat"><span>Layout designer</span><span>Attendance</span><span>Excel</span><span>Stations</span></div><a class="btn btn-ghost btn-sm" href="parents-admin.html#designer">Open Admin →</a></div>
-      <div class="launch-card"><div class="lc-top"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span><span class="idx">02</span></div><h3>Remote<span class="t-zh">手持終端</span></h3><p>Handheld, no card reader. Search a student, then mark present and print, present only, or absent.</p><div class="feat"><span>Present + print</span><span>Absent</span><span>Station select</span></div><a class="btn btn-ghost btn-sm" href="remote.html">Open Remote →</a></div>
-      <div class="launch-card"><div class="lc-top"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span><span class="idx">03</span></div><h3>Printer<span class="t-zh">列印端</span></h3><p>Bind a token, operate like Remote, watch the log, and tune the label area. One clean page per label.</p><div class="feat"><span>Operate / Log / Settings</span><span>Hidden-area control</span><span>Single page</span></div><a class="btn btn-ghost btn-sm" href="parents-printer.html">Open Printer →</a></div>
+      <div class="launch-card"><div class="lc-top"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span class="idx">01</span></div><h3>Admin<span class="t-zh">管理端</span></h3><p>Card scan with attendance, the layout designer, Excel import, station management and guarded delete-all actions.</p><div class="feat"><span>Layout designer</span><span>Attendance</span><span>Excel</span><span>Stations</span></div><a class="btn btn-ghost btn-sm" href="parents-admin.html#designer">Open Admin →</a></div>
+      <div class="launch-card"><div class="lc-top"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span><span class="idx">02</span></div><h3>Remote<span class="t-zh">手持終端</span></h3><p>Handheld, no card reader. Search a student, then mark present and print, present only, or absent.</p><div class="feat"><span>Present + print</span><span>Absent</span><span>Station select</span></div><a class="btn btn-ghost btn-sm" href="remote.html">Open Remote →</a></div>
+      <div class="launch-card"><div class="lc-top"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span><span class="idx">03</span></div><h3>Printer<span class="t-zh">列印端</span></h3><p>Bind a token, operate like Remote, watch the log, and tune the label area. One clean page per label.</p><div class="feat"><span>Operate / Log / Settings</span><span>Hidden-area control</span><span>Single page</span></div><a class="btn btn-ghost btn-sm" href="parents-printer.html">Open Printer →</a></div>
     </div>
   </section>
 
@@ -147,10 +145,10 @@ body{overflow-x:hidden}
     <div class="sec-head"><div><span class="eyebrow">Deployment</span><h2>Setup in five steps<span class="t-zh">五步完成</span></h2></div></div>
     <div class="setup-grid">
       <div class="steps">
-        <div class="step"><span class="num">1</span><div><b>Create stations 建立站點</b><p>In Admin → Stations, add a name and token per printer.</p></div></div>
-        <div class="step"><span class="num">2</span><div><b>Bind each printer 綁定列印端</b><p>Open parents-printer.html on the printer PC, enter its token, press Bind.</p></div></div>
-        <div class="step"><span class="num">3</span><div><b>Design the label 設計標籤</b><p>Set file size, hidden band and effective area; drag text boxes with {class}, {nameZh}. Save once for all printers.</p></div></div>
-        <div class="step"><span class="num">4</span><div><b>Import students 匯入學生</b><p>Excel columns: Card ID, Class, Class No, English Name, Chinese Name.</p></div></div>
+        <div class="step"><span class="num">1</span><div><b>Publish rules 發布規則</b><p>Paste the provided JSON into Realtime Database → Rules → Publish.</p></div></div>
+        <div class="step"><span class="num">2</span><div><b>Create account 建立帳戶</b><p>Open any page, create the first account — it becomes admin automatically.</p></div></div>
+        <div class="step"><span class="num">3</span><div><b>Create stations &amp; bind 建立及綁定站點</b><p>Add a token per printer in Admin, then bind it in Printer.</p></div></div>
+        <div class="step"><span class="num">4</span><div><b>Design &amp; import 排版及匯入</b><p>Set file size, hidden band, drag text boxes; import students via Excel.</p></div></div>
         <div class="step"><span class="num">5</span><div><b>Operate &amp; review 操作及考勤</b><p>Swipe or use Remote, then filter and export attendance in Admin.</p></div></div>
       </div>
       <div class="batbox">
@@ -162,53 +160,90 @@ body{overflow-x:hidden}
   </section>
 </main>
 
-<footer class="portal-footer"><span>KTMC Parent Label System · label + attendance build</span><span class="health" id="health"><i></i><span>Connecting…</span></span></footer>
+<footer class="portal-footer"><span>KTMC Parent Label System · label + attendance build</span><span class="health" id="health"><i></i><span>Waiting for sign-in…</span></span></footer>
 <div class="toast" id="toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/label-layout.js"></script>
 <script>
-const firebaseConfig={apiKey:"AIzaSyDMBiSM4oGSDE3khRISIxtxDCJJTLaxm0",authDomain:"ktmc-queue-system.firebaseapp.com",databaseURL:"https://ktmc-queue-system-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"ktmc-queue-system",storageBucket:"ktmc-queue-system.firebasestorage.app",messagingSenderId:"1098822703041",appId:"1:1098822703041:web:c010a95bf5c71c478a0140"};
-firebase.initializeApp(firebaseConfig);
-const root=firebase.database().ref('parents');
-const $=id=>document.getElementById(id);
-const esc=LabelLayout.esc;
+/* ===== shared label engine ===== */
+(function(){
+const MM=96/25.4;
+const DEF={version:4,mode:'simple',doc:{w:60,h:60},hide:{top:20,left:0},simple:{topMm:6,sideMm:2,enSize:12,zhSize:30,gapMm:1.5,enText:'Parent of {class} {classNo} {nameEn}',zhText:'{nameZh}家長'},boxes:[{id:'en',x:2,y:4,w:56,h:6,text:'Parent of {class} {classNo} {nameEn}',size:12,weight:600,align:'center',valign:'middle',color:'#000000',lineHeight:1.2},{id:'zh',x:2,y:11,w:56,h:13,text:'{nameZh}家長',size:30,weight:600,align:'center',valign:'middle',color:'#000000',lineHeight:1.15}],sample:{cls:'3A',classNo:'15',nameEn:'CHAN TAI MAN',nameZh:'陳大文',cardId:'0001234567'}};
+const clone=o=>JSON.parse(JSON.stringify(o)),num=(v,d)=>{const n=parseFloat(v);return Number.isFinite(n)?n:d;};
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nb=(x,i)=>({id:String(x.id||('b'+i)),x:num(x.x,0),y:num(x.y,0),w:num(x.w,20),h:num(x.h,8),text:x.text==null?'':String(x.text),size:num(x.size,16),weight:num(x.weight,600),align:['left','center','right'].includes(x.align)?x.align:'center',valign:['top','middle','bottom'].includes(x.valign)?x.valign:'middle',color:/^#[0-9a-fA-F]{6}$/.test(x.color||'')?x.color:'#000000',lineHeight:num(x.lineHeight,1.2)});
+function eff(l){return{x:l.hide.left,y:l.hide.top,w:Math.max(1,l.doc.w-l.hide.left),h:Math.max(1,l.doc.h-l.hide.top)};}
+function norm(l){const b=clone(DEF);if(!l||typeof l!=='object')return b;b.mode=l.mode==='designer'?'designer':'simple';
+if(l.doc&&l.hide){b.doc={w:num(l.doc.w,60),h:num(l.doc.h,60)};b.hide={top:Math.max(0,num(l.hide.top,20)),left:Math.max(0,num(l.hide.left,0))};}
+else if(l.label){const bt=Math.max(0,num(l.blankTop,20)),bl=Math.max(0,num(l.blankLeft,0));b.doc={w:num(l.label.w,60)+bl,h:num(l.label.h,40)+bt};b.hide={top:bt,left:bl};}
+else if(l.driver&&l.physical){const ox=num(l.offset&&l.offset.x,0),oy=num(l.offset&&l.offset.y,-20);b.doc={w:num(l.driver.w,60),h:num(l.driver.h,60)};b.hide={top:Math.max(0,-oy),left:Math.max(0,-ox)};b.simple=Object.assign({},DEF.simple,l.simple||{});b.simple.topMm=num(b.simple.topMm,26)+oy;b.simple.sideMm=num(b.simple.sideMm,2)+ox;if(Array.isArray(l.boxes))b.boxes=l.boxes.map((x,i)=>{const t=nb(x,i);t.x+=ox;t.y+=oy;return t;});b.sample=Object.assign({},DEF.sample,l.sample||{});return b;}
+b.simple=Object.assign({},DEF.simple,l.simple||{});['topMm','sideMm','enSize','zhSize','gapMm'].forEach(k=>b.simple[k]=num(b.simple[k],DEF.simple[k]));if(Array.isArray(l.boxes))b.boxes=l.boxes.map(nb);b.sample=Object.assign({},DEF.sample,l.sample||{});return b;}
+function fill(t,s){s=s||{};const cls=s.cls||s.class||'',no=s.classNo||s.no||'',en=s.nameEn||'',zh=s.nameZh||'',card=s.cardId||'';const m={class:cls,cls,no,classNo:no,no,nameEn:en,nameZh:zh,cardId:card,parent:zh?zh+'家長':'',parentEn:'Parent of '+[cls,no,en].filter(Boolean).join(' '),date:new Date().toLocaleDateString('en-GB'),time:new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})};return String(t==null?'':t).replace(/\{([a-zA-Z]+)\}/g,(x,k)=>m[k]!=null?String(m[k]):x);}
+const just=v=>v==='top'?'flex-start':v==='bottom'?'flex-end':'center';
+function inner(l,d){if(l.mode==='simple'){const s=l.simple;return '<div class="simple-wrap" style="padding:'+s.topMm+'mm '+s.sideMm+'mm 0 '+s.sideMm+'mm"><div class="label-en" style="font-size:'+s.enSize+'px">'+esc(fill(s.enText,d))+'</div><div class="label-zh" style="font-size:'+s.zhSize+'px;margin-top:'+s.gapMm+'mm">'+esc(fill(s.zhText,d))+'</div></div>';}
+return (l.boxes||[]).map(b=>'<div class="lb" style="left:'+b.x+'mm;top:'+b.y+'mm;width:'+b.w+'mm;height:'+b.h+'mm;font-size:'+b.size+'px;font-weight:'+b.weight+';text-align:'+b.align+';color:'+b.color+';line-height:'+b.lineHeight+';justify-content:'+just(b.valign)+'">'+esc(fill(b.text,d)).replace(/\n/g,'<br>')+'</div>').join('');}
+function stageHTML(l,d,fp){const e=eff(l);return '<div class="label-stage" style="left:'+(fp?l.hide.left:0)+'mm;top:'+(fp?l.hide.top:0)+'mm;width:'+e.w+'mm;height:'+e.h+'mm">'+inner(l,d)+'</div>';}
+window.LL={MM,DEF,clone,norm,fill,esc,eff,stageHTML};
+})();
+/* ===== auth gate ===== */
+(function(){
+const CFG={apiKey:"AIzaSyCUL7DTytCGPc9jDF49GRLS0DznsZoiomM",authDomain:"name-label.firebaseapp.com",databaseURL:"https://name-label-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"name-label",storageBucket:"name-label.firebasestorage.app",messagingSenderId:"520022563247",appId:"1:520022563247:web:9a7867b8ec843185ceb75a"};
+if(!firebase.apps.length)firebase.initializeApp(CFG);
+const auth=firebase.auth(),db=firebase.database();let started=false,fn=null,admin=false,claiming=false;
+const st=document.createElement('style');st.textContent='#authGate{position:fixed;inset:0;z-index:30000;background:#f3f7fc;display:flex;align-items:center;justify-content:center;padding:20px;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","PingFang TC","Microsoft JhengHei",sans-serif;color:#10233c}#authGate .c{width:min(400px,100%);background:#fff;border:1px solid #dce7f4;border-radius:14px;padding:28px;box-shadow:0 18px 50px rgba(16,44,78,.14)}#authGate .mk{width:38px;height:38px;border-radius:10px;background:#0a66d0;color:#fff;display:grid;place-items:center;margin-bottom:14px}#authGate h2{margin:0 0 4px;font-size:19px;font-weight:600}#authGate .sub{margin:0 0 18px;font-size:13px;color:#5c7492}#authGate label{display:block;font-size:12px;font-weight:500;color:#5c7492;margin-bottom:5px}#authGate input{width:100%;box-sizing:border-box;font-size:15px;font-family:inherit;border:1px solid #c4d6ea;border-radius:8px;padding:10px 14px;min-height:44px;outline:none;margin-bottom:14px}#authGate input:focus{border-color:#0a66d0;box-shadow:0 0 0 3px rgba(10,102,208,.18)}#authGate button{font-family:inherit;font-size:14px;font-weight:500;border:0;border-radius:8px;padding:11px 18px;min-height:44px;cursor:pointer;background:#0a66d0;color:#fff;width:100%}#authGate button:hover{background:#0851a8}#authGate button:disabled{opacity:.5}#authGate .err{margin:12px 0 0;font-size:12.5px;color:#c23b3b;min-height:18px}#authGate .ok{color:#177a4c}#authGate .foot{margin-top:16px;padding-top:14px;border-top:1px solid #e9f0f9;font-size:12px;color:#8ea4bf;line-height:1.6}#authGate .r{display:flex;justify-content:space-between;margin-top:10px}#authGate .lk{background:none;color:#0851a8;font-size:12.5px;padding:0;min-height:0;width:auto}#authGate .lk:hover{background:none;text-decoration:underline}#authBar{display:inline-flex;align-items:center;gap:8px;flex:none}#authBar .m{font-size:11.5px;color:#5c7492;font-family:ui-monospace,Menlo,monospace;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#authBar .ro{font-size:10.5px;padding:2px 8px;border-radius:999px;border:1px solid #bfe3cf;background:#e6f5ed;color:#177a4c}#authBar .ro.r{border-color:#c4d6ea;background:#edf3fb;color:#5c7492}#authBar button{font-size:12.5px;border:1px solid #c4d6ea;background:#edf3fb;color:#28425f;border-radius:6px;padding:5px 11px;cursor:pointer;width:auto;min-height:0}body.auth-locked main,body.auth-locked .wrap,body.auth-locked .admin-wrap,body.auth-locked .remote-wrap,body.auth-locked .station-trigger{visibility:hidden}';document.head.appendChild(st);
+const g=document.createElement('div');g.id='authGate';
+g.innerHTML='<div class="c"><div class="mk"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></div><h2 id="agT">登入 Sign in</h2><p class="sub">家長標籤及考勤系統 · 電郵密碼登入</p><label>Email 電郵</label><input id="agE" type="email" autocomplete="username" placeholder="you@school.edu.hk"><label>Password 密碼</label><input id="agP" type="password" autocomplete="current-password" placeholder="至少 6 個字元"><button id="agB">Sign in 登入</button><p class="err" id="agR"></p><div class="r"><button class="lk" id="agS">首次使用？建立帳戶</button><button class="lk" id="agF">忘記密碼</button></div><div class="foot">第一個建立嘅帳戶自動成為管理員。之後嘅帳戶預設唯讀，管理員可喺 Firebase Data 加 admins/UID = true 授權。</div></div>';
+document.body.appendChild(g);
+const $=i=>document.getElementById(i);let mode='in';
+const MSG={'auth/invalid-email':'電郵格式不正確。','auth/user-not-found':'找不到帳戶，請先建立。','auth/wrong-password':'密碼錯誤。','auth/invalid-credential':'電郵或密碼錯誤。','auth/invalid-login-credentials':'電郵或密碼錯誤。','auth/email-already-in-use':'電郵已註冊，請直接登入。','auth/weak-password':'密碼至少 6 個字元。','auth/too-many-requests':'嘗試過多，請稍後。','auth/network-request-failed':'網絡失敗。','auth/operation-not-allowed':'請先到 Firebase 啟用電郵密碼登入。'};
+function setMode(m){mode=m;$('agT').textContent=m==='in'?'登入 Sign in':'建立帳戶 Create account';$('agB').textContent=m==='in'?'Sign in 登入':'Create 建立帳戶';$('agS').textContent=m==='in'?'首次使用？建立帳戶':'已有帳戶？返回登入';$('agR').textContent='';}
+function err(t,ok){$('agR').textContent=t;$('agR').className='err'+(ok?' ok':'');}
+async function submit(){const e=$('agE').value.trim(),p=$('agP').value;if(!e||!p)return err('請輸入電郵及密碼。');$('agB').disabled=true;$('agB').textContent='處理中…';
+try{if(mode==='in')await auth.signInWithEmailAndPassword(e,p);else await auth.createUserWithEmailAndPassword(e,p);}catch(x){$('agB').disabled=false;setMode(mode);err(MSG[x.code]||('失敗：'+(x.code||x.message)));}}
+$('agB').onclick=submit;$('agS').onclick=()=>setMode(mode==='in'?'up':'in');
+$('agF').onclick=()=>{const e=$('agE').value.trim();if(!e)return err('請先輸入電郵。');auth.sendPasswordResetEmail(e).then(()=>err('已發送重設電郵至 '+e,true)).catch(x=>err(MSG[x.code]||x.message));};
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&g.style.display!=='none'&&(e.target.id==='agP'||e.target.id==='agE'))submit();});
+function bar(u){const tb=document.querySelector('.portal-nav')||document.querySelector('.topbar');if(!tb)return;let b=$('authBar');if(!b){b=document.createElement('span');b.id='authBar';tb.appendChild(b);}b.innerHTML='<span class="ro'+(admin?'':' r')+'">'+(admin?'Admin':'Read-only')+'</span><span class="m">'+(u.email||'')+'</span><button id="agOut">登出</button>';$('agOut').onclick=()=>auth.signOut().then(()=>location.reload());}
+async function claim(u){if(claiming)return;claiming=true;try{const own=await db.ref('admins/'+u.uid).once('value');if(own.val()===true)admin=true;else{await db.ref('admins/'+u.uid).set(true);admin=true;}}catch(e){admin=false;}claiming=false;}
+auth.onAuthStateChanged(async u=>{if(!u){admin=false;started=false;document.body.classList.add('auth-locked');g.style.display='flex';setMode('in');const b=$('authBar');if(b)b.remove();return;}
+$('agB').disabled=true;await claim(u);g.style.display='none';document.body.classList.remove('auth-locked');bar(u);if(!started&&fn){started=true;fn(u,admin);}});
+window.Auth={auth,db,root:()=>db.ref('parents'),isAdmin:()=>admin,start(f){fn=f;if(auth.currentUser&&!started){started=true;f(auth.currentUser,admin);}}};
+})();
+/* ===== portal app ===== */
+const $=id=>document.getElementById(id),esc=LL.esc,root=Auth.root();
 const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)};
 const dayKey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const tick=()=>{$('clock').textContent=new Date().toLocaleTimeString('en-GB')};tick();setInterval(tick,1000);
 const nav=$('nav');addEventListener('scroll',()=>nav.classList.toggle('scrolled',scrollY>10),{passive:true});
 const links=[...document.querySelectorAll('.navlinks a')];
-const ioNav=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)links.forEach(l=>l.classList.toggle('active',l.getAttribute('href')==='#'+e.target.id))}),{rootMargin:'-40% 0px -55% 0px'});
-links.forEach(a=>{const s=document.querySelector(a.getAttribute('href'));if(s)ioNav.observe(s);});
-const rio=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');rio.unobserve(e.target)}}),{threshold:.12});document.querySelectorAll('.reveal').forEach(el=>rio.observe(el));
-
-let students={},stations={},queues={},attToday={},attDay=dayKey(),attRef=null,layout=LabelLayout.norm(null);
+const ioN=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)links.forEach(l=>l.classList.toggle('active',l.getAttribute('href')==='#'+e.target.id))}),{rootMargin:'-40% 0px -55% 0px'});
+links.forEach(a=>{const s=document.querySelector(a.getAttribute('href'));if(s)ioN.observe(s);});
+const rio=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');rio.unobserve(e.target)}}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>rio.observe(el));
+let students={},stations={},queues={},attToday={},attDay=dayKey(),attRef=null,layout=LL.norm(null);
 const online=st=>st&&st.lastSeen&&(Date.now()-st.lastSeen<60000);
-function renderHero(){const e=LabelLayout.eff(layout),p=$('heroPreview');p.style.width=e.w+'mm';p.style.height=e.h+'mm';p.innerHTML=LabelLayout.stageHTML(layout,layout.sample,false);}
-root.child('labelLayout').on('value',s=>{layout=LabelLayout.norm(s.val());renderHero();render();});
-function attachAtt(day){if(attRef)attRef.off();attDay=day;attToday={};$('attDayChip').textContent=day;attRef=root.child('attendance/'+day);attRef.on('value',s=>{attToday=s.val()||{};render();});}
-attachAtt(attDay);setInterval(()=>{const d=dayKey();if(d!==attDay)attachAtt(d);},30000);
-function render(){
-  const stArr=Object.entries(stations),on=stArr.filter(([k,v])=>online(v)).length;
-  let pending=0;Object.values(queues).forEach(q=>pending+=Object.keys(q||{}).length);
-  let present=0;Object.values(attToday).forEach(a=>{if(a&&a.status==='present')present++;});
-  $('stStudents').textContent=Object.keys(students).length;$('stOnline').textContent=on+'/'+stArr.length;$('stQueue').textContent=pending;$('stPresent').textContent=present;
-  const e=LabelLayout.eff(layout),board=$('board');
-  if(!stArr.length){board.innerHTML='<div class="empty">No stations yet. Create one in Admin → Stations.<br>尚未建立站點，請到管理端新增。</div>';return}
-  board.innerHTML=stArr.map(([k,v])=>{const q=Object.keys(queues[k]||{}).length,isOn=online(v);
-    return `<div class="station ${isOn?'on':'off'}"><div class="st-top"><span class="st-dot"></span><span class="st-name">${esc(v.name||'Station')}</span><span class="st-token">${esc(v.token||'—')}</span></div><div class="st-meta"><span class="meta">有效 ${e.w}×${e.h} mm</span><span class="meta">隱藏 頂${layout.hide.top} / 左${layout.hide.left} mm</span></div><div class="st-foot"><span class="${isOn?'on':'off'}">${isOn?'Online 在線':'Offline 離線'}</span><span class="qbadge ${q?'hot':''}">queue ${q}</span></div></div>`;}).join('');
-}
-root.child('students').on('value',s=>{students=s.val()||{};render()});
-root.child('stations').on('value',s=>{stations=s.val()||{};render()});
-root.child('queues').on('value',s=>{queues=s.val()||{};render()});
-setInterval(render,15000);
-firebase.database().ref('.info/connected').on('value',s=>{const h=$('health'),ok=s.val()===true;h.className='health '+(ok?'ok':'bad');h.querySelector('span').textContent=ok?'Firebase connected · 已連線':'Firebase offline · 離線';});
+function renderHero(){const e=LL.eff(layout),p=$('heroPreview');p.style.width=e.w+'mm';p.style.height=e.h+'mm';p.innerHTML=LL.stageHTML(layout,layout.sample,false);}
+function render(){const a=Object.entries(stations),on=a.filter(([k,v])=>online(v)).length;let pend=0;Object.values(queues).forEach(q=>pend+=Object.keys(q||{}).length);let pres=0;Object.values(attToday).forEach(x=>{if(x&&x.status==='present')pres++;});
+$('stStudents').textContent=Object.keys(students).length;$('stOnline').textContent=on+'/'+a.length;$('stQueue').textContent=pend;$('stPresent').textContent=pres;
+const e=LL.eff(layout),b=$('board');if(!a.length){b.innerHTML='<div class="empty">No stations yet. Create one in Admin → Stations.<br>尚未建立站點。</div>';return;}
+b.innerHTML=a.map(([k,v])=>{const q=Object.keys(queues[k]||{}).length,o=online(v);return '<div class="station '+(o?'on':'off')+'"><div class="st-top"><span class="st-dot"></span><span class="st-name">'+esc(v.name||'Station')+'</span><span class="st-token">'+esc(v.token||'—')+'</span></div><div class="st-meta"><span class="meta">有效 '+e.w+'×'+e.h+' mm</span><span class="meta">隱藏 頂'+layout.hide.top+' / 左'+layout.hide.left+' mm</span></div><div class="st-foot"><span class="'+(o?'on':'off')+'">'+(o?'Online 在線':'Offline 離線')+'</span><span class="qbadge '+(q?'hot':'')+'">queue '+q+'</span></div></div>';}).join('');}
+renderHero();
+Auth.start(function(){
+  root.child('labelLayout').on('value',s=>{layout=LL.norm(s.val());renderHero();render();});
+  const attach=d=>{if(attRef)attRef.off();attDay=d;attToday={};$('attDayChip').textContent=d;attRef=root.child('attendance/'+d);attRef.on('value',s=>{attToday=s.val()||{};render();});};
+  attach(attDay);setInterval(()=>{const d=dayKey();if(d!==attDay)attach(d);},30000);
+  root.child('students').on('value',s=>{students=s.val()||{};render();});
+  root.child('stations').on('value',s=>{stations=s.val()||{};render();});
+  root.child('queues').on('value',s=>{queues=s.val()||{};render();});
+  setInterval(render,15000);
+  Auth.db.ref('.info/connected').on('value',s=>{const h=$('health'),ok=s.val()===true;h.className='health '+(ok?'ok':'bad');h.querySelector('span').textContent=ok?'Firebase connected · 已連線':'Firebase offline · 離線';});
+});
 function batText(){const url=location.href.replace(/[^/]*$/,'')+'parents-printer.html';return ['@echo off','start "" "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --kiosk --kiosk-printing --user-data-dir="C:\\kiosk-profile" --app="'+url+'" --disable-features=IntensiveWakeUpThrottling --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-renderer-backgrounding --no-first-run --no-default-browser-check --disable-infobars',''].join('\r\n');}
 $('batCode').textContent=batText();
-function downloadBat(){const blob=new Blob([batText()],{type:'application/octet-stream'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='StartLabelPrinter.bat';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);toast('StartLabelPrinter.bat downloaded');}
-$('dlBat').onclick=downloadBat;$('dlBatTop').onclick=downloadBat;
+function dl(){const b=new Blob([batText()],{type:'application/octet-stream'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='StartLabelPrinter.bat';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);toast('StartLabelPrinter.bat downloaded');}
+$('dlBat').onclick=dl;$('dlBatTop').onclick=dl;
 $('cpBat').onclick=async()=>{try{await navigator.clipboard.writeText(batText());toast('Copied .bat to clipboard')}catch(e){toast('Copy failed — select the code manually')}};
-renderHero();
 </script>
 </body></html>
