@@ -195,3 +195,13 @@ tr:last-child td{border-bottom:0}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 #printArea{display:none}
 @media print{html,body{margin:0!important;padding:0!important;background:#fff!important;height:auto!important;min-height:0!important}body>*:not(#printArea){display:none!important}#printArea{display:block!important;position:relative!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#fff;color:#000;width:60mm;height:60mm}}
+
+/* css/style.css — 追加到檔尾 */
+.station-trigger{max-width:1120px;margin:0 auto;padding:12px 16px 0;display:flex}
+#stationBtn{gap:8px}
+#stationBtn .dot{background:var(--faint)}
+#stationBtn .dot.on{background:var(--ok)}
+#stationBtn .muted{font-family:var(--mono);font-size:11px}
+#stationModal .dock-row{margin:0 0 10px}
+#stationModal .chips{margin:10px 0 0}
+#stationModal .dock-hint{margin:10px 0 0}
