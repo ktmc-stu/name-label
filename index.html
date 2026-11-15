@@ -3,6 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>KTMC Parent Label · 家長標籤及考勤系統</title>
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/lang.css">
 <style>
 :root{--nav:60px}
 html{scroll-padding-top:calc(var(--nav) + 18px)}
@@ -95,83 +96,84 @@ html{scroll-padding-top:calc(var(--nav) + 18px)}
 </style>
 </head><body class="auth-locked">
 <nav class="portal-nav" id="nav">
-  <div class="brand"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span><span>KTMC Parent Label<small>家長標籤及考勤系統</small></span></div>
-  <div class="navlinks"><a href="#overview" class="active">Overview</a><a href="#stations">Stations</a><a href="#launch">Launch</a><a href="#setup">Setup</a></div>
+  <div class="brand"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7l11 11-7 7L3 10V3z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span><span><span data-i18n="app.portal"></span><small data-i18n="app.subtitle"></small></span></div>
+  <div class="navlinks"><a href="#overview" class="active" data-i18n="nav.overview"></a><a href="#stations" data-i18n="nav.stations"></a><a href="#launch" data-i18n="nav.launch"></a><a href="#setup" data-i18n="nav.setup"></a></div>
   <span class="clock" id="clock">--:--:--</span>
-  <a class="btn btn-blue btn-sm" href="parents-admin.html">Open Admin</a>
+  <a class="btn btn-blue btn-sm" href="parents-admin.html" data-i18n="portal.openAdmin"></a>
 </nav>
 
 <main class="portal">
   <section id="overview" class="hero reveal">
     <div>
-      <span class="eyebrow">EM Card · Attendance · Auto Label</span>
-      <h1>Swipe a card.<br><span class="accent">Print &amp; take attendance.</span></h1>
-      <p class="lede">One swipe matches the student, logs attendance with a timestamp, and sends a parent label to the chosen station. Design the label in Admin with draggable text boxes and variables like {class} and {nameZh}. Handheld Remote works without a card reader.</p>
+      <span class="eyebrow" data-i18n="portal.eyebrow"></span>
+      <h1><span data-i18n="portal.h1a"></span><br><span class="accent" data-i18n="portal.h1b"></span></h1>
+      <p class="lede" data-i18n="portal.lede"></p>
       <div class="hero-cta">
-        <a class="btn btn-blue" href="remote.html">Remote 手持終端</a>
-        <a class="btn btn-ghost" href="parents-admin.html">Admin 管理端</a>
-        <a class="btn btn-ghost" href="parents-printer.html">Printer 列印端</a>
-        <button class="btn btn-ghost" id="dlBatTop">Download .bat</button>
+        <a class="btn btn-blue" href="remote.html" data-i18n="app.remote"></a>
+        <a class="btn btn-ghost" href="parents-admin.html" data-i18n="app.admin"></a>
+        <a class="btn btn-ghost" href="parents-printer.html" data-i18n="app.printer"></a>
+        <button class="btn btn-ghost" id="dlBatTop" data-i18n="portal.downloadBat"></button>
       </div>
       <div class="stats">
-        <div class="stat"><div class="n" id="stStudents">0</div><div class="l">Students 學生</div></div>
-        <div class="stat"><div class="n" id="stOnline">0/0</div><div class="l">Stations online 在線</div></div>
-        <div class="stat"><div class="n" id="stQueue">0</div><div class="l">Pending labels 待印</div></div>
-        <div class="stat present"><div class="n" id="stPresent">0</div><div class="l">Present today 今日出席</div></div>
+        <div class="stat"><div class="n" id="stStudents">0</div><div class="l" data-i18n="portal.students"></div></div>
+        <div class="stat"><div class="n" id="stOnline">0/0</div><div class="l" data-i18n="portal.stationsOnline"></div></div>
+        <div class="stat"><div class="n" id="stQueue">0</div><div class="l" data-i18n="portal.pendingLabels"></div></div>
+        <div class="stat present"><div class="n" id="stPresent">0</div><div class="l" data-i18n="portal.presentToday"></div></div>
       </div>
     </div>
     <div class="hero-card">
-      <div class="hero-top"><span class="tagline">Live label preview</span><span class="hero-day" id="attDayChip">—</span></div>
+      <div class="hero-top"><span class="tagline" data-i18n="portal.livePreview"></span><span class="hero-day" id="attDayChip">—</span></div>
       <div class="label-preview hero-preview" id="heroPreview"></div>
-      <div class="att-sample"><span class="att-dot"></span><span>出席 Present</span><span class="att-time">08:02</span><span class="att-by">scan</span></div>
-      <div class="hero-note">只顯示有效列印區域 · 隱藏補償區不會畫出</div>
+      <div class="att-sample"><span class="att-dot"></span><span data-i18n="common.present"></span><span class="att-time">08:02</span><span class="att-by">scan</span></div>
+      <div class="hero-note" data-i18n="portal.previewNote"></div>
     </div>
   </section>
 
   <section id="stations" class="reveal">
-    <div class="sec-head"><div><span class="eyebrow">Live board</span><h2>Print stations<span class="t-zh">列印站點</span></h2><p class="lede">Each printer binds a token and follows the saved label layout.</p></div><a class="btn btn-ghost btn-sm" href="parents-admin.html#stations">Manage stations →</a></div>
-    <div class="board" id="board"><div class="empty">Loading stations… 載入站點中…</div></div>
+    <div class="sec-head"><div><span class="eyebrow" data-i18n="portal.liveBoard"></span><h2 data-i18n="portal.printStations"></h2><p class="lede" data-i18n="portal.stationsLede"></p></div><a class="btn btn-ghost btn-sm" href="parents-admin.html#stations" data-i18n="portal.manageStations"></a></div>
+    <div class="board" id="board"><div class="empty" data-i18n="portal.loadingStations"></div></div>
   </section>
 
   <section id="launch" class="reveal">
-    <div class="sec-head"><div><span class="eyebrow">Three ends</span><h2>Launch the system<span class="t-zh">啟動系統</span></h2></div></div>
+    <div class="sec-head"><div><span class="eyebrow" data-i18n="portal.threeEnds"></span><h2 data-i18n="portal.launchSystem"></h2></div></div>
     <div class="launch">
-      <div class="launch-card"><div class="lc-top"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span class="idx">01</span></div><h3>Admin<span class="t-zh">管理端</span></h3><p>Separate pages for operate, designer, attendance, stations, students, user approval and system settings.</p><div class="feat"><span>User approval</span><span>Layout designer</span><span>Attendance</span><span>Excel</span></div><a class="btn btn-ghost btn-sm" href="parents-admin.html">Open Admin →</a></div>
-      <div class="launch-card"><div class="lc-top"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span><span class="idx">02</span></div><h3>Remote<span class="t-zh">手持終端</span></h3><p>Handheld, no card reader. Search a student, then mark present and print, present only, or absent.</p><div class="feat"><span>Present + print</span><span>Absent</span><span>Station select</span></div><a class="btn btn-ghost btn-sm" href="remote.html">Open Remote →</a></div>
-      <div class="launch-card"><div class="lc-top"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span><span class="idx">03</span></div><h3>Printer<span class="t-zh">列印端</span></h3><p>Bind a token, operate like Remote, watch the log, and tune the label area. One clean page per label.</p><div class="feat"><span>Operate / Log / Settings</span><span>Hidden-area control</span><span>Single page</span></div><a class="btn btn-ghost btn-sm" href="parents-printer.html">Open Printer →</a></div>
+      <div class="launch-card"><div class="lc-top"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span class="idx">01</span></div><h3 data-i18n="app.admin"></h3><p data-i18n="portal.adminDesc"></p><div class="feat"><span data-i18n="admin.users"></span><span data-i18n="admin.designer"></span><span data-i18n="admin.attendance"></span><span>Excel</span></div><a class="btn btn-ghost btn-sm" href="parents-admin.html" data-i18n="portal.openAdmin"></a></div>
+      <div class="launch-card"><div class="lc-top"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span><span class="idx">02</span></div><h3 data-i18n="app.remote"></h3><p data-i18n="portal.remoteDesc"></p><div class="feat"><span data-i18n="remote.presentPrint"></span><span data-i18n="common.absent"></span><span data-i18n="common.selectStation"></span></div><a class="btn btn-ghost btn-sm" href="remote.html" data-i18n="app.remote"></a></div>
+      <div class="launch-card"><div class="lc-top"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span><span class="idx">03</span></div><h3 data-i18n="app.printer"></h3><p data-i18n="portal.printerDesc"></p><div class="feat"><span data-i18n="printer.operate"></span><span data-i18n="printer.log"></span><span data-i18n="printer.settings"></span></div><a class="btn btn-ghost btn-sm" href="parents-printer.html" data-i18n="app.printer"></a></div>
     </div>
   </section>
 
   <section id="setup" class="reveal">
-    <div class="sec-head"><div><span class="eyebrow">Deployment</span><h2>Setup in five steps<span class="t-zh">五步完成</span></h2></div></div>
+    <div class="sec-head"><div><span class="eyebrow" data-i18n="portal.deployment"></span><h2 data-i18n="portal.setupSteps"></h2></div></div>
     <div class="setup-grid">
       <div class="steps">
-        <div class="step"><span class="num">1</span><div><b>Publish rules 發布規則</b><p>Paste rules.json into Realtime Database → Rules → Publish.</p></div></div>
-        <div class="step"><span class="num">2</span><div><b>Enable sign-in 啟用登入</b><p>Authentication → Sign-in method → enable Email/Password only.</p></div></div>
-        <div class="step"><span class="num">3</span><div><b>Create the first admin 建立首位管理員</b><p>Request access on any page — the first account becomes admin automatically.</p></div></div>
-        <div class="step"><span class="num">4</span><div><b>Approve staff 批准職員</b><p>Others request access; approve them in Admin → Users.</p></div></div>
-        <div class="step"><span class="num">5</span><div><b>Configure &amp; operate 設定及操作</b><p>Stations, students, designer, then swipe or use Remote.</p></div></div>
+        <div class="step"><span class="num">1</span><div><b data-i18n="portal.step1"></b><p data-i18n="portal.step1d"></p></div></div>
+        <div class="step"><span class="num">2</span><div><b data-i18n="portal.step2"></b><p data-i18n="portal.step2d"></p></div></div>
+        <div class="step"><span class="num">3</span><div><b data-i18n="portal.step3"></b><p data-i18n="portal.step3d"></p></div></div>
+        <div class="step"><span class="num">4</span><div><b data-i18n="portal.step4"></b><p data-i18n="portal.step4d"></p></div></div>
+        <div class="step"><span class="num">5</span><div><b data-i18n="portal.step5"></b><p data-i18n="portal.step5d"></p></div></div>
       </div>
       <div class="batbox">
-        <div class="hd"><b>StartLabelPrinter.bat</b><span class="sub">Windows batch</span></div>
+        <div class="hd"><b>StartLabelPrinter.bat</b><span class="sub" data-i18n="portal.bat"></span></div>
         <pre id="batCode"></pre>
-        <div class="row"><button class="btn btn-blue btn-sm" id="dlBat">Download</button><button class="btn btn-ghost btn-sm" id="cpBat">Copy</button></div>
+        <div class="row"><button class="btn btn-blue btn-sm" id="dlBat" data-i18n="portal.downloadBat"></button><button class="btn btn-ghost btn-sm" id="cpBat" data-i18n="common.import"></button></div>
       </div>
     </div>
   </section>
 </main>
 
-<footer class="portal-footer"><span>KTMC Parent Label System · label + attendance build</span><span class="health" id="health"><i></i><span>Waiting for sign-in…</span></span></footer>
+<footer class="portal-footer"><span data-i18n="portal.footer"></span><span class="health" id="health"><i></i><span data-i18n="portal.waitSignIn"></span></span></footer>
 <div class="toast" id="toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/label-layout.js"></script>
 <script src="js/auth.js"></script>
 <script>
-const $=id=>document.getElementById(id),esc=LL.esc,root=Auth.root();
-const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)};
+const $=id=>document.getElementById(id),t=(k,v)=>I18N.t(k,v),esc=LL.esc,root=Auth.root();
+const toast=m=>{const el=$('toast');el.textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2200)};
 const dayKey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const tick=()=>{$('clock').textContent=new Date().toLocaleTimeString('en-GB')};tick();setInterval(tick,1000);
 const nav=$('nav');addEventListener('scroll',()=>nav.classList.toggle('scrolled',scrollY>10),{passive:true});
@@ -185,9 +187,10 @@ const online=st=>st&&st.lastSeen&&(Date.now()-st.lastSeen<60000);
 function renderHero(){const e=LL.eff(layout),p=$('heroPreview');p.style.width=e.w+'mm';p.style.height=e.h+'mm';p.innerHTML=LL.stageHTML(layout,layout.sample,false);}
 function render(){const a=Object.entries(stations),on=a.filter(([k,v])=>online(v)).length;let pend=0;Object.values(queues).forEach(q=>pend+=Object.keys(q||{}).length);let pres=0;Object.values(attToday).forEach(x=>{if(x&&x.status==='present')pres++;});
 $('stStudents').textContent=Object.keys(students).length;$('stOnline').textContent=on+'/'+a.length;$('stQueue').textContent=pend;$('stPresent').textContent=pres;
-const e=LL.eff(layout),b=$('board');if(!a.length){b.innerHTML='<div class="empty">No stations yet. Create one in Admin → Stations.<br>尚未建立站點。</div>';return;}
-b.innerHTML=a.map(([k,v])=>{const q=Object.keys(queues[k]||{}).length,o=online(v);return '<div class="station '+(o?'on':'off')+'"><div class="st-top"><span class="st-dot"></span><span class="st-name">'+esc(v.name||'Station')+'</span><span class="st-token">'+esc(v.token||'—')+'</span></div><div class="st-meta"><span class="meta">有效 '+e.w+'×'+e.h+' mm</span><span class="meta">隱藏 頂'+layout.hide.top+' / 左'+layout.hide.left+' mm</span></div><div class="st-foot"><span class="'+(o?'on':'off')+'">'+(o?'Online 在線':'Offline 離線')+'</span><span class="qbadge '+(q?'hot':'')+'">queue '+q+'</span></div></div>';}).join('');}
-renderHero();
+const e=LL.eff(layout),b=$('board');if(!a.length){b.innerHTML='<div class="empty">'+esc(t('portal.noStations'))+'</div>';return;}
+b.innerHTML=a.map(([k,v])=>{const q=Object.keys(queues[k]||{}).length,o=online(v);return '<div class="station '+(o?'on':'off')+'"><div class="st-top"><span class="st-dot"></span><span class="st-name">'+esc(v.name||t('common.station'))+'</span><span class="st-token">'+esc(v.token||'—')+'</span></div><div class="st-meta"><span class="meta">'+esc(t('portal.eff'))+' '+e.w+'×'+e.h+' mm</span><span class="meta">'+esc(t('portal.hide'))+' '+esc(t('portal.top'))+' '+layout.hide.top+' / '+esc(t('portal.left'))+' '+layout.hide.left+' mm</span></div><div class="st-foot"><span class="'+(o?'on':'off')+'">'+esc(t(o?'common.online':'common.offline'))+'</span><span class="qbadge '+(q?'hot':'')+'">'+esc(t('common.queue'))+' '+q+'</span></div></div>';}).join('');}
+function renderHealth(){const h=$('health'),ok=h.classList.contains('ok');h.querySelector('span').textContent=ok?t('portal.connected'):h.classList.contains('bad')?t('portal.disconnected'):t('portal.waitSignIn');}
+renderHero();renderHealth();
 Auth.start(function(){
   root.child('labelLayout').on('value',s=>{layout=LL.norm(s.val());renderHero();render();});
   const attach=d=>{if(attRef)attRef.off();attDay=d;attToday={};$('attDayChip').textContent=d;attRef=root.child('attendance/'+d);attRef.on('value',s=>{attToday=s.val()||{};render();});};
@@ -196,12 +199,13 @@ Auth.start(function(){
   root.child('stations').on('value',s=>{stations=s.val()||{};render();});
   root.child('queues').on('value',s=>{queues=s.val()||{};render();});
   setInterval(render,15000);
-  Auth.db.ref('.info/connected').on('value',s=>{const h=$('health'),ok=s.val()===true;h.className='health '+(ok?'ok':'bad');h.querySelector('span').textContent=ok?'Firebase connected · 已連線':'Firebase offline · 離線';});
+  Auth.db.ref('.info/connected').on('value',s=>{const h=$('health'),ok=s.val()===true;h.className='health '+(ok?'ok':'bad');renderHealth();});
 });
 function batText(){const url=location.href.replace(/[^/]*$/,'')+'parents-printer.html';return ['@echo off','start "" "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --kiosk --kiosk-printing --user-data-dir="C:\\kiosk-profile" --app="'+url+'" --disable-features=IntensiveWakeUpThrottling --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-renderer-backgrounding --no-first-run --no-default-browser-check --disable-infobars',''].join('\r\n');}
 $('batCode').textContent=batText();
-function dl(){const b=new Blob([batText()],{type:'application/octet-stream'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='StartLabelPrinter.bat';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);toast('StartLabelPrinter.bat downloaded');}
+function dl(){const b=new Blob([batText()],{type:'application/octet-stream'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='StartLabelPrinter.bat';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);toast(t('portal.downloaded'));}
 $('dlBat').onclick=dl;$('dlBatTop').onclick=dl;
-$('cpBat').onclick=async()=>{try{await navigator.clipboard.writeText(batText());toast('Copied .bat to clipboard')}catch(e){toast('Copy failed — select the code manually')}};
+$('cpBat').onclick=async()=>{try{await navigator.clipboard.writeText(batText());toast(t('portal.copied'))}catch(e){toast(t('portal.copyFail'))}};
+document.addEventListener('langchange',()=>{I18N.apply();render();renderHero();renderHealth();});
 </script>
 </body></html>
