@@ -1,110 +1,53 @@
-// js/i18n-meet.js — meeting strings. Load AFTER js/i18n.js, BEFORE page scripts.
-(function () {
-  if (!window.I18N) return;
-  const ADD = {
-    zh: {
-      'meet.nav': '會面安排',
-      'meet.title': '會面安排',
-      'meet.desc': '會面時間、會面老師及會面地點由 Excel 匯入，亦可以在此逐項編輯。三項資料會直接印在家長標籤上。',
-      'meet.time': '會面時間',
-      'meet.teacher': '會面老師',
-      'meet.room': '會面地點',
-      'meet.label': '會面',
-      'meet.search': '搜尋',
-      'meet.searchPh': '姓名／班別／班號／老師／地點／時間',
-      'meet.allTeachers': '全部老師',
-      'meet.allRooms': '全部地點',
-      'meet.onlyScheduled': '只顯示已安排',
-      'meet.scheduled': '已安排',
-      'meet.unscheduled': '未安排',
-      'meet.teachers': '老師數目',
-      'meet.rooms': '地點數目',
-      'meet.export': '匯出會面表',
-      'meet.edit': '編輯會面',
-      'meet.editTitle': '編輯會面資料',
-      'meet.save': '儲存會面資料',
-      'meet.clear': '清除會面',
-      'meet.clearConfirm': '確定清除此學生的會面時間、老師及地點？',
-      'meet.saved': '已儲存會面資料',
-      'meet.cleared': '已清除會面資料',
-      'meet.none': '未安排',
-      'meet.empty': '沒有符合條件的會面記錄。',
-      'meet.timePh': '例如 15:30–15:45',
-      'meet.teacherPh': '例如 陳老師',
-      'meet.roomPh': '例如 204 室',
-      'meet.preview': '標籤預覽',
-      'meet.previewNote': '預覽即時反映上方輸入，並只顯示有效列印區域。',
-      'meet.importNote': 'Excel 可包含 Meeting Time、Meeting Teacher、Meeting Location（亦接受中文表頭：會面時間、會面老師、會面地點）。',
-      'meet.overview': '已安排會面',
-      'meet.quick': '會面安排',
-      'meet.quickDesc': '檢視及編輯時間、老師、地點',
-      'meet.student': '學生',
-      'meet.noStudents': '請先匯入學生資料。',
-      'label.meetTime': '會面時間',
-      'label.meetTeacher': '會面老師',
-      'label.meetRoom': '會面地點',
-      'label.meetLine': '會面綜合行',
-      'admin.meetText': '會面內容',
-      'admin.meetSize': '會面字級 (px)',
-      'admin.meetHint': '會面行會印在中文姓名之下；三項資料皆為空時自動隱藏。'
-    },
-    en: {
-      'meet.nav': 'Meetings',
-      'meet.title': 'Meetings',
-      'meet.desc': 'Meeting time, teacher and location come from the Excel import and can be edited here per student. All three print on the parent label.',
-      'meet.time': 'Meeting time',
-      'meet.teacher': 'Meeting teacher',
-      'meet.room': 'Meeting location',
-      'meet.label': 'Meeting',
-      'meet.search': 'Search',
-      'meet.searchPh': 'Name / class / class no / teacher / location / time',
-      'meet.allTeachers': 'All teachers',
-      'meet.allRooms': 'All locations',
-      'meet.onlyScheduled': 'Scheduled only',
-      'meet.scheduled': 'Scheduled',
-      'meet.unscheduled': 'Not scheduled',
-      'meet.teachers': 'Teachers',
-      'meet.rooms': 'Locations',
-      'meet.export': 'Export meetings',
-      'meet.edit': 'Edit meeting',
-      'meet.editTitle': 'Edit meeting details',
-      'meet.save': 'Save meeting',
-      'meet.clear': 'Clear meeting',
-      'meet.clearConfirm': 'Clear this student’s meeting time, teacher and location?',
-      'meet.saved': 'Meeting details saved',
-      'meet.cleared': 'Meeting details cleared',
-      'meet.none': 'Not arranged',
-      'meet.empty': 'No matching meeting records.',
-      'meet.timePh': 'e.g. 15:30–15:45',
-      'meet.teacherPh': 'e.g. Mr Chan',
-      'meet.roomPh': 'e.g. Room 204',
-      'meet.preview': 'Label preview',
-      'meet.previewNote': 'The preview updates as you type and shows the effective print area only.',
-      'meet.importNote': 'Excel may include Meeting Time, Meeting Teacher and Meeting Location (Chinese headers are also accepted).',
-      'meet.overview': 'Meetings arranged',
-      'meet.quick': 'Meetings',
-      'meet.quickDesc': 'View and edit time, teacher, location',
-      'meet.student': 'Student',
-      'meet.noStudents': 'Import student data first.',
-      'label.meetTime': 'Meeting time',
-      'label.meetTeacher': 'Meeting teacher',
-      'label.meetRoom': 'Meeting location',
-      'label.meetLine': 'Meeting line',
-      'admin.meetText': 'Meeting text',
-      'admin.meetSize': 'Meeting size (px)',
-      'admin.meetHint': 'The meeting line prints below the Chinese name and hides itself when all three fields are empty.'
-    }
-  };
-  const origT = I18N.t, origApply = I18N.apply;
-  const pick = (k) => { const d = ADD[I18N.lang]; return d && Object.prototype.hasOwnProperty.call(d, k) ? d[k] : null; };
-  const sub = (s, v) => { let o = s; if (v) Object.keys(v).forEach(x => { o = o.split('{' + x + '}').join(v[x]); }); return o; };
-  I18N.t = function (k, v) { const s = pick(k); return s != null ? sub(s, v) : origT(k, v); };
-  I18N.apply = function (root) {
-    origApply(root);
-    const r = root || document;
-    r.querySelectorAll('[data-i18n]').forEach(el => { const s = pick(el.getAttribute('data-i18n')); if (s != null) el.textContent = s; });
-    r.querySelectorAll('[data-i18n-html]').forEach(el => { const s = pick(el.getAttribute('data-i18n-html')); if (s != null) el.innerHTML = s; });
-    r.querySelectorAll('[data-i18n-ph]').forEach(el => { const s = pick(el.getAttribute('data-i18n-ph')); if (s != null) el.placeholder = s; });
-    r.querySelectorAll('[data-i18n-title]').forEach(el => { const s = pick(el.getAttribute('data-i18n-title')); if (s != null) el.title = s; });
-  };
+/* js/i18n-meet.js — meetings, account deletion, diagnostics, danger zone. Load after js/i18n.js */
+(function(){
+if(!window.I18N)return;
+I18N.extend({zh:{
+'m.time':'會面時間','m.teacher':'會面老師','m.room':'會面地點','m.label':'會面',
+'m.searchPh':'姓名／班別／班號／老師／地點／時間','m.allTeachers':'全部老師','m.allRooms':'全部地點','m.only':'只顯示已安排',
+'m.scheduled':'已安排','m.unscheduled':'未安排','m.teachers':'老師數目','m.rooms':'地點數目','m.export':'匯出會面表',
+'m.edit':'編輯會面','m.editTitle':'編輯會面資料','m.save':'儲存會面資料','m.clear':'清除會面','m.clearQ':'確定清除此學生的會面時間、老師及地點？',
+'m.saved':'已儲存會面資料','m.cleared':'已清除會面資料','m.none':'未安排','m.empty':'沒有符合條件的會面記錄。','m.noStudents':'請先匯入學生資料。',
+'m.timePh':'例如 15:30–15:45','m.teacherPh':'例如 陳老師','m.roomPh':'例如 204 室','m.previewNote':'預覽即時反映上方輸入，並只顯示有效列印區域。',
+'m.importNote':'Excel 可包含 Meeting Time、Meeting Teacher、Meeting Location（亦接受中文表頭：會面時間、會面老師、會面地點）。',
+'ud.eyebrow':'永久刪除','ud.title':'刪除帳戶','ud.desc':'此操作會移除該用戶的系統設定檔及管理員權限，並即時撤銷所有存取權。',
+'ud.what':'將會移除','ud.r1':'用戶設定檔（users）','ud.r2':'管理員權限（admins）','ud.r3':'Firebase Authentication 登入紀錄',
+'ud.manual':'此系統為純前端應用，無法直接刪除其他用戶的 Firebase Authentication 登入紀錄。移除設定檔後，該用戶仍可登入，但會顯示為「帳戶尚未設定」，且無法讀取或寫入任何資料。如需徹底移除登入紀錄，請到 Firebase Console → Authentication → Users 刪除該用戶。',
+'ud.willDelete':'已設定刪除服務，登入紀錄會一併刪除。','ud.console':'開啟 Firebase Console — Authentication',
+'ud.typeEmail':'輸入該用戶的電郵以確認','ud.typeUid':'輸入該用戶的 UID 以確認','ud.noSelf':'不能刪除自己的帳戶',
+'ud.adminWarn':'注意：此帳戶擁有管理員權限。刪除前請確認系統仍有其他管理員。','ud.again':'如該用戶再次登入並提交申請，會重新出現在「待批」名單，需要再次審批。',
+'ud.done':'已移除設定檔及存取權；登入紀錄請到 Firebase Console 刪除。','ud.allDone':'已刪除帳戶及登入紀錄','ud.fail':'刪除帳戶失敗','ud.ok':'刪除帳戶','ud.noEmail':'（沒有電郵紀錄）','ud.uid':'用戶 ID',
+'di.title':'資料載入診斷','di.desc':'下表顯示每個資料節點的連線狀態。若出現 PERMISSION_DENIED，請發布最新 rules.json 並確認此帳戶已獲授權。',
+'di.path':'資料路徑','di.state':'狀態','di.rows':'筆數','di.copy':'複製診斷報告','di.copied':'已複製診斷報告','di.ok':'已載入','di.waiting':'等待中',
+'di.hint':'常見原因：1) 尚未發布最新規則；2) 帳戶未列入 admins 或 users；3) users 記錄缺少 status／role。此頁會逐項顯示錯誤，不會整頁空白。',
+'dg.zone':'危險操作','dg.zoneD':'永久刪除 Firebase 資料；預設先下載 JSON 備份。不會刪除用戶帳戶。','dg.delStu':'刪除所有學生','dg.delAll':'刪除所有資料',
+'dg.permanent':'永久刪除','dg.backupFirst':'先下載備份','dg.type':'輸入 {phrase} 以確認','dg.stuDesc':'只刪除學生資料庫。',
+'dg.allDesc':'刪除學生、站點、隊列、考勤及排版（不會刪除用戶帳戶）。','dg.stuBtn':'刪除學生','dg.allBtn':'刪除全部','dg.fail':'刪除失敗',
+'bn.title':'部分資料無法載入','bn.hint':'請發布最新 rules.json，並確認此帳戶已列入 admins/{uid} = true 或 users/{uid}.role = admin。','bn.dismiss':'隱藏','bn.runtime':'頁面執行錯誤',
+'dn.title':'此帳戶沒有管理權限','dn.body':'此帳戶已批准但不是管理員，無法進入管理端。請使用管理員帳戶，或聯絡管理員把角色設為 admin。',
+'dt.ok':'資料 {n}/{total}','dt.err':'資料錯誤 {n}','dt.wait':'資料載入中','dt.idle':'未連線'
+},en:{
+'m.time':'Meeting time','m.teacher':'Meeting teacher','m.room':'Meeting location','m.label':'Meeting',
+'m.searchPh':'Name / class / class no / teacher / location / time','m.allTeachers':'All teachers','m.allRooms':'All locations','m.only':'Scheduled only',
+'m.scheduled':'Scheduled','m.unscheduled':'Not scheduled','m.teachers':'Teachers','m.rooms':'Locations','m.export':'Export meetings',
+'m.edit':'Edit meeting','m.editTitle':'Edit meeting details','m.save':'Save meeting','m.clear':'Clear meeting','m.clearQ':'Clear this student’s meeting time, teacher and location?',
+'m.saved':'Meeting details saved','m.cleared':'Meeting details cleared','m.none':'Not arranged','m.empty':'No matching meeting records.','m.noStudents':'Import student data first.',
+'m.timePh':'e.g. 15:30–15:45','m.teacherPh':'e.g. Mr Chan','m.roomPh':'e.g. Room 204','m.previewNote':'The preview updates as you type and shows the effective print area only.',
+'m.importNote':'Excel may include Meeting Time, Meeting Teacher and Meeting Location (Chinese headers are also accepted).',
+'ud.eyebrow':'Permanent deletion','ud.title':'Delete account','ud.desc':'This removes the user profile and admin rights, and revokes all access immediately.',
+'ud.what':'Will be removed','ud.r1':'User profile (users)','ud.r2':'Admin rights (admins)','ud.r3':'Firebase Authentication login record',
+'ud.manual':'This is a front-end only system and cannot delete another user’s Firebase Authentication record. After the profile is removed the user can still sign in, but will see “Account not provisioned” and cannot read or write data. To remove the login record completely, delete the user in Firebase Console → Authentication → Users.',
+'ud.willDelete':'A deletion service is configured, so the login record is removed as well.','ud.console':'Open Firebase Console — Authentication',
+'ud.typeEmail':'Type the user’s email to confirm','ud.typeUid':'Type the user’s UID to confirm','ud.noSelf':'You cannot delete your own account',
+'ud.adminWarn':'Warning: this account has admin rights. Make sure another administrator remains.','ud.again':'If the user signs in again and submits a request, they reappear in the Pending list.',
+'ud.done':'Profile and access removed. Delete the login record in Firebase Console.','ud.allDone':'Account and login record deleted','ud.fail':'Failed to delete account','ud.ok':'Delete account','ud.noEmail':'(no email on record)','ud.uid':'User ID',
+'di.title':'Data-load diagnostics','di.desc':'The table shows the connection state of every data node. If you see PERMISSION_DENIED, publish the latest rules.json and confirm this account is authorised.',
+'di.path':'Data path','di.state':'State','di.rows':'Rows','di.copy':'Copy diagnostics','di.copied':'Diagnostics copied','di.ok':'Loaded','di.waiting':'Waiting',
+'di.hint':'Common causes: 1) latest rules not published; 2) account not listed in admins or users; 3) the users record has no status/role. Each node reports its own error here, so the page never goes blank.',
+'dg.zone':'Danger zone','dg.zoneD':'Permanently delete Firebase data. A JSON backup is downloaded first. User accounts are not deleted.','dg.delStu':'Delete all students','dg.delAll':'Delete all data',
+'dg.permanent':'Permanent deletion','dg.backupFirst':'Download backup first','dg.type':'Type {phrase} to confirm','dg.stuDesc':'Deletes the student database only.',
+'dg.allDesc':'Deletes students, stations, queues, attendance and layout (not user accounts).','dg.stuBtn':'Delete students','dg.allBtn':'Delete everything','dg.fail':'Delete failed',
+'bn.title':'Some data could not be loaded','bn.hint':'Publish the latest rules.json and confirm this account is listed as admins/{uid} = true or users/{uid}.role = admin.','bn.dismiss':'Dismiss','bn.runtime':'Page runtime error',
+'dn.title':'This account has no admin rights','dn.body':'The account is approved but is not an admin. Use an admin account or ask an administrator to set your role to admin.',
+'dt.ok':'Data {n}/{total}','dt.err':'Data error {n}','dt.wait':'Loading data','dt.idle':'Not connected'
+}});
 })();
