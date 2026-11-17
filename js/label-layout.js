@@ -1,14 +1,14 @@
-/* js/label-layout.js — doc + hide model; meeting fields are first-class label variables */
+/* js/label-layout.js — doc + hide model. Student ID is a first-class label variable. */
 (function(){
 const MM=96/25.4;
-const DEF={version:5,mode:'simple',doc:{w:60,h:60},hide:{top:20,left:0},
+const DEF={version:6,mode:'simple',doc:{w:60,h:60},hide:{top:20,left:0},
  simple:{topMm:6,sideMm:2,enSize:12,zhSize:30,meetSize:11,gapMm:1.5,enText:'Parent of {class} {classNo} {nameEn}',zhText:'{nameZh}家長',meetText:'{meetTime} · {meetTeacher} · {meetRoom}'},
  boxes:[
   {id:'en',x:2,y:4,w:56,h:6,text:'Parent of {class} {classNo} {nameEn}',size:12,weight:600,align:'center',valign:'middle',color:'#000000',lineHeight:1.2},
   {id:'zh',x:2,y:11,w:56,h:13,text:'{nameZh}家長',size:30,weight:600,align:'center',valign:'middle',color:'#000000',lineHeight:1.15},
   {id:'meet',x:2,y:26,w:56,h:7,text:'{meetTime} · {meetTeacher} · {meetRoom}',size:11,weight:500,align:'center',valign:'middle',color:'#000000',lineHeight:1.25}],
- sample:{cls:'3A',classNo:'15',nameEn:'CHAN TAI MAN',nameZh:'陳大文',cardId:'0001234567',meetTime:'15:30–15:45',meetTeacher:'陳老師',meetRoom:'204 室'}};
-const PH=['class','classNo','nameEn','nameZh','cardId','parent','parentEn','meetTime','meetTeacher','meetRoom','meetLine','date','time'];
+ sample:{studentId:'20260001',cls:'3A',classNo:'15',nameEn:'CHAN TAI MAN',nameZh:'陳大文',cardId:'0001234567',meetTime:'15:30–15:45',meetTeacher:'陳老師',meetRoom:'204 室'}};
+const PH=['studentId','class','classNo','nameEn','nameZh','cardId','parent','parentEn','meetTime','meetTeacher','meetRoom','meetLine','date','time'];
 const clone=o=>JSON.parse(JSON.stringify(o));
 const num=(v,d)=>{const n=parseFloat(v);return Number.isFinite(n)?n:d;};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -36,8 +36,8 @@ const parts=s=>{s=s||{};return [s.meetTime,s.meetTeacher,s.meetRoom||s.meetPlace
 const meetLine=s=>parts(s).filter(Boolean).join(' · ');
 function fill(txt,s){
  s=s||{};
- const cls=s.cls||s.class||'',no=s.classNo||s.no||'',en=s.nameEn||'',zh=s.nameZh||'',card=s.cardId||'',p=parts(s),ml=p.filter(Boolean).join(' · ');
- const m={class:cls,cls,no,classNo:no,nameEn:en,nameZh:zh,cardId:card,parent:zh?zh+'家長':'',parentEn:'Parent of '+[cls,no,en].filter(Boolean).join(' '),meetTime:p[0],meetTeacher:p[1],meetRoom:p[2],meetPlace:p[2],meetLocation:p[2],meetLine:ml,date:new Date().toLocaleDateString('en-GB'),time:new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})};
+ const sid=String(s.studentId||s.sid||''),cls=s.cls||s.class||'',no=s.classNo||s.no||'',en=s.nameEn||'',zh=s.nameZh||'',card=s.cardId||'',p=parts(s),ml=p.filter(Boolean).join(' · ');
+ const m={studentId:sid,sid:sid,class:cls,cls,no,classNo:no,nameEn:en,nameZh:zh,cardId:card,parent:zh?zh+'家長':'',parentEn:'Parent of '+[cls,no,en].filter(Boolean).join(' '),meetTime:p[0],meetTeacher:p[1],meetRoom:p[2],meetPlace:p[2],meetLocation:p[2],meetLine:ml,date:new Date().toLocaleDateString('en-GB'),time:new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})};
  return String(txt==null?'':txt).replace(/\{([a-zA-Z]+)\}/g,(x,k)=>m[k]!=null?String(m[k]):x);}
 const just=v=>v==='top'?'flex-start':v==='bottom'?'flex-end':'center';
 const blank=s=>!String(s||'').replace(/[·・.,，、\-–—\s\u3000]/g,'').length;
@@ -63,10 +63,11 @@ function printCss(l){
  +'#printArea .lb{position:absolute;display:flex;flex-direction:column;overflow:hidden;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;font-family:"Microsoft JhengHei","Noto Sans TC","PingFang HK",sans-serif}}';}
 function searchMatch(s,q){
  const tk=String(q||'').toLowerCase().split(/[\s,，、/\-]+/).filter(Boolean);if(!tk.length)return false;
+ const sid=String(s.studentId||'').toLowerCase(),sidS=sid.replace(/^0+/,'')||sid;
  const cls=String(s.cls||'').toLowerCase(),no=String(s.classNo||'').toLowerCase(),noS=no.replace(/^0+/,'')||no;
  const card=String(s.cardId||'').toLowerCase(),cardS=card.replace(/^0+/,'')||card;
  const en=String(s.nameEn||'').toLowerCase(),zh=String(s.nameZh||'').toLowerCase(),p=parts(s).map(x=>x.toLowerCase());
- const h=[en,zh,cls,no,noS,card,cardS,cls+no,cls+' '+no,cls+noS,cls+' '+noS,en+' '+zh,zh+' '+en,p[0],p[1],p[2],p.filter(Boolean).join(' ')];
+ const h=[sid,sidS,en,zh,cls,no,noS,card,cardS,cls+no,cls+' '+no,cls+noS,cls+' '+noS,en+' '+zh,zh+' '+en,p[0],p[1],p[2],p.filter(Boolean).join(' ')];
  return tk.every(x=>{if(h.some(y=>y.includes(x)))return true;if(/^\d+$/.test(x)){const z=x.replace(/^0+/,'')||x;return h.some(y=>y.includes(z));}return false;});}
 window.LL={MM,DEF,PH,PLACEHOLDERS:PH,clone,norm,fill,esc,eff,stageHTML,printCss,searchMatch,meetLine,parts};
 })();
