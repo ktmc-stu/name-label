@@ -1,4 +1,5 @@
-/* js/i18n-meet.js — meetings, account deletion, diagnostics, danger zone. Load after js/i18n.js */
+/* js/i18n-meet.js — meetings, parent verification, account deletion, diagnostics, danger zone.
+   Load after js/i18n.js */
 (function(){
 if(!window.I18N)return;
 I18N.extend({zh:{
@@ -9,6 +10,19 @@ I18N.extend({zh:{
 'm.saved':'已儲存會面資料','m.cleared':'已清除會面資料','m.none':'未安排','m.empty':'沒有符合條件的會面記錄。','m.noStudents':'請先匯入學生資料。',
 'm.timePh':'例如 15:30–15:45','m.teacherPh':'例如 陳老師','m.roomPh':'例如 204 室','m.previewNote':'預覽即時反映上方輸入，並只顯示有效列印區域。',
 'm.importNote':'Excel 可包含 Meeting Time、Meeting Teacher、Meeting Location（亦接受中文表頭：會面時間、會面老師、會面地點）。',
+
+'vf.banner':'手動輸入或搜尋學生後，必須先向家長口頭核對學生資料；家長確認無誤，方可列印標籤或點名。',
+'vf.bannerShort':'必須先向家長口頭核對，確認後才可列印或點名。',
+'vf.eyebrow':'家長核對','vf.title':'請向家長讀出並確認',
+'vf.ask':'「請問您的子女是否 {nameZh}（{nameEn}），{cls} 班 {no} 號？」',
+'vf.askMeet':'「會面時間 {time}，會面老師 {teacher}，地點 {room}，是否正確？」',
+'vf.noMeet':'此學生尚未安排會面資料。請向家長說明，或到管理端「會面安排」補填。',
+'vf.noCard':'未有卡號','vf.hint':'如資料不符，請按「資料不符／取消」，重新搜尋正確學生，或到管理端更正記錄。切勿勉強列印。',
+'vf.confirm':'家長已確認','vf.cancel':'資料不符／取消','vf.cancelled':'已取消。請重新核對學生資料。',
+'vf.verified':'已核對','vf.verifiedToast':'家長已核對','vf.logVerified':'（已向家長核對）',
+'vf.byScan':'拍卡','vf.byAdmin':'管理端','vf.byPrinter':'列印端','vf.byRemote':'遙控',
+'vf.byAdminV':'管理端（已核對）','vf.byPrinterV':'列印端（已核對）','vf.byRemoteV':'遙控（已核對）',
+
 'ud.eyebrow':'永久刪除','ud.title':'刪除帳戶','ud.desc':'此操作會移除該用戶的系統設定檔及管理員權限，並即時撤銷所有存取權。',
 'ud.what':'將會移除','ud.r1':'用戶設定檔（users）','ud.r2':'管理員權限（admins）','ud.r3':'Firebase Authentication 登入紀錄',
 'ud.manual':'此系統為純前端應用，無法直接刪除其他用戶的 Firebase Authentication 登入紀錄。移除設定檔後，該用戶仍可登入，但會顯示為「帳戶尚未設定」，且無法讀取或寫入任何資料。如需徹底移除登入紀錄，請到 Firebase Console → Authentication → Users 刪除該用戶。',
@@ -33,6 +47,19 @@ I18N.extend({zh:{
 'm.saved':'Meeting details saved','m.cleared':'Meeting details cleared','m.none':'Not arranged','m.empty':'No matching meeting records.','m.noStudents':'Import student data first.',
 'm.timePh':'e.g. 15:30–15:45','m.teacherPh':'e.g. Mr Chan','m.roomPh':'e.g. Room 204','m.previewNote':'The preview updates as you type and shows the effective print area only.',
 'm.importNote':'Excel may include Meeting Time, Meeting Teacher and Meeting Location (Chinese headers are also accepted).',
+
+'vf.banner':'After typing or searching for a student manually, you must verbally confirm the student’s details with the parent. Print or mark attendance only after the parent confirms.',
+'vf.bannerShort':'Verbally confirm with the parent before printing or marking attendance.',
+'vf.eyebrow':'Parent verification','vf.title':'Read aloud and confirm with the parent',
+'vf.ask':'“Is your child {nameEn} ({nameZh}), Class {cls}, No. {no}?”',
+'vf.askMeet':'“Meeting at {time} with {teacher}, location {room} — is that correct?”',
+'vf.noMeet':'No meeting has been arranged for this student. Explain this to the parent, or add it in Admin → Meetings.',
+'vf.noCard':'No card ID','vf.hint':'If anything is wrong, press “Not correct / Cancel”, search for the right student, or fix the record in Admin. Do not print anyway.',
+'vf.confirm':'Parent confirmed','vf.cancel':'Not correct / Cancel','vf.cancelled':'Cancelled. Please re-check the student’s details.',
+'vf.verified':'Verified','vf.verifiedToast':'Verified with parent','vf.logVerified':'(verified with parent)',
+'vf.byScan':'Card swipe','vf.byAdmin':'Admin','vf.byPrinter':'Printer','vf.byRemote':'Remote',
+'vf.byAdminV':'Admin (verified)','vf.byPrinterV':'Printer (verified)','vf.byRemoteV':'Remote (verified)',
+
 'ud.eyebrow':'Permanent deletion','ud.title':'Delete account','ud.desc':'This removes the user profile and admin rights, and revokes all access immediately.',
 'ud.what':'Will be removed','ud.r1':'User profile (users)','ud.r2':'Admin rights (admins)','ud.r3':'Firebase Authentication login record',
 'ud.manual':'This is a front-end only system and cannot delete another user’s Firebase Authentication record. After the profile is removed the user can still sign in, but will see “Account not provisioned” and cannot read or write data. To remove the login record completely, delete the user in Firebase Console → Authentication → Users.',
