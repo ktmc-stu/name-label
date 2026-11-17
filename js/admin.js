@@ -1,5 +1,7 @@
 /* js/admin.js — Head Admin / Operational Admin console.
-   Split Excel merge keyed on Student ID, role gating, and full usage audit for Head Admin. */
+   Split Excel merge keyed on Student ID, role gating, full usage audit for Head Admin.
+   Boot order hardened: Auth.start() registers before any DOM injection, and every
+   injection is isolated so a layout mismatch can never stop data from loading. */
 (function(){
 const AUTH_DELETE_ENDPOINT='';
 const LS='plAdminStation';
@@ -40,15 +42,22 @@ const SC={ready:['#e5f0fc','#084c9e'],wait:['#fbf2dd','#8f6410'],ok:['#e4f4ec','
 const setScan=(el,k)=>{el.style.background=SC[k][0];el.style.color=SC[k][1];};
 const db=()=>Auth.db;
 let toastTimer=null;
-function toast(m){const e=$('toast');e.textContent=m;e.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.classList.remove('on'),3200);}
+function toast(m){const e=$('toast');if(!e)return;e.textContent=m;e.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.classList.remove('on'),3200);}
 function guard(){if(!S.canManage){toast(t('c.needAdmin'));return false;}return true;}
 function guardHead(){if(!S.isHead){toast(t('audit.headOnly'));return false;}return true;}
 function werr(e){const c=(e&&e.code)||'';toast(/PERMISSION_DENIED/i.test(c+e)?t('c.denied'):t('c.fail')+': '+(e&&e.message||e));}
-function safe(fn,label){try{fn();}catch(e){S.runtime.push((label||fn.name||'render')+': '+(e&&e.message||e));console.error(e);try{renderBanner();}catch(_){}}}
+function note(label,e){const m=(label||'render')+': '+(e&&e.message||e);if(!S.runtime.includes(m))S.runtime.push(m);console.error(label,e);}
+function safe(fn,label){try{return fn();}catch(e){note(label||fn.name,e);try{renderBanner();}catch(_){}}}
+function insertBeforeSafe(node,anchor,fallbackParent){
+  const parent=(anchor&&anchor.parentNode)||fallbackParent;
+  if(!parent)throw new Error('no parent for injection');
+  if(anchor&&anchor.parentNode===parent)parent.insertBefore(node,anchor);
+  else parent.appendChild(node);
+}
 function download(name,obj,type){const b=new Blob([typeof obj==='string'?obj:JSON.stringify(obj,null,2)],{type:type||'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);}
 function roleLabel(r){return t(r==='head'?'role.head':r==='admin'?'role.admin':'role.staff');}
 function byLabel(v){const s=String(v||'');if(!s)return '—';const m={scan:'vf.byScan',admin:'vf.byAdmin',printer:'vf.byPrinter',remote:'vf.byRemote','admin-v':'vf.byAdminV','printer-v':'vf.byPrinterV','remote-v':'vf.byRemoteV'};return m[s]?t(m[s]):s;}
-window.addEventListener('error',ev=>{S.runtime.push(String(ev.message||'error'));safe(renderBanner,'banner');});
+window.addEventListener('error',ev=>{const m=String(ev.message||'error');if(!S.runtime.includes(m))S.runtime.push(m);safe(renderBanner,'banner');});
 
 /* ================= parent verification ================= */
 const Verify=(function(){
@@ -71,10 +80,6 @@ const CSS=`
 .vf-banner svg{width:17px;height:17px;flex:none;margin-top:2px}
 .aud-bar{display:flex;gap:4px;align-items:flex-end;height:56px;margin:10px 0 4px}
 .aud-bar div{flex:1;background:var(--acs,#e5f0fc);border:1px solid var(--acl,#b4d1f2);border-radius:3px 3px 0 0;min-height:2px}
-.aud-kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:12px 0}
-.aud-kv div{background:var(--panel,#f6faff);border:1px solid var(--line,#dae6f4);border-radius:8px;padding:9px 12px;min-width:0}
-.aud-kv span{display:block;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--faint,#8ba1bd)}
-.aud-kv b{display:block;font-size:14px;font-weight:600;word-break:break-word}
 .aud-d{font:11.5px var(--mono,monospace);color:var(--muted,#5a7391);word-break:break-all}
 @media(max-width:520px){.vf-row .btn{flex:1 1 auto}}
 `;
@@ -145,7 +150,8 @@ return {ask,banner,paint,open,mount};
 
 /* ---------- banner + diagnostics ---------- */
 function renderBanner(){
-  const b=$('banner'),errs=Object.keys(S.errors),rt=S.runtime;
+  const b=$('banner');if(!b)return;
+  const errs=Object.keys(S.errors),rt=S.runtime;
   if(S.bannerHidden||(!errs.length&&!rt.length)){b.innerHTML='';return;}
   let h='<div class="banner"><h4>'+esc(t('bn.title'))+'</h4><ul>';
   errs.forEach(k=>h+='<li><span class="mono">'+esc(k)+'</span> — '+esc(S.errors[k])+'</li>');
@@ -157,13 +163,15 @@ function renderBanner(){
 }
 function diagText(){return JSON.stringify({at:new Date().toISOString(),uid:S.user&&S.user.uid,role:S.role,loaded:S.loaded,errors:S.errors,counts:S.counts,runtime:S.runtime},null,2);}
 function renderDiag(){
+  const box=$('diBody');if(!box)return;
   const rows=PATHS.concat(['attendance/'+S.attDay]).concat(S.isHead?HEAD_PATHS:[]);
-  $('diBody').innerHTML=rows.map(p=>{
+  box.innerHTML=rows.map(p=>{
     const err=S.errors[p],ok=S.loaded[p];
     const st=err?'<span class="ust rejected">'+esc(err)+'</span>':ok?'<span class="ust approved">'+esc(t('di.ok'))+'</span>':'<span class="ust pending">'+esc(t('di.waiting'))+'</span>';
     return '<tr><td class="mono">'+esc(p)+'</td><td>'+st+'</td><td class="mono">'+(S.counts[p]!=null?S.counts[p]:'—')+'</td></tr>';
   }).join('');
   const list=PATHS.concat(S.isHead?HEAD_PATHS:[]),total=list.length,ok=list.filter(p=>S.loaded[p]).length,er=Object.keys(S.errors).length,chip=$('dataChip');
+  if(!chip)return;
   chip.className='chip'+(er?' err':'');
   chip.textContent=!S.started?t('dt.idle'):er?t('dt.err',{n:er}):ok<total?t('dt.wait'):t('dt.ok',{n:ok,total});
 }
@@ -205,13 +213,13 @@ function renderOverview(){
   const mu=mergedUsers(),pend=Object.values(mu).filter(u=>u.status==='pending').length,mc=Object.values(S.students).filter(s=>meetStr(s)).length;
   $('ovStu').textContent=Object.keys(S.students).length;$('ovMeet').textContent=mc;$('ovOn').textContent=on+'/'+st.length;
   $('ovQ').textContent=q;$('ovPres').textContent=pres;$('ovPend').textContent=S.isHead?pend:'—';
-  const ub=$('userBdg');ub.textContent=pend;ub.hidden=!pend||!S.isHead;
-  const mb=$('meetBdg');mb.textContent=mc;mb.hidden=!mc;
+  const ub=$('userBdg');if(ub){ub.textContent=pend;ub.hidden=!pend||!S.isHead;}
+  const mb=$('meetBdg');if(mb){mb.textContent=mc;mb.hidden=!mc;}
 }
 
 /* ---------- station ---------- */
 function renderStation(){
-  const e=Object.entries(S.stations),sel=$('stSel');
+  const e=Object.entries(S.stations),sel=$('stSel');if(!sel)return;
   sel.innerHTML='<option value="">— '+esc(t('c.selectStation'))+' —</option>'+e.map(([k,v])=>'<option value="'+esc(k)+'">'+esc(v.name)+' ('+esc(v.token)+')</option>').join('');
   sel.value=S.station||'';
   $('stChips').innerHTML=e.map(([k,v])=>'<button class="btn '+(k===S.station?'':'ghost')+' sm" data-k="'+esc(k)+'"><span class="dot'+(online(v)?' on':'')+'"></span>'+esc(v.name)+'<span class="mono" style="opacity:.7">'+esc(v.token)+'</span><span class="mono">'+qCount(k)+'</span></button>').join('')||'<span class="muted">'+esc(t('st.none'))+'</span>';
@@ -227,13 +235,14 @@ function renderStation(){
 function pickStation(k){S.station=k&&S.stations[k]?k:null;if(S.station){localStorage.setItem(LS,S.station);toast(t('op.stationSelected')+': '+S.stations[S.station].name);}else localStorage.removeItem(LS);renderStation();$('stModal').classList.remove('on');}
 
 /* ---------- operate ---------- */
-function renderScanReady(){const b=$('scan');setScan(b,'ready');b.innerHTML=esc(t('op.ready'))+'<small>'+esc(t('op.readySub'))+'</small>';}
-function renderScanTags(){$('lastScan').textContent=t('op.lastScan')+': '+(S.lastScan||'—');$('sentTag').textContent=t('op.sent')+' '+S.sent;}
+function renderScanReady(){const b=$('scan');if(!b)return;setScan(b,'ready');b.innerHTML=esc(t('op.ready'))+'<small>'+esc(t('op.readySub'))+'</small>';}
+function renderScanTags(){const a=$('lastScan'),b=$('sentTag');if(a)a.textContent=t('op.lastScan')+': '+(S.lastScan||'—');if(b)b.textContent=t('op.sent')+' '+S.sent;}
 const attBadge=a=>a?(a.status==='present'?'<span class="ab p">'+esc(t('c.present'))+' <i>'+fmtT(a.time)+'</i></span>':'<span class="ab a">'+esc(t('c.absent'))+' <i>'+fmtT(a.time)+'</i></span>'):'<span class="ab">'+esc(t('c.unmarked'))+'</span>';
 function renderSearch(){
-  const q=$('q').value.trim();if(!q){$('res').innerHTML='';return;}
+  const box=$('res');if(!box)return;
+  const q=$('q').value.trim();if(!q){box.innerHTML='';return;}
   const hits=Object.entries(S.students).filter(([k,s])=>LL.searchMatch(s,q)).sort(byClass).slice(0,40);
-  $('res').innerHTML=hits.map(([k,s])=>'<div class="hit"><div><b>'+esc(s.nameEn||s.nameZh)+'</b> ／ '+esc(s.nameZh||'')+' '+attBadge(S.att[k])+'<br><span class="muted">'+esc(t('sd.sid'))+' '+esc(s.studentId||'—')+' · '+esc(s.cls||'')+' '+esc(s.classNo||'')+' · '+esc(t('c.card'))+' '+esc(s.cardId||'—')+'</span>'+meetHtml(s)+'</div><div class="row" style="margin:0"><button class="btn warn mini" data-act="print" data-k="'+esc(k)+'">'+esc(t('c.print'))+'</button><button class="btn ok mini" data-act="pres" data-k="'+esc(k)+'">'+esc(t('c.present'))+'</button><button class="btn bad mini" data-act="abs" data-k="'+esc(k)+'">'+esc(t('c.absent'))+'</button><button class="btn gray mini" data-act="meet" data-k="'+esc(k)+'">'+esc(t('m.edit'))+'</button>'+(S.unknown?'<button class="btn gray mini" data-act="bind" data-k="'+esc(k)+'">'+esc(t('op.bindCard'))+'</button>':'')+'</div></div>').join('')||'<p class="muted" style="margin-top:10px">'+esc(t('c.noMatch'))+'</p>';
+  box.innerHTML=hits.map(([k,s])=>'<div class="hit"><div><b>'+esc(s.nameEn||s.nameZh)+'</b> ／ '+esc(s.nameZh||'')+' '+attBadge(S.att[k])+'<br><span class="muted">'+esc(t('sd.sid'))+' '+esc(s.studentId||'—')+' · '+esc(s.cls||'')+' '+esc(s.classNo||'')+' · '+esc(t('c.card'))+' '+esc(s.cardId||'—')+'</span>'+meetHtml(s)+'</div><div class="row" style="margin:0"><button class="btn warn mini" data-act="print" data-k="'+esc(k)+'">'+esc(t('c.print'))+'</button><button class="btn ok mini" data-act="pres" data-k="'+esc(k)+'">'+esc(t('c.present'))+'</button><button class="btn bad mini" data-act="abs" data-k="'+esc(k)+'">'+esc(t('c.absent'))+'</button><button class="btn gray mini" data-act="meet" data-k="'+esc(k)+'">'+esc(t('m.edit'))+'</button>'+(S.unknown?'<button class="btn gray mini" data-act="bind" data-k="'+esc(k)+'">'+esc(t('op.bindCard'))+'</button>':'')+'</div></div>').join('')||'<p class="muted" style="margin-top:10px">'+esc(t('c.noMatch'))+'</p>';
 }
 async function markAtt(k,status,by){
   const s=S.students[k];if(!s)return;
@@ -265,39 +274,42 @@ const effText=()=>{const e=LL.eff(S.layout);return t('dz.eff')+': '+t('dz.origin
 function setMode(m){
   S.layout.mode=m;
   document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));
-  $('basicSec').style.display=m==='simple'?'block':'none';
-  $('boxSec').style.display=m==='designer'?'block':'none';
-  $('boxTools').style.display=m==='designer'?'flex':'none';
-  $('canvasWrap').style.display=m==='designer'?'flex':'none';
-  $('canvasHint').style.display=m==='designer'?'block':'none';
+  const show=(id,v)=>{const el=$(id);if(el)el.style.display=v;};
+  show('basicSec',m==='simple'?'block':'none');
+  show('boxSec',m==='designer'?'block':'none');
+  show('boxTools',m==='designer'?'flex':'none');
+  show('canvasWrap',m==='designer'?'flex':'none');
+  show('canvasHint',m==='designer'?'block':'none');
   renderDesigner();
 }
 function syncDesignerInputs(){
-  const l=S.layout;
-  $('dcW').value=l.doc.w;$('dcH').value=l.doc.h;$('hdT').value=l.hide.top;$('hdL').value=l.hide.left;
-  $('bTop').value=l.simple.topMm;$('bSide').value=l.simple.sideMm;$('bEn').value=l.simple.enSize;$('bZh').value=l.simple.zhSize;$('bMs').value=l.simple.meetSize;$('bGap').value=l.simple.gapMm;
-  $('bEnT').value=l.simple.enText;$('bZhT').value=l.simple.zhText;$('bMeT').value=l.simple.meetText;
-  $('smCls').value=l.sample.cls||'';$('smNo').value=l.sample.classNo||'';$('smEn').value=l.sample.nameEn||'';$('smZh').value=l.sample.nameZh||'';$('smCard').value=l.sample.cardId||'';
-  $('smTime').value=l.sample.meetTime||'';$('smTeacher').value=l.sample.meetTeacher||'';$('smRoom').value=l.sample.meetRoom||'';
-  const sid=document.getElementById('smSid');if(sid)sid.value=l.sample.studentId||'';
-  $('effInfo').textContent=effText();syncBoxProps();
+  const l=S.layout,set=(id,v)=>{const el=$(id);if(el)el.value=v;};
+  set('dcW',l.doc.w);set('dcH',l.doc.h);set('hdT',l.hide.top);set('hdL',l.hide.left);
+  set('bTop',l.simple.topMm);set('bSide',l.simple.sideMm);set('bEn',l.simple.enSize);set('bZh',l.simple.zhSize);set('bMs',l.simple.meetSize);set('bGap',l.simple.gapMm);
+  set('bEnT',l.simple.enText);set('bZhT',l.simple.zhText);set('bMeT',l.simple.meetText);
+  set('smCls',l.sample.cls||'');set('smNo',l.sample.classNo||'');set('smEn',l.sample.nameEn||'');set('smZh',l.sample.nameZh||'');set('smCard',l.sample.cardId||'');
+  set('smTime',l.sample.meetTime||'');set('smTeacher',l.sample.meetTeacher||'');set('smRoom',l.sample.meetRoom||'');set('smSid',l.sample.studentId||'');
+  const e=$('effInfo');if(e)e.textContent=effText();
+  syncBoxProps();
 }
 function syncBoxProps(){
-  const b=curBox();$('boxNone').style.display=b?'none':'block';$('boxProps').style.display=b?'block':'none';if(!b)return;
+  const b=curBox();const n=$('boxNone'),p=$('boxProps');if(!n||!p)return;
+  n.style.display=b?'none':'block';p.style.display=b?'block':'none';if(!b)return;
   $('tbText').value=b.text;$('tbX').value=b.x;$('tbY').value=b.y;$('tbW').value=b.w;$('tbH').value=b.h;
   $('tbSize').value=b.size;$('tbWeight').value=String(b.weight);$('tbLh').value=b.lineHeight;$('tbAx').value=b.align;$('tbAy').value=b.valign;$('tbColor').value=b.color;
 }
-function renderChips(){$('phChips').innerHTML=LL.PH.map(k=>'<button type="button" data-k="'+k+'">{'+k+'}<i>'+esc(t('l.'+k))+'</i></button>').join('');}
+function renderChips(){const el=$('phChips');if(el)el.innerHTML=LL.PH.map(k=>'<button type="button" data-k="'+k+'">{'+k+'}<i>'+esc(t('l.'+k))+'</i></button>').join('');}
 function renderCanvas(){
   if(S.layout.mode!=='designer')return;
-  const e=LL.eff(S.layout),z=dzScale(),c=$('canvas');
+  const c=$('canvas');if(!c)return;
+  const e=LL.eff(S.layout),z=dzScale();
   c.style.width=e.w*z+'px';c.style.height=e.h*z+'px';
   c.innerHTML=S.layout.boxes.map(b=>{const j=b.valign==='top'?'flex-start':b.valign==='bottom'?'flex-end':'center';
     return '<div class="tb'+(b.id===S.selBox?' on':'')+'" data-id="'+esc(b.id)+'" style="left:'+b.x*z+'px;top:'+b.y*z+'px;width:'+b.w*z+'px;height:'+b.h*z+'px;font-size:'+b.size*S.zoom+'px;font-weight:'+b.weight+';text-align:'+b.align+';color:'+b.color+';line-height:'+b.lineHeight+';justify-content:'+j+'">'+esc(LL.fill(b.text,S.layout.sample)).replace(/\n/g,'<br>')+'<span class="hd"></span></div>';}).join('');
 }
-function renderPreview(){const e=LL.eff(S.layout),p=$('preview');p.style.width=e.w+'mm';p.style.height=e.h+'mm';p.innerHTML=LL.stageHTML(S.layout,S.layout.sample,false);$('effInfo').textContent=effText();}
+function renderPreview(){const p=$('preview');if(!p)return;const e=LL.eff(S.layout);p.style.width=e.w+'mm';p.style.height=e.h+'mm';p.innerHTML=LL.stageHTML(S.layout,S.layout.sample,false);const i=$('effInfo');if(i)i.textContent=effText();}
 function renderDesigner(){renderChips();renderCanvas();renderPreview();syncBoxProps();}
-function moveBoxEl(b){const el=[...$('canvas').querySelectorAll('.tb')].find(x=>x.dataset.id===b.id);if(!el)return;const z=dzScale();el.style.left=b.x*z+'px';el.style.top=b.y*z+'px';el.style.width=b.w*z+'px';el.style.height=b.h*z+'px';}
+function moveBoxEl(b){const c=$('canvas');if(!c)return;const el=[...c.querySelectorAll('.tb')].find(x=>x.dataset.id===b.id);if(!el)return;const z=dzScale();el.style.left=b.x*z+'px';el.style.top=b.y*z+'px';el.style.width=b.w*z+'px';el.style.height=b.h*z+'px';}
 
 /* ---------- attendance ---------- */
 function attachAtt(day){
@@ -310,15 +322,16 @@ function attachAtt(day){
     safe(renderAttendance,'attendance');safe(renderSearch,'search');safe(renderOverview,'overview');safe(renderDiag,'diag');safe(renderBanner,'banner');
   },err=>{S.errors[p]=err.code||String(err.message||err);safe(renderDiag,'diag');safe(renderBanner,'banner');});
 }
-function attRows(){const cf=$('attCls').value;return Object.entries(S.students).filter(([k,s])=>!cf||String(s.cls||'').toUpperCase()===cf).sort(byClass);}
+function attRows(){const cf=$('attCls')?$('attCls').value:'';return Object.entries(S.students).filter(([k,s])=>!cf||String(s.cls||'').toUpperCase()===cf).sort(byClass);}
 function renderAttendance(){
+  const sel=$('attCls'),body=$('attBody');if(!sel||!body)return;
   const cls=[...new Set(Object.values(S.students).map(s=>String(s.cls||'').toUpperCase()).filter(Boolean))].sort();
-  const sel=$('attCls'),cur=sel.value;
+  const cur=sel.value;
   sel.innerHTML='<option value="">'+esc(t('c.all'))+'</option>'+cls.map(c=>'<option>'+esc(c)+'</option>').join('');
   if(cls.includes(cur))sel.value=cur;
   const rows=attRows();let p=0,a=0;rows.forEach(([k])=>{const r=S.att[k];if(r)r.status==='present'?p++:a++;});
   $('attP').textContent=t('c.present')+' '+p;$('attA').textContent=t('c.absent')+' '+a;$('attN').textContent=t('c.unmarked')+' '+(rows.length-p-a);
-  $('attBody').innerHTML=rows.slice(0,1000).map(([k,s])=>{const r=S.att[k];
+  body.innerHTML=rows.slice(0,1000).map(([k,s])=>{const r=S.att[k];
     return '<tr><td>'+esc(s.cls)+'</td><td>'+esc(s.classNo)+'</td><td><b>'+esc(s.nameEn||'')+'</b></td><td>'+esc(s.nameZh||'')+'</td><td class="mc mono">'+esc(s.meetTime||'—')+'</td><td class="mc">'+esc(s.meetTeacher||'—')+'</td><td>'+attBadge(r)+'</td><td class="mono">'+(r?fmtT(r.time):'—')+'</td><td>'+esc(byLabel(r&&r.by))+'</td><td><button class="btn ok mini" data-act="pres" data-k="'+esc(k)+'">'+esc(t('c.present'))+'</button> <button class="btn bad mini" data-act="abs" data-k="'+esc(k)+'">'+esc(t('c.absent'))+'</button>'+(r?' <button class="btn gray mini" data-act="clr" data-k="'+esc(k)+'">'+esc(t('a.clear'))+'</button>':'')+'</td></tr>';}).join('')
     ||'<tr><td colspan="10" style="text-align:center">'+esc(t('c.noData'))+'</td></tr>';
 }
@@ -334,6 +347,7 @@ function meetRows(){
 }
 function fillSel(el,vals,all){if(!el)return;const cur=el.value;el.innerHTML='<option value="">'+esc(all)+'</option>'+vals.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');if(vals.includes(cur))el.value=cur;}
 function renderMeetings(){
+  const body=$('mtBody');if(!body)return;
   const all=Object.values(S.students);
   const teachers=[...new Set(all.map(s=>String(s.meetTeacher||'').trim()).filter(Boolean))].sort();
   const rooms=[...new Set(all.map(s=>String(s.meetRoom||'').trim()).filter(Boolean))].sort();
@@ -342,13 +356,14 @@ function renderMeetings(){
   $('mtS1').textContent=t('m.scheduled')+' '+sc;$('mtS2').textContent=t('m.unscheduled')+' '+(all.length-sc);
   $('mtS3').textContent=t('m.teachers')+' '+teachers.length;$('mtS4').textContent=t('m.rooms')+' '+rooms.length;
   const rows=meetRows(),cell=(v,mono)=>v?'<span class="mc'+(mono?' mono':'')+'">'+esc(v)+'</span>':'<span class="mc no">'+esc(t('m.none'))+'</span>';
-  $('mtBody').innerHTML=rows.slice(0,1000).map(([k,s])=>'<tr><td>'+esc(s.cls)+'</td><td>'+esc(s.classNo)+'</td><td><b>'+esc(s.nameEn||'')+'</b></td><td>'+esc(s.nameZh||'')+'</td><td>'+cell(s.meetTime,true)+'</td><td>'+cell(s.meetTeacher)+'</td><td>'+cell(s.meetRoom)+'</td><td><button class="btn gray mini" data-act="meet" data-k="'+esc(k)+'">'+esc(t('m.edit'))+'</button> <button class="btn warn mini" data-act="print" data-k="'+esc(k)+'">'+esc(t('c.print'))+'</button>'+(meetStr(s)?' <span class="mp">'+esc(t('m.scheduled'))+'</span>':'')+'</td></tr>').join('')
+  body.innerHTML=rows.slice(0,1000).map(([k,s])=>'<tr><td>'+esc(s.cls)+'</td><td>'+esc(s.classNo)+'</td><td><b>'+esc(s.nameEn||'')+'</b></td><td>'+esc(s.nameZh||'')+'</td><td>'+cell(s.meetTime,true)+'</td><td>'+cell(s.meetTeacher)+'</td><td>'+cell(s.meetRoom)+'</td><td><button class="btn gray mini" data-act="meet" data-k="'+esc(k)+'">'+esc(t('m.edit'))+'</button> <button class="btn warn mini" data-act="print" data-k="'+esc(k)+'">'+esc(t('c.print'))+'</button>'+(meetStr(s)?' <span class="mp">'+esc(t('m.scheduled'))+'</span>':'')+'</td></tr>').join('')
     ||'<tr><td colspan="8" style="text-align:center">'+esc(Object.keys(S.students).length?t('m.empty'):t('m.noStudents'))+'</td></tr>';
   renderOverview();
 }
 function renderMeetPreview(){
+  const p=$('mmPreview');if(!p||!S.mmUid)return;
   const s=S.students[S.mmUid]||{},d=Object.assign({},s,{meetTime:$('mmTime').value,meetTeacher:$('mmTeacher').value,meetRoom:$('mmRoom').value});
-  const e=LL.eff(S.layout),p=$('mmPreview');p.style.width=e.w+'mm';p.style.height=e.h+'mm';p.innerHTML=LL.stageHTML(S.layout,d,false);
+  const e=LL.eff(S.layout);p.style.width=e.w+'mm';p.style.height=e.h+'mm';p.innerHTML=LL.stageHTML(S.layout,d,false);
 }
 function openMeet(k){
   if(!guard())return;const s=S.students[k];if(!s)return;
@@ -364,7 +379,8 @@ function closeMeet(){if(S.mmBusy)return;$('mtModal').classList.remove('on');docu
 
 /* ---------- stations ---------- */
 function renderStations(){
-  $('stBody').innerHTML=Object.entries(S.stations).map(([k,v])=>'<tr><td><b>'+esc(v.name)+'</b></td><td class="mono">'+esc(v.token)+'</td><td>'+esc(t('st.global'))+'</td><td><span class="dot'+(online(v)?' on':'')+'"></span> '+esc(t(online(v)?'c.online':'c.offline'))+'<br><span class="muted">'+esc(t('c.queue'))+' '+qCount(k)+'</span></td><td><button class="btn ghost mini" data-act="use" data-k="'+esc(k)+'">'+esc(t('c.selectStation'))+'</button> <button class="btn gray mini" data-act="edit" data-k="'+esc(k)+'">'+esc(t('c.edit'))+'</button> <button class="btn bad mini" data-act="del" data-k="'+esc(k)+'">'+esc(t('c.delete'))+'</button></td></tr>').join('')
+  const b=$('stBody');if(!b)return;
+  b.innerHTML=Object.entries(S.stations).map(([k,v])=>'<tr><td><b>'+esc(v.name)+'</b></td><td class="mono">'+esc(v.token)+'</td><td>'+esc(t('st.global'))+'</td><td><span class="dot'+(online(v)?' on':'')+'"></span> '+esc(t(online(v)?'c.online':'c.offline'))+'<br><span class="muted">'+esc(t('c.queue'))+' '+qCount(k)+'</span></td><td><button class="btn ghost mini" data-act="use" data-k="'+esc(k)+'">'+esc(t('c.selectStation'))+'</button> <button class="btn gray mini" data-act="edit" data-k="'+esc(k)+'">'+esc(t('c.edit'))+'</button> <button class="btn bad mini" data-act="del" data-k="'+esc(k)+'">'+esc(t('c.delete'))+'</button></td></tr>').join('')
     ||'<tr><td colspan="5" style="text-align:center">'+esc(t('st.none'))+'</td></tr>';
 }
 
@@ -382,16 +398,17 @@ function reindex(){
   });
 }
 function renderStudents(){
+  const body=$('dbBody');if(!body)return;
   const q=$('dbQ').value.trim();let rows=Object.entries(S.students).sort(byClass);
   if(q)rows=rows.filter(([k,s])=>LL.searchMatch(s,q));
   $('dbCount').textContent=rows.length+' '+t('c.records');
   const cell=v=>v?esc(v):'<span class="mc no">—</span>';
-  $('dbBody').innerHTML=rows.slice(0,800).map(([k,s])=>'<tr><td class="mono"><b>'+esc(s.studentId||'—')+'</b></td><td class="mono">'+esc(s.cardId||'—')+'</td><td>'+esc(s.cls)+'</td><td>'+esc(s.classNo)+'</td><td>'+esc(s.nameEn||'')+'</td><td>'+esc(s.nameZh||'')+'</td><td class="mc mono">'+cell(s.meetTime)+'</td><td class="mc">'+cell(s.meetTeacher)+'</td><td class="mc">'+cell(s.meetRoom)+'</td><td><button class="btn gray mini" data-act="meet" data-k="'+esc(k)+'">'+esc(t('m.edit'))+'</button> <button class="btn warn mini" data-act="print" data-k="'+esc(k)+'">'+esc(t('c.print'))+'</button> <button class="btn bad mini" data-act="delstu" data-k="'+esc(k)+'">'+esc(t('c.delete'))+'</button></td></tr>').join('')
+  body.innerHTML=rows.slice(0,800).map(([k,s])=>'<tr><td class="mono"><b>'+esc(s.studentId||'—')+'</b></td><td class="mono">'+esc(s.cardId||'—')+'</td><td>'+esc(s.cls)+'</td><td>'+esc(s.classNo)+'</td><td>'+esc(s.nameEn||'')+'</td><td>'+esc(s.nameZh||'')+'</td><td class="mc mono">'+cell(s.meetTime)+'</td><td class="mc">'+cell(s.meetTeacher)+'</td><td class="mc">'+cell(s.meetRoom)+'</td><td><button class="btn gray mini" data-act="meet" data-k="'+esc(k)+'">'+esc(t('m.edit'))+'</button> <button class="btn warn mini" data-act="print" data-k="'+esc(k)+'">'+esc(t('c.print'))+'</button> <button class="btn bad mini" data-act="delstu" data-k="'+esc(k)+'">'+esc(t('c.delete'))+'</button></td></tr>').join('')
     ||'<tr><td colspan="10" style="text-align:center">'+esc(t('c.noData'))+'</td></tr>';
 }
 const nk=s=>String(s==null?'':s).toLowerCase().replace(/[\s_\-()（）:：.\/]/g,'');
 const COLS={
-  studentId:['studentid','studentno','studentnumber','sid','學生編號','學生編號id','學號','學生id'],
+  studentId:['studentid','studentno','studentnumber','sid','學生編號','學號','學生id'],
   cardId:['cardid','card','cardno','卡號','學生證號','拍卡號','八達通號'],
   cls:['class','form','班別','班級'],
   classNo:['classno','no','班號','座號','班內編號'],
@@ -453,7 +470,7 @@ async function runImport(file){
   if(!mapped.rows.length){msg.textContent=t('sd.noValid');return;}
   const type=S.imp.type==='auto'?detectType(mapped.present):S.imp.type;
   const fields=(type==='meetings'?MEET_FIELDS:ID_FIELDS.concat(MEET_FIELDS)).filter(f=>mapped.present.includes(f));
-  const det=document.getElementById('impDetected');
+  const det=$('impDetected');
   if(det)det.textContent=t('imp.detected')+': '+t(type==='meetings'?'imp.meetings':'imp.students')+' · '+fields.join(', ');
   let add=0,upd=0,skip=0;const unmatched=[];
   for(let i=0;i<mapped.rows.length;i++){
@@ -483,11 +500,12 @@ async function runImport(file){
   }
   S.imp.unmatched=unmatched;
   msg.textContent=t('imp.summary',{add,upd,unmatched:unmatched.length,skip});
-  const ub=document.getElementById('impUnmatched');if(ub)ub.hidden=!unmatched.length;
+  const ub=$('impUnmatched');if(ub)ub.hidden=!unmatched.length;
   safe(renderStudents,'students');safe(renderMeetings,'meetings');safe(renderAttendance,'attendance');safe(renderOverview,'overview');
 }
 function mountImportUI(){
-  const card=$('xls')&&$('xls').closest('.card');if(!card||document.getElementById('impType'))return;
+  const fileEl=$('xls');if(!fileEl)return;
+  const card=fileEl.closest('.card');if(!card||$('impType'))return;
   const wrap=document.createElement('div');
   wrap.innerHTML='<div class="g" style="margin:10px 0">'
    +'<div><label data-i18n="imp.type"></label><select id="impType"><option value="auto" data-i18n="imp.auto"></option><option value="students" data-i18n="imp.students"></option><option value="meetings" data-i18n="imp.meetings"></option></select></div>'
@@ -497,8 +515,7 @@ function mountImportUI(){
    +'<p class="muted" data-i18n="imp.blankHint"></p>'
    +'<p class="muted" id="impDetected"></p>'
    +'<div class="row"><button class="btn gray sm" id="impUnmatched" hidden data-i18n="imp.download"></button></div>';
-  const anchor=$('impMsg');
-  card.insertBefore(wrap,anchor);
+  insertBeforeSafe(wrap,$('impMsg'),card);
   I18N.apply(wrap);
   $('impType').onchange=()=>{S.imp.type=$('impType').value;};
   $('impBlank').onchange=()=>{S.imp.blank=$('impBlank').checked;};
@@ -508,15 +525,22 @@ function mountImportUI(){
     const ws=XLSX.utils.json_to_sheet(S.imp.unmatched),wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,'Unmatched');XLSX.writeFile(wb,'unmatched-rows.xlsx');
   };
-  const sidWrap=document.createElement('div');
-  sidWrap.innerHTML='<label data-i18n="sd.sid"></label><input id="aSid" data-ph="sd.sidPh">';
-  const g=$('aCard')&&$('aCard').closest('.g');
-  if(g){g.insertBefore(sidWrap,g.firstChild);I18N.apply(sidWrap);}
-  const sg=$('smCard')&&$('smCard').closest('.g');
-  if(sg&&!document.getElementById('smSid')){
-    const d=document.createElement('div');d.innerHTML='<label data-i18n="sd.sid"></label><input id="smSid">';
-    sg.insertBefore(d,sg.firstChild);I18N.apply(d);
-    $('smSid').addEventListener('input',()=>{S.layout.sample.studentId=$('smSid').value;renderDesigner();});
+  const cardEl=$('aCard');
+  if(cardEl){
+    const g=cardEl.closest('.g');
+    if(g&&!$('aSid')){
+      const d=document.createElement('div');d.innerHTML='<label data-i18n="sd.sid"></label><input id="aSid" data-ph="sd.sidPh">';
+      g.insertBefore(d,g.firstChild);I18N.apply(d);
+    }
+  }
+  const smCard=$('smCard');
+  if(smCard){
+    const sg=smCard.closest('.g');
+    if(sg&&!$('smSid')){
+      const d=document.createElement('div');d.innerHTML='<label data-i18n="sd.sid"></label><input id="smSid">';
+      sg.insertBefore(d,sg.firstChild);I18N.apply(d);
+      $('smSid').addEventListener('input',()=>{S.layout.sample.studentId=$('smSid').value;renderDesigner();});
+    }
   }
 }
 
@@ -592,23 +616,27 @@ function closeUd(){if(S.udBusy)return;$('udModal').classList.remove('on');docume
 
 /* ---------- audit (Head Admin only) ---------- */
 function mountAuditPage(){
-  if(document.getElementById('pg-audit'))return;
-  const rail=document.getElementById('rail');
-  const usersBtn=rail&&rail.querySelector('button[data-page="users"]');
+  if($('pg-audit'))return;
+  const rail=$('rail');
   if(rail&&!rail.querySelector('button[data-page="audit"]')){
     const b=document.createElement('button');b.dataset.page='audit';
     b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15l2 2 4-4"/></svg><span class="lbl" data-i18n="audit.nav"></span>';
     b.onclick=()=>showPage('audit');
-    if(usersBtn&&usersBtn.nextSibling)rail.insertBefore(b,usersBtn.nextSibling);else rail.appendChild(b);
+    const usersBtn=rail.querySelector('button[data-page="users"]');
+    if(usersBtn&&usersBtn.parentNode===rail&&usersBtn.nextSibling)rail.insertBefore(b,usersBtn.nextSibling);
+    else rail.appendChild(b);
   }
-  const main=document.querySelector('.main');
-  const sec=document.createElement('section');sec.className='page';id(sec,'pg-audit');
+  /* FIX: the .page sections live inside #console, not directly inside .main.
+     Insert relative to the real parent so insertBefore can never throw. */
+  const host=$('console')||document.querySelector('.main');
+  if(!host)throw new Error('#console not found');
+  const sec=document.createElement('section');sec.className='page';sec.id='pg-audit';
   sec.innerHTML='<div class="phead"><h2 data-i18n="audit.title"></h2><p data-i18n="audit.desc"></p></div>'
   +'<div class="card">'
   +'<div class="row" style="margin-bottom:12px"><div class="seg" id="audSeg"><button data-v="live" class="on" data-i18n="audit.live"></button><button data-v="sessions" data-i18n="audit.sessions"></button><button data-v="activity" data-i18n="audit.activity"></button><button data-v="byuser" data-i18n="audit.byuser"></button></div><span class="spacer"></span><button class="btn gray sm" id="audRefresh" data-i18n="audit.refresh"></button></div>'
   +'<div class="filters">'
   +'<div><label data-i18n="audit.user"></label><select id="audUser"></select></div>'
-  +'<div><label data-i18n="audit.kind"></label><select id="audKind"><option value="" data-i18n="audit.k.all"></option><option value="db" data-i18n="audit.k.db"></option><option value="ui" data-i18n="audit.k.ui"></option><option value="auth" data-i18n="audit.k.auth"></option><option value="print" data-i18n="audit.k.print"></option><option value="view" data-i18n="audit.k.view"></option><option value="session" data-i18n="audit.k.session"></option><option value="error" data-i18n="audit.k.error"></option></select></div>'
+  +'<div id="audKindWrap"><label data-i18n="audit.kind"></label><select id="audKind"><option value="" data-i18n="audit.k.all"></option><option value="db" data-i18n="audit.k.db"></option><option value="ui" data-i18n="audit.k.ui"></option><option value="auth" data-i18n="audit.k.auth"></option><option value="print" data-i18n="audit.k.print"></option><option value="view" data-i18n="audit.k.view"></option><option value="session" data-i18n="audit.k.session"></option><option value="error" data-i18n="audit.k.error"></option></select></div>'
   +'<div><label data-i18n="audit.from"></label><input type="date" id="audFrom" style="width:auto"></div>'
   +'<div><label data-i18n="audit.to"></label><input type="date" id="audTo" style="width:auto"></div>'
   +'<div class="grow"><label data-i18n="audit.search"></label><input type="text" id="audQ" autocomplete="off"></div>'
@@ -617,8 +645,7 @@ function mountAuditPage(){
   +'<div class="scroll" style="max-height:620px" id="audBox"></div>'
   +'<p class="muted" style="margin-top:12px" data-i18n="audit.privacy"></p>'
   +'</div>';
-  const settings=document.getElementById('pg-settings');
-  main.insertBefore(sec,settings||null);
+  insertBeforeSafe(sec,$('pg-settings'),host);
   I18N.apply(sec);
   document.querySelectorAll('#audSeg button').forEach(b=>b.onclick=()=>{S.auditView=b.dataset.v;S.auditSid=null;document.querySelectorAll('#audSeg button').forEach(x=>x.classList.toggle('on',x===b));renderAudit();});
   ['audUser','audKind','audFrom','audTo'].forEach(id=>$(id).onchange=()=>{S.auditFilter={uid:$('audUser').value,kind:$('audKind').value,from:$('audFrom').value,to:$('audTo').value,q:$('audQ').value.trim().toLowerCase()};renderAudit();});
@@ -634,10 +661,9 @@ function mountAuditPage(){
     renderAudit();
   });
 }
-function id(el,v){el.id=v;}
 function auditUsers(){
   const m=mergedUsers(),seen={};
-  Object.values(S.sessions).forEach(s=>{if(s.uid&&!m[s.uid])seen[s.uid]={email:s.email||s.uid,role:s.role||''};});
+  Object.values(S.sessions).forEach(s=>{if(s.uid&&!m[s.uid])seen[s.uid]={email:s.email||s.uid};});
   return Object.entries(m).map(([uid,u])=>({uid:uid,label:(u.name?u.name+' · ':'')+(u.email||uid)}))
     .concat(Object.entries(seen).map(([uid,u])=>({uid:uid,label:u.email})));
 }
@@ -668,14 +694,12 @@ function filteredSessions(){
   }).sort((a,b)=>(b[1].start||0)-(a[1].start||0));
 }
 function renderAudit(){
-  const box=document.getElementById('audBox');if(!box)return;
+  const box=$('audBox');if(!box)return;
   if(!S.isHead){box.innerHTML='<p class="muted">'+esc(t('audit.headOnly'))+'</p>';return;}
-  fillSel($('audUser'),[],t('audit.allUsers'));
-  const us=auditUsers();
-  $('audUser').innerHTML='<option value="">'+esc(t('audit.allUsers'))+'</option>'+us.map(u=>'<option value="'+esc(u.uid)+'">'+esc(u.label)+'</option>').join('');
-  $('audUser').value=S.auditFilter.uid||'';
-  const kindWrap=$('audKind').closest('div');
-  kindWrap.style.display=S.auditView==='activity'?'':'none';
+  const us=auditUsers(),usel=$('audUser');
+  usel.innerHTML='<option value="">'+esc(t('audit.allUsers'))+'</option>'+us.map(u=>'<option value="'+esc(u.uid)+'">'+esc(u.label)+'</option>').join('');
+  usel.value=S.auditFilter.uid||'';
+  const kw=$('audKindWrap');if(kw)kw.style.display=S.auditView==='activity'?'':'none';
   if(S.auditView==='live'){
     const rows=Object.entries(S.presence).sort((a,b)=>(b[1].last||0)-(a[1].last||0));
     $('audCount').textContent=rows.length+' '+t('c.users');
@@ -704,7 +728,7 @@ function renderAudit(){
     const hours=new Array(24).fill(0);
     S.audit.forEach(a=>{if(a.ts)hours[new Date(a.ts).getHours()]++;});
     const mx=Math.max(1,...hours);
-    box.innerHTML='<div class="aud-bar" aria-hidden="true">'+hours.map(h=>'<div style="height:'+Math.round(h/mx*100)+'%" title="'+h+'"></div>').join('')+'</div>'
+    box.innerHTML='<div class="aud-bar" aria-hidden="true">'+hours.map(h=>'<div style="height:'+Math.round(h/mx*100)+'%"></div>').join('')+'</div>'
       +'<p class="muted" style="font-size:12px">00:00 – 23:59</p>'
       +'<table><thead><tr><th>'+esc(t('audit.user'))+'</th><th>'+esc(t('c.role'))+'</th><th>'+esc(t('audit.sessionsN'))+'</th><th>'+esc(t('audit.timeTotal'))+'</th><th>'+esc(t('audit.total'))+'</th><th>'+esc(t('audit.acts'))+'</th><th>'+esc(t('audit.lastLogin'))+'</th><th>'+esc(t('audit.ip'))+'</th></tr></thead><tbody>'
       +(rows.map(([uid,a])=>'<tr><td><b>'+esc(a.email)+'</b></td><td>'+esc(roleLabel(a.role))+'</td><td class="mono">'+a.n+'</td><td class="mono">'+esc(dur(a.active))+'</td><td class="mono">'+esc(dur(a.total))+'</td><td class="mono">'+a.acts+'</td><td class="mono">'+esc(fmtDT(a.last))+'</td><td class="mono">'+esc(Object.keys(a.ips).join(', ')||t('audit.ipUnknown'))+'</td></tr>').join('')
@@ -712,11 +736,10 @@ function renderAudit(){
     return;
   }
   const rows=filteredAudit().sort((a,b)=>(b.ts||0)-(a.ts||0));
-  $('audCount').textContent=rows.length+' '+t('audit.activity')+(S.auditSid?' · '+t('audit.sessionOf')+' '+S.auditSid:'');
+  $('audCount').textContent=rows.length+' '+t('audit.activity')+(S.auditSid?' · '+S.auditSid:'');
   box.innerHTML='<table><thead><tr><th>'+esc(t('audit.at'))+'</th><th>'+esc(t('audit.user'))+'</th><th>'+esc(t('audit.kind'))+'</th><th>'+esc(t('audit.page'))+'</th><th>'+esc(t('audit.detail'))+'</th></tr></thead><tbody>'
     +(rows.slice(0,600).map(a=>{
-      const d=a.d||{};
-      const bits=Object.keys(d).map(k=>k+'='+String(d[k])).join(' · ');
+      const d=a.d||{},bits=Object.keys(d).map(k=>k+'='+String(d[k])).join(' · ');
       return '<tr><td class="mono">'+esc(fmtDT(a.ts))+'</td><td>'+esc(a.email||a.uid)+'</td><td>'+esc(t('audit.k.'+a.kind)||a.kind)+'</td><td class="mono">'+esc(a.page||'')+'</td><td><span class="aud-d">'+esc(bits)+'</span></td></tr>';}).join('')
       ||'<tr><td colspan="5" style="text-align:center">'+esc(t('audit.noData'))+'</td></tr>')+'</tbody></table>';
 }
@@ -790,15 +813,15 @@ function attachAll(){
     S.selBox=(keep&&S.layout.boxes.some(b=>b.id===keep))?keep:(S.layout.boxes[0]?S.layout.boxes[0].id:null);
     setMode(S.layout.mode);syncDesignerInputs();safe(renderDesigner,'designer');
     if(S.mmUid)safe(renderMeetPreview,'meetPreview');
-    $('dzStatus').textContent=snap.exists()?t('dz.loaded'):t('dz.default');
+    const st=$('dzStatus');if(st)st.textContent=snap.exists()?t('dz.loaded'):t('dz.default');
   });
   if(S.isHead){
     bind('users',v=>{S.users=v;safe(renderUsers,'users');if(S.udUid)safe(renderUserDelete,'ud');});
     bind('admins',v=>{S.admins=v;safe(renderUsers,'users');});
-    attachAudit();
+    safe(attachAudit,'attachAudit');
   }
-  attachAtt(S.attDay);
-  renderDiag();
+  safe(()=>attachAtt(S.attDay),'attachAtt');
+  safe(renderDiag,'diag');
 }
 
 /* ---------- wiring ---------- */
@@ -983,8 +1006,7 @@ function wire(){
   };
   $('stuAdd').onclick=async()=>{
     if(!guard())return;
-    const sidEl=document.getElementById('aSid');
-    const sid=sidEl?normSid(sidEl.value):'';
+    const sidEl=$('aSid'),sid=sidEl?normSid(sidEl.value):'';
     const rec={studentId:sid,cardId:$('aCard').value.trim(),cls:$('aCls').value.trim().toUpperCase(),classNo:$('aNo').value.trim(),nameEn:$('aEn').value.trim(),nameZh:$('aZh').value.trim(),meetTime:$('aTime').value.trim(),meetTeacher:$('aTeacher').value.trim(),meetRoom:$('aRoom').value.trim(),updatedAt:Date.now(),updatedBy:S.user.email||S.user.uid};
     if(!rec.studentId&&!rec.nameEn&&!rec.nameZh)return toast(t('sd.needName'));
     const hit=resolveKey(rec);
@@ -1011,7 +1033,7 @@ function wire(){
     XLSX.writeFile(wb,'parent-label-templates.xlsx');
   };
   $('xls').addEventListener('change',function(){
-    const f=this.files[0];if(!f){return;}
+    const f=this.files[0];if(!f)return;
     runImport(f).catch(e=>{$('impMsg').textContent=t('c.fail')+': '+(e.message||e);});
     this.value='';
   });
@@ -1091,37 +1113,44 @@ function wire(){
   setInterval(()=>{safe(renderOverview,'overview');safe(renderStation,'station');if(S.page==='stations')safe(renderStations,'stations');if(S.page==='audit'&&S.auditView==='live')safe(renderAudit,'audit');},15000);
 }
 function applyRoleGates(){
-  const rail=document.getElementById('rail');
+  const rail=$('rail');
   ['users','audit'].forEach(p=>{const b=rail&&rail.querySelector('button[data-page="'+p+'"]');if(b)b.style.display=S.isHead?'':'none';});
   const pendCard=$('ovPend')&&$('ovPend').closest('.ovc');if(pendCard)pendCard.style.display=S.isHead?'':'none';
 }
 
-/* ---------- boot ---------- */
-I18N.apply();I18N.mountToggle();
-setMode(S.layout.mode);syncDesignerInputs();
-renderScanReady();renderScanTags();renderEverything();
-wire();
-mountImportUI();
-mountAuditPage();
-Verify.banner('q');Verify.banner('dbQ');
-applyRoleGates();
-showPage(location.hash.slice(1)||'overview');
+/* ---------- boot: register data first, inject DOM afterwards ---------- */
 function start(user,profile){
   S.user=user;S.profile=profile;S.role=profile.role||'staff';
   S.isHead=S.role==='head';S.canManage=S.role==='head'||S.role==='admin';
-  $('acEmail').value=user.email||'';$('acRole').value=roleLabel(S.role);$('acUid').value=user.uid;
-  applyRoleGates();
-  if(!S.canManage){$('console').style.display='none';$('denied').style.display='block';renderDiag();return;}
+  const set=(id,v)=>{const el=$(id);if(el)el.value=v;};
+  set('acEmail',user.email||'');set('acRole',roleLabel(S.role));set('acUid',user.uid);
+  safe(applyRoleGates,'gates');
+  if(!S.canManage){$('console').style.display='none';$('denied').style.display='block';safe(renderDiag,'diag');return;}
   $('console').style.display='';$('denied').style.display='none';
-  mountImportUI();mountAuditPage();
-  S.started=true;attachAll();renderEverything();
+  safe(mountImportUI,'mountImportUI');
+  safe(mountAuditPage,'mountAuditPage');
+  safe(applyRoleGates,'gates');
+  S.started=true;
+  safe(attachAll,'attachAll');
+  safe(renderEverything,'renderEverything');
 }
+I18N.apply();I18N.mountToggle();
 Auth.start(start);
 document.addEventListener('auth-profile',e=>{
   const p=e.detail.profile;
   S.user=e.detail.user;S.profile=p;S.role=p.role||'staff';S.isHead=S.role==='head';S.canManage=S.role==='head'||S.role==='admin';
-  $('acRole').value=roleLabel(S.role);applyRoleGates();
+  const r=$('acRole');if(r)r.value=roleLabel(S.role);
+  safe(applyRoleGates,'gates');
   if(!S.canManage){$('console').style.display='none';$('denied').style.display='block';}
-  else{$('console').style.display='';$('denied').style.display='none';if(!S.started)start(S.user,p);else attachAll();}
+  else{$('console').style.display='';$('denied').style.display='none';if(!S.started)start(S.user,p);else safe(attachAll,'attachAll');}
 });
+safe(()=>{setMode(S.layout.mode);syncDesignerInputs();},'designer-init');
+safe(renderScanReady,'scan');safe(renderScanTags,'scanTags');
+safe(renderEverything,'initial-render');
+safe(wire,'wire');
+safe(mountImportUI,'mountImportUI');
+safe(mountAuditPage,'mountAuditPage');
+safe(()=>{Verify.banner('q');Verify.banner('dbQ');},'banners');
+safe(applyRoleGates,'gates');
+safe(()=>showPage(location.hash.slice(1)||'overview'),'route');
 })();
