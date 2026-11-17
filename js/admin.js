@@ -1,6 +1,6 @@
-/* js/admin.js — admin console. All state is declared before any render call,
-   every render is isolated, and every listener reports errors into the banner
-   and diagnostics table so the page can never go silently blank. */
+/* js/admin.js — admin console.
+   Manual search / manual printing requires verbal confirmation with the parent.
+   Back-office attendance corrections do not, and card swipes do not. */
 (function(){
 const AUTH_DELETE_ENDPOINT='';
 const LS='plAdminStation';
@@ -34,12 +34,102 @@ const SC={ready:['#e5f0fc','#084c9e'],wait:['#fbf2dd','#8f6410'],ok:['#e4f4ec','
 const setScan=(el,k)=>{el.style.background=SC[k][0];el.style.color=SC[k][1];};
 const db=()=>Auth.db;
 let toastTimer=null;
-function toast(m){const e=$('toast');e.textContent=m;e.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.classList.remove('on'),3000);}
+function toast(m){const e=$('toast');e.textContent=m;e.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.classList.remove('on'),3200);}
 function guard(){if(!S.isAdmin){toast(t('c.needAdmin'));return false;}return true;}
 function werr(e){const c=(e&&e.code)||'';toast(/PERMISSION_DENIED/i.test(c+e)?t('c.denied'):t('c.fail')+': '+(e&&e.message||e));}
 function safe(fn,label){try{fn();}catch(e){S.runtime.push((label||fn.name||'render')+': '+(e&&e.message||e));console.error(e);try{renderBanner();}catch(_){}}}
 function download(name,obj){const b=new Blob([typeof obj==='string'?obj:JSON.stringify(obj,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);}
+function byLabel(v){
+  const s=String(v||'');if(!s)return '—';
+  const m={scan:'vf.byScan',admin:'vf.byAdmin',printer:'vf.byPrinter',remote:'vf.byRemote','admin-v':'vf.byAdminV','printer-v':'vf.byPrinterV','remote-v':'vf.byRemoteV'};
+  return m[s]?t(m[s]):s;
+}
 window.addEventListener('error',ev=>{S.runtime.push(String(ev.message||'error'));safe(renderBanner,'banner');});
+
+/* ================= parent verification ================= */
+const Verify=(function(){
+const CSS=`
+.vf-scrim{position:fixed;inset:0;z-index:1500;background:rgba(15,35,64,.52);display:none;align-items:center;justify-content:center;padding:18px}
+.vf-scrim.on{display:flex}
+.vf-modal{width:min(580px,100%);max-height:calc(100vh - 36px);overflow:auto;background:var(--surface,#fff);border:1px solid var(--line,#dae6f4);border-radius:14px;box-shadow:0 26px 70px rgba(15,35,64,.32);padding:24px}
+.vf-eyebrow{display:inline-block;font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--wn,#8f6410)}
+.vf-modal h3{font-size:19px;margin:6px 0 12px;font-weight:600}
+.vf-q{background:var(--wns,#fbf2dd);border:1px solid var(--wnl,#e8d6a8);border-radius:10px;padding:14px 16px;color:var(--wn,#8f6410);font-size:16.5px;line-height:1.75;font-weight:500}
+.vf-q2{margin-top:10px;font-size:14.5px;line-height:1.7}
+.vf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(136px,1fr));gap:10px;margin:14px 0}
+.vf-cell{background:var(--panel,#f6faff);border:1px solid var(--line,#dae6f4);border-radius:8px;padding:9px 12px;min-width:0}
+.vf-cell span{display:block;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--faint,#8ba1bd);margin-bottom:2px}
+.vf-cell b{display:block;font-size:15px;font-weight:600;word-break:break-word}
+.vf-cell.big b{font-size:22px;line-height:1.3}
+.vf-hint{font-size:12.5px;color:var(--muted,#5a7391);line-height:1.65}
+.vf-row{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+.vf-banner{display:flex;gap:10px;align-items:flex-start;background:var(--wns,#fbf2dd);border:1px solid var(--wnl,#e8d6a8);color:var(--wn,#8f6410);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.65;margin-top:10px}
+.vf-banner svg{width:17px;height:17px;flex:none;margin-top:2px}
+@media(max-width:520px){.vf-row .btn{flex:1 1 auto}}
+`;
+const ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.9.6c0 1.7-2.5 2.1-2.5 2.1"/><path d="M12 15.4h.01"/></svg>';
+let el=null,resolve=null,banners=[];
+function mount(){
+  if(el)return;
+  const st=document.createElement('style');st.textContent=CSS;document.head.appendChild(st);
+  el=document.createElement('div');el.className='vf-scrim';el.setAttribute('aria-hidden','true');
+  el.innerHTML='<div class="vf-modal" role="dialog" aria-modal="true" aria-labelledby="vfTitle">'
+    +'<span class="vf-eyebrow" id="vfEye"></span><h3 id="vfTitle"></h3>'
+    +'<div class="vf-q"><div id="vfQ1"></div><div class="vf-q2" id="vfQ2"></div></div>'
+    +'<div class="vf-grid" id="vfGrid"></div><p class="vf-hint" id="vfHint"></p>'
+    +'<div class="vf-row"><button class="btn bad" id="vfNo" type="button"></button><button class="btn" id="vfYes" type="button"></button></div></div>';
+  document.body.appendChild(el);
+  el.addEventListener('click',e=>{if(e.target===el)done(false);});
+  document.getElementById('vfNo').onclick=()=>done(false);
+  document.getElementById('vfYes').onclick=()=>done(true);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&el.classList.contains('on')){e.stopPropagation();done(false);}},true);
+  labels();
+}
+function labels(){
+  if(!el)return;
+  document.getElementById('vfEye').textContent=t('vf.eyebrow');
+  document.getElementById('vfTitle').textContent=t('vf.title');
+  document.getElementById('vfHint').textContent=t('vf.hint');
+  document.getElementById('vfNo').textContent=t('vf.cancel');
+  document.getElementById('vfYes').textContent=t('vf.confirm');
+}
+function done(v){
+  if(!el||!el.classList.contains('on'))return;
+  el.classList.remove('on');el.setAttribute('aria-hidden','true');document.body.style.overflow='';
+  const r=resolve;resolve=null;if(r)r(v);
+}
+const cell=(l,v,big)=>'<div class="vf-cell'+(big?' big':'')+'"><span>'+esc(l)+'</span><b>'+esc(v||'—')+'</b></div>';
+function fill(s){
+  const nameEn=String(s.nameEn||''),nameZh=String(s.nameZh||''),cls=String(s.cls||''),no=String(s.classNo||'');
+  document.getElementById('vfQ1').textContent=t('vf.ask',{nameEn:nameEn||'—',nameZh:nameZh||'—',cls:cls||'—',no:no||'—'});
+  document.getElementById('vfQ2').textContent=meetStr(s)
+    ? t('vf.askMeet',{time:String(s.meetTime||'—'),teacher:String(s.meetTeacher||'—'),room:String(s.meetRoom||'—')})
+    : t('vf.noMeet');
+  document.getElementById('vfGrid').innerHTML=
+     cell(t('c.zh'),nameZh,true)+cell(t('c.en'),nameEn)+cell(t('c.class'),cls)+cell(t('c.no'),no)
+    +cell(t('c.card'),String(s.cardId||'')||t('vf.noCard'))
+    +cell(t('m.time'),String(s.meetTime||'')||t('m.none'))
+    +cell(t('m.teacher'),String(s.meetTeacher||'')||t('m.none'))
+    +cell(t('m.room'),String(s.meetRoom||'')||t('m.none'));
+}
+function ask(s){
+  mount();
+  if(resolve){const r=resolve;resolve=null;r(false);}
+  fill(s);labels();
+  el.classList.add('on');el.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';
+  setTimeout(()=>{const b=document.getElementById('vfNo');if(b)b.focus();},40);
+  return new Promise(r=>{resolve=r;});
+}
+function banner(afterId){
+  const host=document.getElementById(afterId);if(!host||!host.parentNode)return;
+  mount();
+  const d=document.createElement('div');d.className='vf-banner';d.innerHTML=ICON+'<span></span>';
+  host.parentNode.insertBefore(d,host.nextSibling);banners.push(d);paint();
+}
+function paint(){banners.forEach(b=>{const s=b.querySelector('span');if(s)s.textContent=t('vf.banner');});labels();}
+const open=()=>!!el&&el.classList.contains('on');
+return {ask,banner,paint,open};
+})();
 
 /* ---------- banner + diagnostics ---------- */
 function renderBanner(){
@@ -211,7 +301,7 @@ function renderAttendance(){
   const rows=attRows();let p=0,a=0;rows.forEach(([k])=>{const r=S.att[k];if(r)r.status==='present'?p++:a++;});
   $('attP').textContent=t('c.present')+' '+p;$('attA').textContent=t('c.absent')+' '+a;$('attN').textContent=t('c.unmarked')+' '+(rows.length-p-a);
   $('attBody').innerHTML=rows.slice(0,1000).map(([k,s])=>{const r=S.att[k];
-    return '<tr><td>'+esc(s.cls)+'</td><td>'+esc(s.classNo)+'</td><td><b>'+esc(s.nameEn||'')+'</b></td><td>'+esc(s.nameZh||'')+'</td><td class="mc mono">'+esc(s.meetTime||'—')+'</td><td class="mc">'+esc(s.meetTeacher||'—')+'</td><td>'+attBadge(r)+'</td><td class="mono">'+(r?fmtT(r.time):'—')+'</td><td>'+esc(r&&r.by||'—')+'</td><td><button class="btn ok mini" data-act="pres" data-k="'+esc(k)+'">'+esc(t('c.present'))+'</button> <button class="btn bad mini" data-act="abs" data-k="'+esc(k)+'">'+esc(t('c.absent'))+'</button>'+(r?' <button class="btn gray mini" data-act="clr" data-k="'+esc(k)+'">'+esc(t('a.clear'))+'</button>':'')+'</td></tr>';}).join('')
+    return '<tr><td>'+esc(s.cls)+'</td><td>'+esc(s.classNo)+'</td><td><b>'+esc(s.nameEn||'')+'</b></td><td>'+esc(s.nameZh||'')+'</td><td class="mc mono">'+esc(s.meetTime||'—')+'</td><td class="mc">'+esc(s.meetTeacher||'—')+'</td><td>'+attBadge(r)+'</td><td class="mono">'+(r?fmtT(r.time):'—')+'</td><td>'+esc(byLabel(r&&r.by))+'</td><td><button class="btn ok mini" data-act="pres" data-k="'+esc(k)+'">'+esc(t('c.present'))+'</button> <button class="btn bad mini" data-act="abs" data-k="'+esc(k)+'">'+esc(t('c.absent'))+'</button>'+(r?' <button class="btn gray mini" data-act="clr" data-k="'+esc(k)+'">'+esc(t('a.clear'))+'</button>':'')+'</td></tr>';}).join('')
     ||'<tr><td colspan="10" style="text-align:center">'+esc(t('c.noData'))+'</td></tr>';
 }
 
@@ -407,14 +497,29 @@ function wire(){
     const b=e.target.closest('button[data-act]');if(!b)return;
     const k=b.dataset.k,s=S.students[k];if(!s)return;
     const a=b.dataset.act;
-    if(a==='print'){if(!guard())return;if(!confirm(t('op.printQ',{name:s.nameEn||s.nameZh})))return;try{if(await queueLabel(s))toast(t('op.sentTo')+' '+S.stations[S.station].name);}catch(x){werr(x);}}
-    if(a==='pres'||a==='abs'){if(!guard())return;try{await markAtt(k,a==='pres'?'present':'absent','admin');toast(t(a==='pres'?'c.present':'c.absent')+' '+(s.nameEn||s.nameZh));}catch(x){werr(x);}}
-    if(a==='meet')openMeet(k);
-    if(a==='bind'){if(!guard()||!S.unknown)return;if(!confirm(t('op.bindQ',{card:S.unknown,name:s.nameEn||s.nameZh})))return;
-      try{await db().ref('parents/students/'+k).update({cardId:S.unknown});S.unknown=null;$('bindHelp').style.display='none';renderSearch();toast(t('op.bound'));}catch(x){werr(x);}}
+    if(a==='meet'){openMeet(k);return;}
+    if(a==='bind'){
+      if(!guard()||!S.unknown)return;
+      const okB=await Verify.ask(s);
+      if(!okB){toast(t('vf.cancelled'));return;}
+      if(!confirm(t('op.bindQ',{card:S.unknown,name:s.nameEn||s.nameZh})))return;
+      try{await db().ref('parents/students/'+k).update({cardId:S.unknown});S.unknown=null;$('bindHelp').style.display='none';renderSearch();toast(t('op.bound'));}catch(x){werr(x);}
+      return;
+    }
+    if(!guard())return;
+    /* Mandatory: ask the parent to confirm the manually found student. */
+    const ok=await Verify.ask(s);
+    if(!ok){toast(t('vf.cancelled'));return;}
+    const who=s.nameEn||s.nameZh;
+    if(a==='print'){
+      if(!confirm(t('op.printQ',{name:who})))return;
+      try{if(await queueLabel(s))toast(t('vf.verifiedToast')+' · '+t('op.sentTo')+' '+S.stations[S.station].name);}catch(x){werr(x);}
+    }else{
+      try{await markAtt(k,a==='pres'?'present':'absent','admin-v');toast(t('vf.verifiedToast')+' · '+t(a==='pres'?'c.present':'c.absent')+' '+who);}catch(x){werr(x);}
+    }
   };
   document.addEventListener('keydown',e=>{
-    if(document.body.classList.contains('auth-locked')||document.querySelector('.scrim.on'))return;
+    if(document.body.classList.contains('auth-locked')||document.querySelector('.scrim.on')||Verify.open())return;
     const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;
     const now=Date.now();if(now-S.bufAt>140)S.buf='';S.bufAt=now;
     if(e.key==='Enter'||e.key==='Tab'){if(S.buf.length>=4){e.preventDefault();const c=S.buf;S.buf='';showPage('operate');handleScan(c);}S.buf='';}
@@ -486,7 +591,7 @@ function wire(){
     if(typeof XLSX==='undefined')return toast(t('a.xlsMissing'));
     const rows=attRows();if(!rows.length)return toast(t('a.noStudents'));
     const aoa=[[t('c.date'),t('c.class'),t('c.no'),t('c.en'),t('c.zh'),t('c.card'),t('m.time'),t('m.teacher'),t('m.room'),t('c.status'),t('c.time'),t('a.by')]];
-    rows.forEach(([k,s])=>{const r=S.att[k];aoa.push([S.attDay,s.cls||'',s.classNo||'',s.nameEn||'',s.nameZh||'',s.cardId||'',s.meetTime||'',s.meetTeacher||'',s.meetRoom||'',r?(r.status==='present'?t('c.present'):t('c.absent')):t('c.unmarked'),r?new Date(r.time).toLocaleTimeString('en-GB'):'',r&&r.by||'']);});
+    rows.forEach(([k,s])=>{const r=S.att[k];aoa.push([S.attDay,s.cls||'',s.classNo||'',s.nameEn||'',s.nameZh||'',s.cardId||'',s.meetTime||'',s.meetTeacher||'',s.meetRoom||'',r?(r.status==='present'?t('c.present'):t('c.absent')):t('c.unmarked'),r?new Date(r.time).toLocaleTimeString('en-GB'):'',byLabel(r&&r.by)]);});
     const ws=XLSX.utils.aoa_to_sheet(aoa),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Attendance');XLSX.writeFile(wb,'attendance_'+S.attDay+'.xlsx');toast(t('c.exported'));
   };
 
@@ -498,8 +603,11 @@ function wire(){
     const b=e.target.closest('button[data-act]');if(!b)return;
     const k=b.dataset.k,s=S.students[k];if(!s)return;
     if(b.dataset.act==='meet'){openMeet(k);return;}
-    if(!guard())return;if(!confirm(t('op.printQ',{name:s.nameEn||s.nameZh})))return;
-    try{if(await queueLabel(s))toast(t('op.sentTo')+' '+S.stations[S.station].name);}catch(x){werr(x);}
+    if(!guard())return;
+    const ok=await Verify.ask(s);
+    if(!ok){toast(t('vf.cancelled'));return;}
+    if(!confirm(t('op.printQ',{name:s.nameEn||s.nameZh})))return;
+    try{if(await queueLabel(s))toast(t('vf.verifiedToast')+' · '+t('op.sentTo')+' '+S.stations[S.station].name);}catch(x){werr(x);}
   };
   $('mtExport').onclick=()=>{
     if(typeof XLSX==='undefined')return toast(t('a.xlsMissing'));
@@ -549,7 +657,12 @@ function wire(){
     const a=b.dataset.act;
     if(a==='meet'){openMeet(k);return;}
     if(!guard())return;
-    if(a==='print'){if(!confirm(t('op.printQ',{name:s.nameEn||s.nameZh})))return;try{if(await queueLabel(s))toast(t('op.sentTo')+' '+S.stations[S.station].name);}catch(x){werr(x);}}
+    if(a==='print'){
+      const ok=await Verify.ask(s);
+      if(!ok){toast(t('vf.cancelled'));return;}
+      if(!confirm(t('op.printQ',{name:s.nameEn||s.nameZh})))return;
+      try{if(await queueLabel(s))toast(t('vf.verifiedToast')+' · '+t('op.sentTo')+' '+S.stations[S.station].name);}catch(x){werr(x);}
+    }
     if(a==='delstu'){if(!confirm(t('sd.delQ')))return;try{await db().ref('parents/students/'+k).remove();toast(t('c.deleted'));}catch(x){werr(x);}}
   };
   $('stuAdd').onclick=async()=>{
@@ -651,14 +764,14 @@ function wire(){
       $('dgStatus').textContent=t('dg.fail')+': '+(x.message||x);$('dgStatus').className='status err';}
   };
   document.addEventListener('keydown',e=>{
-    if(e.key!=='Escape')return;
+    if(e.key!=='Escape'||Verify.open())return;
     if($('mtModal').classList.contains('on'))closeMeet();
     if($('udModal').classList.contains('on'))closeUd();
     if($('dgModal').classList.contains('on'))closeDg();
     $('stModal').classList.remove('on');
   });
   document.addEventListener('langchange',()=>{
-    I18N.apply();renderEverything();
+    I18N.apply();Verify.paint();renderEverything();
     if(S.mmUid){I18N.apply($('mtModal'));renderMeetPreview();}
     if(S.udUid){I18N.apply($('udModal'));renderUserDelete();}
     if(S.dgScope)openDg(S.dgScope);
@@ -672,6 +785,8 @@ I18N.apply();I18N.mountToggle();
 setMode(S.layout.mode);syncDesignerInputs();
 renderScanReady();renderScanTags();renderEverything();
 wire();
+Verify.banner('q');
+Verify.banner('dbQ');
 showPage(location.hash.slice(1)||'overview');
 Auth.start(function(user,profile){
   S.user=user;S.profile=profile;S.isAdmin=profile.role==='admin';
