@@ -1,5 +1,5 @@
-/* js/i18n-meet.js — meetings, parent verification, account deletion, diagnostics, danger zone.
-   Load after js/i18n.js */
+/* js/i18n-meet.js — meetings, parent verification, print speed, account deletion,
+   diagnostics, danger zone. Load after js/i18n.js */
 (function(){
 if(!window.I18N)return;
 I18N.extend({zh:{
@@ -22,6 +22,15 @@ I18N.extend({zh:{
 'vf.verified':'已核對','vf.verifiedToast':'家長已核對','vf.logVerified':'（已向家長核對）',
 'vf.byScan':'拍卡','vf.byAdmin':'管理端','vf.byPrinter':'列印端','vf.byRemote':'遙控',
 'vf.byAdminV':'管理端（已核對）','vf.byPrinterV':'列印端（已核對）','vf.byRemoteV':'遙控（已核對）',
+
+'sp.title':'列印速度','sp.desc':'本機拍卡會直接列印，不經雲端隊列，亦不設冷卻等待；考勤記錄在背景同時寫入。',
+'sp.fast':'極速（建議）','sp.safe':'穩定','sp.settle':'定格延遲 (ms)','sp.copies':'每張標籤份數','sp.dupe':'重複拍卡忽略 (ms)','sp.sound':'拍卡提示音',
+'sp.settleHint':'頁面完成渲染後等待多久才送出列印。0 最快；若偶爾出現空白頁，請調至 80–150。極速模式預設 70，穩定模式預設 500。',
+'sp.dupeHint':'同一卡號在此時間內再次拍卡會被忽略，避免讀卡器重送或家長重拍而印出兩張。設 0 可停用。',
+'sp.saved':'列印設定已儲存','sp.reset':'回復預設','sp.fastOn':'極速模式：拍卡即印，無冷卻','sp.safeOn':'穩定模式：每張之間稍作停頓',
+'sp.recent':'最近列印','sp.printed':'已印','sp.pending':'待印','sp.local':'本機拍卡','sp.queue':'隊列',
+'sp.dupeIgnored':'重複拍卡，已忽略','sp.attFail':'標籤已列印，但考勤記錄寫入失敗（網絡問題）。','sp.empty':'尚未列印。',
+'sp.testHint':'測試列印亦採用相同速度設定。','sp.pipeBusy':'列印中','sp.pipeIdle':'閒置',
 
 'ud.eyebrow':'永久刪除','ud.title':'刪除帳戶','ud.desc':'此操作會移除該用戶的系統設定檔及管理員權限，並即時撤銷所有存取權。',
 'ud.what':'將會移除','ud.r1':'用戶設定檔（users）','ud.r2':'管理員權限（admins）','ud.r3':'Firebase Authentication 登入紀錄',
@@ -59,6 +68,15 @@ I18N.extend({zh:{
 'vf.verified':'Verified','vf.verifiedToast':'Verified with parent','vf.logVerified':'(verified with parent)',
 'vf.byScan':'Card swipe','vf.byAdmin':'Admin','vf.byPrinter':'Printer','vf.byRemote':'Remote',
 'vf.byAdminV':'Admin (verified)','vf.byPrinterV':'Printer (verified)','vf.byRemoteV':'Remote (verified)',
+
+'sp.title':'Print speed','sp.desc':'A local swipe prints directly — no cloud queue round trip and no cooldown. Attendance is written in the background at the same time.',
+'sp.fast':'Fast (recommended)','sp.safe':'Stable','sp.settle':'Settle delay (ms)','sp.copies':'Copies per label','sp.dupe':'Ignore repeat swipe (ms)','sp.sound':'Swipe beep',
+'sp.settleHint':'How long to wait after the page renders before sending the print job. 0 is fastest; if you occasionally get a blank page, raise it to 80–150. Fast mode defaults to 70, Stable to 500.',
+'sp.dupeHint':'The same card swiped again within this window is ignored, so a reader re-send or a double swipe cannot print twice. Set 0 to disable.',
+'sp.saved':'Print settings saved','sp.reset':'Restore defaults','sp.fastOn':'Fast mode: swipe prints instantly, no cooldown','sp.safeOn':'Stable mode: a short pause between labels',
+'sp.recent':'Recent prints','sp.printed':'Printed','sp.pending':'Pending','sp.local':'Local swipe','sp.queue':'Queue',
+'sp.dupeIgnored':'Repeat swipe ignored','sp.attFail':'Label printed, but the attendance write failed (network).','sp.empty':'Nothing printed yet.',
+'sp.testHint':'Test prints use the same speed settings.','sp.pipeBusy':'Printing','sp.pipeIdle':'Idle',
 
 'ud.eyebrow':'Permanent deletion','ud.title':'Delete account','ud.desc':'This removes the user profile and admin rights, and revokes all access immediately.',
 'ud.what':'Will be removed','ud.r1':'User profile (users)','ud.r2':'Admin rights (admins)','ud.r3':'Firebase Authentication login record',
