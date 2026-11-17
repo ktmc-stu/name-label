@@ -1,7 +1,6 @@
 /* js/admin.js — Head Admin / Operational Admin console.
-   Split Excel merge keyed on Student ID, role gating, full usage audit for Head Admin.
-   Boot order hardened: Auth.start() registers before any DOM injection, and every
-   injection is isolated so a layout mismatch can never stop data from loading. */
+   Split Excel merge keyed on Student ID, role gating, full user management
+   (profile edit, role, status, password reset, delete) and usage audit. */
 (function(){
 const AUTH_DELETE_ENDPOINT='';
 const LS='plAdminStation';
@@ -17,7 +16,8 @@ const S={
   page:'overview',uFilter:'pending',meet:{q:'',teacher:'',room:'',only:false},
   imp:{type:'auto',blank:false,unmatched:[]},
   attRef:null,refs:{},loaded:{},errors:{},counts:{},runtime:[],bannerHidden:false,
-  mmUid:null,mmBusy:false,udUid:null,udBusy:false,dgScope:null,dgBusy:false,buf:'',bufAt:0
+  mmUid:null,mmBusy:false,udUid:null,udBusy:false,ueUid:null,ueBusy:false,
+  dgScope:null,dgBusy:false,buf:'',bufAt:0
 };
 const $=id=>document.getElementById(id);
 const t=(k,v)=>I18N.t(k,v);
@@ -81,6 +81,7 @@ const CSS=`
 .aud-bar{display:flex;gap:4px;align-items:flex-end;height:56px;margin:10px 0 4px}
 .aud-bar div{flex:1;background:var(--acs,#e5f0fc);border:1px solid var(--acl,#b4d1f2);border-radius:3px 3px 0 0;min-height:2px}
 .aud-d{font:11.5px var(--mono,monospace);color:var(--muted,#5a7391);word-break:break-all}
+.ue-sub{font-size:11.5px;color:var(--muted,#5a7391);display:block;margin-top:2px}
 @media(max-width:520px){.vf-row .btn{flex:1 1 auto}}
 `;
 const ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.9.6c0 1.7-2.5 2.1-2.5 2.1"/><path d="M12 15.4h.01"/></svg>';
@@ -544,7 +545,7 @@ function mountImportUI(){
   }
 }
 
-/* ---------- users (Head Admin only) ---------- */
+/* ---------- user management (Head Admin only) ---------- */
 function mergedUsers(){
   const m={};
   Object.entries(S.users).forEach(([uid,u])=>{m[uid]=Object.assign({},u,{_legacy:false});});
@@ -561,15 +562,12 @@ function renderUsers(){
   const me=S.user?S.user.uid:'';
   box.innerHTML=rows.map(([uid,u])=>{
     const self=uid===me,acts=[];
-    if(!u._legacy){
-      if(u.status!=='approved')acts.push('<button class="btn ok mini" data-act="approve" data-k="'+esc(uid)+'">'+esc(t('u.approve'))+'</button>');
-      if(u.status!=='rejected')acts.push('<button class="btn bad mini" data-act="reject" data-k="'+esc(uid)+'">'+esc(t('u.reject'))+'</button>');
-      if(u.status==='approved'&&!self)acts.push('<button class="btn gray mini" data-act="revoke" data-k="'+esc(uid)+'">'+esc(t('u.revoke'))+'</button>');
-    }
-    if(!self)['head','admin','staff'].forEach(r=>{if(u.role!==r)acts.push('<button class="btn gray mini" data-act="role" data-role="'+r+'" data-k="'+esc(uid)+'">'+esc(t(r==='head'?'role.setHead':r==='admin'?'role.setAdmin':'role.setStaff'))+'</button>');});
-    if(!self)acts.push('<button class="btn bad mini" data-act="deluser" data-k="'+esc(uid)+'">'+esc(t('ud.title'))+'</button>');
+    if(!u._legacy&&u.status!=='approved')acts.push('<button class="btn ok mini" data-act="approve" data-k="'+esc(uid)+'">'+esc(t('u.approve'))+'</button>');
+    if(!u._legacy&&u.status!=='rejected')acts.push('<button class="btn bad mini" data-act="reject" data-k="'+esc(uid)+'">'+esc(t('u.reject'))+'</button>');
+    acts.push('<button class="btn gray mini" data-act="edituser" data-k="'+esc(uid)+'">'+esc(t('u.edit'))+'</button>');
+    const sub=[u.title,u.dept,u.phone].filter(Boolean).join(' · ');
     const mail=u.email?esc(u.email):'<span class="muted">'+esc(t('ud.noEmail'))+'</span><br><span class="uid">'+esc(uid)+'</span>';
-    return '<tr><td><b>'+esc(u.name||'—')+'</b>'+(self?' <span class="muted">'+esc(t('c.you'))+'</span>':'')+(u._legacy?'<span class="legacy">'+esc(t('u.legacy'))+'</span>':'')+'</td><td>'+mail+'</td><td>'+esc(roleLabel(u.role))+'</td><td><span class="ust '+esc(u.status||'pending')+'">'+esc(t('c.'+(u.status||'pending')))+'</span></td><td class="mono">'+(u.createdAt?fmtD(u.createdAt):'—')+'</td><td>'+acts.join(' ')+'</td></tr>';
+    return '<tr><td><b>'+esc(u.name||'—')+'</b>'+(self?' <span class="muted">'+esc(t('c.you'))+'</span>':'')+(u._legacy?'<span class="legacy">'+esc(t('u.legacy'))+'</span>':'')+(sub?'<span class="ue-sub">'+esc(sub)+'</span>':'')+'</td><td>'+mail+'</td><td>'+esc(roleLabel(u.role))+'</td><td><span class="ust '+esc(u.status||'pending')+'">'+esc(t('c.'+(u.status||'pending')))+'</span></td><td class="mono">'+(u.createdAt?fmtD(u.createdAt):'—')+'</td><td>'+acts.join(' ')+'</td></tr>';
   }).join('')||'<tr><td colspan="6" style="text-align:center">'+esc(t('u.none'))+'</td></tr>';
   renderOverview();
 }
@@ -587,6 +585,109 @@ async function userSet(uid,patch){
     if(patch.role==='admin'||patch.role==='staff')await db().ref('admins/'+uid).remove();
     toast(t('u.updated'));
   }catch(e){werr(e);}
+}
+function mountUserEdit(){
+  if($('ueModal'))return;
+  const m=document.createElement('div');m.className='scrim';m.id='ueModal';m.setAttribute('aria-hidden','true');
+  m.innerHTML='<div class="modal" role="dialog" aria-modal="true">'
+   +'<span class="eyebrow" data-i18n="p.users"></span><h3 data-i18n="u.editTitle"></h3>'
+   +'<p class="muted" id="ueWho" style="margin-bottom:14px"></p>'
+   +'<div class="g">'
+   +'<div><label data-i18n="c.name"></label><input id="ueName" autocomplete="off"></div>'
+   +'<div><label data-i18n="u.title"></label><input id="ueTitle" data-ph="u.titlePh" autocomplete="off"></div>'
+   +'<div><label data-i18n="u.dept"></label><input id="ueDept" data-ph="u.deptPh" autocomplete="off"></div>'
+   +'<div><label data-i18n="u.phone"></label><input id="uePhone" data-ph="u.phonePh" autocomplete="off"></div>'
+   +'<div style="grid-column:1/-1"><label data-i18n="c.email"></label><input id="ueEmail" type="email" autocomplete="off"></div>'
+   +'</div>'
+   +'<p class="muted" style="margin-top:8px" data-i18n="u.emailWarn"></p>'
+   +'<div class="g" style="margin-top:10px">'
+   +'<div><label data-i18n="c.role"></label><select id="ueRole"><option value="head" data-i18n="role.head"></option><option value="admin" data-i18n="role.admin"></option><option value="staff" data-i18n="role.staff"></option></select></div>'
+   +'<div><label data-i18n="c.status"></label><select id="ueStatus"><option value="pending" data-i18n="c.pending"></option><option value="approved" data-i18n="c.approved"></option><option value="rejected" data-i18n="c.rejected"></option></select></div>'
+   +'</div>'
+   +'<p class="muted" id="ueSelfHint" style="display:none;margin-top:8px" data-i18n="u.selfLock"></p>'
+   +'<div class="att-field" style="margin-top:10px"><label data-i18n="u.note"></label><textarea id="ueNote" rows="2" data-ph="u.notePh"></textarea></div>'
+   +'<p class="muted" id="ueMeta" style="margin-top:10px"></p>'
+   +'<p class="status" id="ueMsg"></p>'
+   +'<div class="row" style="justify-content:flex-end;margin-top:16px">'
+   +'<button class="btn bad" id="ueDelete" data-i18n="ud.title"></button>'
+   +'<button class="btn gray" id="ueReset" data-i18n="u.reset"></button>'
+   +'<button class="btn gray" id="ueCancel" data-i18n="c.cancel"></button>'
+   +'<button class="btn" id="ueSave" data-i18n="u.save"></button>'
+   +'</div></div>';
+  document.body.appendChild(m);
+  I18N.apply(m);
+  m.addEventListener('click',e=>{if(e.target===m)closeUserEdit();});
+  $('ueCancel').onclick=closeUserEdit;
+  $('ueSave').onclick=saveUserEdit;
+  $('ueReset').onclick=sendUserReset;
+  $('ueDelete').onclick=()=>{const uid=S.ueUid;closeUserEdit();if(uid)openUd(uid);};
+}
+function renderUserEdit(){
+  const u=S.ueUid?mergedUsers()[S.ueUid]:null;if(!u)return;
+  const self=S.user&&S.ueUid===S.user.uid;
+  $('ueWho').innerHTML='<span class="uid">'+esc(S.ueUid)+'</span>'+(u._legacy?' <span class="legacy">'+esc(t('u.legacy'))+'</span>':'');
+  $('ueName').value=u.name||'';$('ueTitle').value=u.title||'';$('ueDept').value=u.dept||'';$('uePhone').value=u.phone||'';
+  $('ueEmail').value=u.email||'';$('ueNote').value=u.note||'';
+  $('ueRole').value=u.role||'staff';$('ueStatus').value=u.status||'pending';
+  $('ueRole').disabled=self;$('ueStatus').disabled=self;
+  $('ueSelfHint').style.display=self?'block':'none';
+  $('ueDelete').disabled=self;
+  $('ueMeta').textContent=t('u.meta',{created:u.createdAt?fmtDT(u.createdAt):'—',approved:u.approvedAt?fmtDT(u.approvedAt):t('u.neverApproved')})+(u.approvedBy?t('u.metaBy',{by:u.approvedBy}):'');
+}
+function openUserEdit(uid){
+  if(!guardHead())return;
+  mountUserEdit();
+  S.ueUid=uid;S.ueBusy=false;
+  $('ueMsg').textContent='';$('ueMsg').className='status';
+  ['ueSave','ueCancel','ueReset'].forEach(id=>$(id).disabled=false);
+  I18N.apply($('ueModal'));renderUserEdit();
+  $('ueModal').classList.add('on');document.body.style.overflow='hidden';
+  setTimeout(()=>$('ueName').focus(),30);
+}
+function closeUserEdit(){
+  if(S.ueBusy)return;
+  const m=$('ueModal');if(m)m.classList.remove('on');
+  document.body.style.overflow='';S.ueUid=null;
+}
+async function saveUserEdit(){
+  if(!guardHead()||!S.ueUid||S.ueBusy)return;
+  const uid=S.ueUid,self=S.user&&uid===S.user.uid;
+  const cur=mergedUsers()[uid]||{};
+  const name=$('ueName').value.trim(),email=$('ueEmail').value.trim();
+  const msg=$('ueMsg');
+  if(!name){msg.textContent=t('u.nameReq');msg.className='status err';return;}
+  if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){msg.textContent=t('u.emailBad');msg.className='status err';return;}
+  const role=self?(cur.role||'staff'):$('ueRole').value;
+  const status=self?(cur.status||'approved'):$('ueStatus').value;
+  const rec={
+    name:name,email:email,title:$('ueTitle').value.trim(),dept:$('ueDept').value.trim(),
+    phone:$('uePhone').value.trim(),note:$('ueNote').value.trim(),role:role,status:status
+  };
+  if(!self&&status==='approved'&&cur.status!=='approved'){rec.approvedAt=Date.now();rec.approvedBy=S.user.email||S.user.uid;}
+  S.ueBusy=true;['ueSave','ueCancel','ueReset','ueDelete'].forEach(id=>$(id).disabled=true);
+  msg.textContent=t('c.processing');msg.className='status';
+  try{
+    if(S.users[uid])await db().ref('users/'+uid).update(rec);
+    else await db().ref('users/'+uid).set(Object.assign({createdAt:Date.now()},rec));
+    if(role==='head')await db().ref('admins/'+uid).set(true);
+    else await db().ref('admins/'+uid).remove();
+    S.ueBusy=false;closeUserEdit();toast(t('u.saved'));
+  }catch(e){
+    S.ueBusy=false;['ueSave','ueCancel','ueReset'].forEach(id=>$(id).disabled=false);
+    $('ueDelete').disabled=self;
+    msg.textContent=t('c.fail')+': '+(e.message||e);msg.className='status err';
+  }
+}
+async function sendUserReset(){
+  if(!guardHead()||!S.ueUid)return;
+  const email=$('ueEmail').value.trim(),msg=$('ueMsg');
+  if(!email){msg.textContent=t('u.resetNoEmail');msg.className='status err';return;}
+  if(!confirm(t('u.resetQ',{email:email})))return;
+  msg.textContent=t('c.processing');msg.className='status';
+  try{
+    await Auth.auth.sendPasswordResetEmail(email);
+    msg.textContent=t('u.resetSent',{email:email});msg.className='status';
+  }catch(e){msg.textContent=t('c.fail')+': '+(e&&e.code||e.message||e);msg.className='status err';}
 }
 const udRec=()=>S.udUid?mergedUsers()[S.udUid]:null;
 const udToken=u=>(u&&u.email?String(u.email):String(S.udUid||''));
@@ -626,8 +727,6 @@ function mountAuditPage(){
     if(usersBtn&&usersBtn.parentNode===rail&&usersBtn.nextSibling)rail.insertBefore(b,usersBtn.nextSibling);
     else rail.appendChild(b);
   }
-  /* FIX: the .page sections live inside #console, not directly inside .main.
-     Insert relative to the real parent so insertBefore can never throw. */
   const host=$('console')||document.querySelector('.main');
   if(!host)throw new Error('#console not found');
   const sec=document.createElement('section');sec.className='page';sec.id='pg-audit';
@@ -816,7 +915,7 @@ function attachAll(){
     const st=$('dzStatus');if(st)st.textContent=snap.exists()?t('dz.loaded'):t('dz.default');
   });
   if(S.isHead){
-    bind('users',v=>{S.users=v;safe(renderUsers,'users');if(S.udUid)safe(renderUserDelete,'ud');});
+    bind('users',v=>{S.users=v;safe(renderUsers,'users');if(S.udUid)safe(renderUserDelete,'ud');if(S.ueUid&&!S.ueBusy)safe(renderUserEdit,'ue');});
     bind('admins',v=>{S.admins=v;safe(renderUsers,'users');});
     safe(attachAudit,'attachAudit');
   }
@@ -1044,9 +1143,7 @@ function wire(){
     const uid=b.dataset.k,a=b.dataset.act;
     if(a==='approve')userSet(uid,{status:'approved'});
     if(a==='reject')userSet(uid,{status:'rejected'});
-    if(a==='revoke')userSet(uid,{status:'pending'});
-    if(a==='role')userSet(uid,{role:b.dataset.role});
-    if(a==='deluser')openUd(uid);
+    if(a==='edituser')openUserEdit(uid);
   };
   $('udCancel').onclick=closeUd;
   $('udModal').addEventListener('click',e=>{if(e.target===$('udModal'))closeUd();});
@@ -1097,6 +1194,7 @@ function wire(){
   };
   document.addEventListener('keydown',e=>{
     if(e.key!=='Escape'||Verify.open())return;
+    if($('ueModal')&&$('ueModal').classList.contains('on'))closeUserEdit();
     if($('mtModal').classList.contains('on'))closeMeet();
     if($('udModal').classList.contains('on'))closeUd();
     if($('dgModal').classList.contains('on'))closeDg();
@@ -1105,6 +1203,7 @@ function wire(){
   document.addEventListener('langchange',()=>{
     I18N.apply();Verify.paint();renderEverything();
     if(S.mmUid){I18N.apply($('mtModal'));renderMeetPreview();}
+    if(S.ueUid){I18N.apply($('ueModal'));renderUserEdit();}
     if(S.udUid){I18N.apply($('udModal'));renderUserDelete();}
     if(S.dgScope)openDg(S.dgScope);
     if(S.profile)$('acRole').value=roleLabel(S.profile.role);
@@ -1118,7 +1217,7 @@ function applyRoleGates(){
   const pendCard=$('ovPend')&&$('ovPend').closest('.ovc');if(pendCard)pendCard.style.display=S.isHead?'':'none';
 }
 
-/* ---------- boot: register data first, inject DOM afterwards ---------- */
+/* ---------- boot ---------- */
 function start(user,profile){
   S.user=user;S.profile=profile;S.role=profile.role||'staff';
   S.isHead=S.role==='head';S.canManage=S.role==='head'||S.role==='admin';
@@ -1129,6 +1228,7 @@ function start(user,profile){
   $('console').style.display='';$('denied').style.display='none';
   safe(mountImportUI,'mountImportUI');
   safe(mountAuditPage,'mountAuditPage');
+  safe(mountUserEdit,'mountUserEdit');
   safe(applyRoleGates,'gates');
   S.started=true;
   safe(attachAll,'attachAll');
@@ -1150,6 +1250,7 @@ safe(renderEverything,'initial-render');
 safe(wire,'wire');
 safe(mountImportUI,'mountImportUI');
 safe(mountAuditPage,'mountAuditPage');
+safe(mountUserEdit,'mountUserEdit');
 safe(()=>{Verify.banner('q');Verify.banner('dbQ');},'banners');
 safe(applyRoleGates,'gates');
 safe(()=>showPage(location.hash.slice(1)||'overview'),'route');
