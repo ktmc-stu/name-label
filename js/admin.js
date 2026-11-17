@@ -1,6 +1,6 @@
 /* js/admin.js — Head Admin / Operational Admin console.
-   Split Excel merge keyed on Student ID, role gating, full user management
-   (profile edit, role, status, password reset, delete) and usage audit. */
+   Tables paint their own <thead> from the same column list as the body, so headers
+   and cells can never drift. Notices anchor after a whole row, never inside a flex row. */
 (function(){
 const AUTH_DELETE_ENDPOINT='';
 const LS='plAdminStation';
@@ -54,6 +54,17 @@ function insertBeforeSafe(node,anchor,fallbackParent){
   if(anchor&&anchor.parentNode===parent)parent.insertBefore(node,anchor);
   else parent.appendChild(node);
 }
+/* header + body always come from one column list */
+function paintTable(bodyId,cols,html,emptyText){
+  const body=$(bodyId);if(!body)return;
+  const table=body.closest('table');
+  if(table){
+    let head=table.querySelector('thead');
+    if(!head){head=document.createElement('thead');table.insertBefore(head,table.firstChild);}
+    head.innerHTML='<tr>'+cols.map(c=>'<th>'+esc(t(c))+'</th>').join('')+'</tr>';
+  }
+  body.innerHTML=html||'<tr><td colspan="'+cols.length+'" style="text-align:center">'+esc(emptyText||t('c.noData'))+'</td></tr>';
+}
 function download(name,obj,type){const b=new Blob([typeof obj==='string'?obj:JSON.stringify(obj,null,2)],{type:type||'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);}
 function roleLabel(r){return t(r==='head'?'role.head':r==='admin'?'role.admin':'role.staff');}
 function byLabel(v){const s=String(v||'');if(!s)return '—';const m={scan:'vf.byScan',admin:'vf.byAdmin',printer:'vf.byPrinter',remote:'vf.byRemote','admin-v':'vf.byAdminV','printer-v':'vf.byPrinterV','remote-v':'vf.byRemoteV'};return m[s]?t(m[s]):s;}
@@ -76,7 +87,7 @@ const CSS=`
 .vf-cell.big b{font-size:22px;line-height:1.3}
 .vf-hint{font-size:12.5px;color:var(--muted,#5a7391);line-height:1.65}
 .vf-row{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
-.vf-banner{display:flex;gap:10px;align-items:flex-start;background:var(--wns,#fbf2dd);border:1px solid var(--wnl,#e8d6a8);color:var(--wn,#8f6410);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.65;margin-top:10px}
+.vf-banner{display:flex;gap:10px;align-items:flex-start;background:var(--wns,#fbf2dd);border:1px solid var(--wnl,#e8d6a8);color:var(--wn,#8f6410);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.65;margin-top:10px;width:100%}
 .vf-banner svg{width:17px;height:17px;flex:none;margin-top:2px}
 .aud-bar{display:flex;gap:4px;align-items:flex-end;height:56px;margin:10px 0 4px}
 .aud-bar div{flex:1;background:var(--acs,#e5f0fc);border:1px solid var(--acl,#b4d1f2);border-radius:3px 3px 0 0;min-height:2px}
@@ -139,10 +150,13 @@ function ask(s){
   return new Promise(r=>{resolve=r;});
 }
 function banner(afterId){
-  const host=document.getElementById(afterId);if(!host||!host.parentNode)return;
+  const host=document.getElementById(afterId);if(!host)return;
   mount();
+  /* never inject inside a flex row — anchor after the whole row instead */
+  const anchor=host.closest('.row')||host;
+  const parent=anchor.parentNode;if(!parent)return;
   const d=document.createElement('div');d.className='vf-banner';d.innerHTML=ICON+'<span></span>';
-  host.parentNode.insertBefore(d,host.nextSibling);banners.push(d);paint();
+  parent.insertBefore(d,anchor.nextSibling);banners.push(d);paint();
 }
 function paint(){banners.forEach(b=>{const s=b.querySelector('span');if(s)s.textContent=t('vf.banner');});labels();}
 const open=()=>!!el&&el.classList.contains('on');
@@ -166,11 +180,11 @@ function diagText(){return JSON.stringify({at:new Date().toISOString(),uid:S.use
 function renderDiag(){
   const box=$('diBody');if(!box)return;
   const rows=PATHS.concat(['attendance/'+S.attDay]).concat(S.isHead?HEAD_PATHS:[]);
-  box.innerHTML=rows.map(p=>{
+  paintTable('diBody',['di.path','di.state','di.rows'],rows.map(p=>{
     const err=S.errors[p],ok=S.loaded[p];
     const st=err?'<span class="ust rejected">'+esc(err)+'</span>':ok?'<span class="ust approved">'+esc(t('di.ok'))+'</span>':'<span class="ust pending">'+esc(t('di.waiting'))+'</span>';
     return '<tr><td class="mono">'+esc(p)+'</td><td>'+st+'</td><td class="mono">'+(S.counts[p]!=null?S.counts[p]:'—')+'</td></tr>';
-  }).join('');
+  }).join(''));
   const list=PATHS.concat(S.isHead?HEAD_PATHS:[]),total=list.length,ok=list.filter(p=>S.loaded[p]).length,er=Object.keys(S.errors).length,chip=$('dataChip');
   if(!chip)return;
   chip.className='chip'+(er?' err':'');
@@ -325,16 +339,16 @@ function attachAtt(day){
 }
 function attRows(){const cf=$('attCls')?$('attCls').value:'';return Object.entries(S.students).filter(([k,s])=>!cf||String(s.cls||'').toUpperCase()===cf).sort(byClass);}
 function renderAttendance(){
-  const sel=$('attCls'),body=$('attBody');if(!sel||!body)return;
+  const sel=$('attCls');if(!sel||!$('attBody'))return;
   const cls=[...new Set(Object.values(S.students).map(s=>String(s.cls||'').toUpperCase()).filter(Boolean))].sort();
   const cur=sel.value;
   sel.innerHTML='<option value="">'+esc(t('c.all'))+'</option>'+cls.map(c=>'<option>'+esc(c)+'</option>').join('');
   if(cls.includes(cur))sel.value=cur;
   const rows=attRows();let p=0,a=0;rows.forEach(([k])=>{const r=S.att[k];if(r)r.status==='present'?p++:a++;});
   $('attP').textContent=t('c.present')+' '+p;$('attA').textContent=t('c.absent')+' '+a;$('attN').textContent=t('c.unmarked')+' '+(rows.length-p-a);
-  body.innerHTML=rows.slice(0,1000).map(([k,s])=>{const r=S.att[k];
-    return '<tr><td>'+esc(s.cls)+'</td><td>'+esc(s.classNo)+'</td><td><b>'+esc(s.nameEn||'')+'</b></td><td>'+esc(s.nameZh||'')+'</td><td class="mc mono">'+esc(s.meetTime||'—')+'</td><td class="mc">'+esc(s.meetTeacher||'—')+'</td><td>'+attBadge(r)+'</td><td class="mono">'+(r?fmtT(r.time):'—')+'</td><td>'+esc(byLabel(r&&r.by))+'</td><td><button class="btn ok mini" data-act="pres" data-k="'+esc(k)+'">'+esc(t('c.present'))+'</button> <button class="btn bad mini" data-act="abs" data-k="'+esc(k)+'">'+esc(t('c.absent'))+'</button>'+(r?' <button class="btn gray mini" data-act="clr" data-k="'+esc(k)+'">'+esc(t('a.clear'))+'</button>':'')+'</td></tr>';}).join('')
-    ||'<tr><td colspan="10" style="text-align:center">'+esc(t('c.noData'))+'</td></tr>';
+  const html=rows.slice(0,1000).map(([k,s])=>{const r=S.att[k];
+    return '<tr><td>'+esc(s.cls)+'</td><td>'+esc(s.classNo)+'</td><td><b>'+esc(s.nameEn||'')+'</b></td><td>'+esc(s.nameZh||'')+'</td><td class="mc mono">'+esc(s.meetTime||'—')+'</td><td class="mc">'+esc(s.meetTeacher||'—')+'</td><td>'+attBadge(r)+'</td><td class="mono">'+(r?fmtT(r.time):'—')+'</td><td>'+esc(byLabel(r&&r.by))+'</td><td><button class="btn ok mini" data-act="pres" data-k="'+esc(k)+'">'+esc(t('c.present'))+'</button> <button class="btn bad mini" data-act="abs" data-k="'+esc(k)+'">'+esc(t('c.absent'))+'</button>'+(r?' <button class="btn gray mini" data-act="clr" data-k="'+esc(k)+'">'+esc(t('a.clear'))+'</button>':'')+'</td></tr>';}).join('');
+  paintTable('attBody',['c.class','c.no','c.en','c.zh','m.time','m.teacher','c.status','c.time','a.by','c.actions'],html);
 }
 
 /* ---------- meetings ---------- */
@@ -348,7 +362,7 @@ function meetRows(){
 }
 function fillSel(el,vals,all){if(!el)return;const cur=el.value;el.innerHTML='<option value="">'+esc(all)+'</option>'+vals.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');if(vals.includes(cur))el.value=cur;}
 function renderMeetings(){
-  const body=$('mtBody');if(!body)return;
+  if(!$('mtBody'))return;
   const all=Object.values(S.students);
   const teachers=[...new Set(all.map(s=>String(s.meetTeacher||'').trim()).filter(Boolean))].sort();
   const rooms=[...new Set(all.map(s=>String(s.meetRoom||'').trim()).filter(Boolean))].sort();
@@ -357,8 +371,8 @@ function renderMeetings(){
   $('mtS1').textContent=t('m.scheduled')+' '+sc;$('mtS2').textContent=t('m.unscheduled')+' '+(all.length-sc);
   $('mtS3').textContent=t('m.teachers')+' '+teachers.length;$('mtS4').textContent=t('m.rooms')+' '+rooms.length;
   const rows=meetRows(),cell=(v,mono)=>v?'<span class="mc'+(mono?' mono':'')+'">'+esc(v)+'</span>':'<span class="mc no">'+esc(t('m.none'))+'</span>';
-  body.innerHTML=rows.slice(0,1000).map(([k,s])=>'<tr><td>'+esc(s.cls)+'</td><td>'+esc(s.classNo)+'</td><td><b>'+esc(s.nameEn||'')+'</b></td><td>'+esc(s.nameZh||'')+'</td><td>'+cell(s.meetTime,true)+'</td><td>'+cell(s.meetTeacher)+'</td><td>'+cell(s.meetRoom)+'</td><td><button class="btn gray mini" data-act="meet" data-k="'+esc(k)+'">'+esc(t('m.edit'))+'</button> <button class="btn warn mini" data-act="print" data-k="'+esc(k)+'">'+esc(t('c.print'))+'</button>'+(meetStr(s)?' <span class="mp">'+esc(t('m.scheduled'))+'</span>':'')+'</td></tr>').join('')
-    ||'<tr><td colspan="8" style="text-align:center">'+esc(Object.keys(S.students).length?t('m.empty'):t('m.noStudents'))+'</td></tr>';
+  const html=rows.slice(0,1000).map(([k,s])=>'<tr><td>'+esc(s.cls)+'</td><td>'+esc(s.classNo)+'</td><td><b>'+esc(s.nameEn||'')+'</b></td><td>'+esc(s.nameZh||'')+'</td><td>'+cell(s.meetTime,true)+'</td><td>'+cell(s.meetTeacher)+'</td><td>'+cell(s.meetRoom)+'</td><td><button class="btn gray mini" data-act="meet" data-k="'+esc(k)+'">'+esc(t('m.edit'))+'</button> <button class="btn warn mini" data-act="print" data-k="'+esc(k)+'">'+esc(t('c.print'))+'</button>'+(meetStr(s)?' <span class="mp">'+esc(t('m.scheduled'))+'</span>':'')+'</td></tr>').join('');
+  paintTable('mtBody',['c.class','c.no','c.en','c.zh','m.time','m.teacher','m.room','c.actions'],html,Object.keys(S.students).length?t('m.empty'):t('m.noStudents'));
   renderOverview();
 }
 function renderMeetPreview(){
@@ -380,9 +394,9 @@ function closeMeet(){if(S.mmBusy)return;$('mtModal').classList.remove('on');docu
 
 /* ---------- stations ---------- */
 function renderStations(){
-  const b=$('stBody');if(!b)return;
-  b.innerHTML=Object.entries(S.stations).map(([k,v])=>'<tr><td><b>'+esc(v.name)+'</b></td><td class="mono">'+esc(v.token)+'</td><td>'+esc(t('st.global'))+'</td><td><span class="dot'+(online(v)?' on':'')+'"></span> '+esc(t(online(v)?'c.online':'c.offline'))+'<br><span class="muted">'+esc(t('c.queue'))+' '+qCount(k)+'</span></td><td><button class="btn ghost mini" data-act="use" data-k="'+esc(k)+'">'+esc(t('c.selectStation'))+'</button> <button class="btn gray mini" data-act="edit" data-k="'+esc(k)+'">'+esc(t('c.edit'))+'</button> <button class="btn bad mini" data-act="del" data-k="'+esc(k)+'">'+esc(t('c.delete'))+'</button></td></tr>').join('')
-    ||'<tr><td colspan="5" style="text-align:center">'+esc(t('st.none'))+'</td></tr>';
+  if(!$('stBody'))return;
+  const html=Object.entries(S.stations).map(([k,v])=>'<tr><td><b>'+esc(v.name)+'</b></td><td class="mono">'+esc(v.token)+'</td><td>'+esc(t('st.global'))+'</td><td><span class="dot'+(online(v)?' on':'')+'"></span> '+esc(t(online(v)?'c.online':'c.offline'))+'<br><span class="muted">'+esc(t('c.queue'))+' '+qCount(k)+'</span></td><td><button class="btn ghost mini" data-act="use" data-k="'+esc(k)+'">'+esc(t('c.selectStation'))+'</button> <button class="btn gray mini" data-act="edit" data-k="'+esc(k)+'">'+esc(t('c.edit'))+'</button> <button class="btn bad mini" data-act="del" data-k="'+esc(k)+'">'+esc(t('c.delete'))+'</button></td></tr>').join('');
+  paintTable('stBody',['c.name','st.token','st.layout','c.status','c.actions'],html,t('st.none'));
 }
 
 /* ---------- students + split Excel merge ---------- */
@@ -398,14 +412,25 @@ function reindex(){
     if(zh&&!S.byName['zh:'+zh])S.byName['zh:'+zh]=k;
   });
 }
+const STU_COLS=['sd.sid','c.card','c.class','c.no','c.en','c.zh','m.time','m.teacher','m.room','c.actions'];
 function renderStudents(){
-  const body=$('dbBody');if(!body)return;
+  if(!$('dbBody'))return;
   const q=$('dbQ').value.trim();let rows=Object.entries(S.students).sort(byClass);
   if(q)rows=rows.filter(([k,s])=>LL.searchMatch(s,q));
   $('dbCount').textContent=rows.length+' '+t('c.records');
   const cell=v=>v?esc(v):'<span class="mc no">—</span>';
-  body.innerHTML=rows.slice(0,800).map(([k,s])=>'<tr><td class="mono"><b>'+esc(s.studentId||'—')+'</b></td><td class="mono">'+esc(s.cardId||'—')+'</td><td>'+esc(s.cls)+'</td><td>'+esc(s.classNo)+'</td><td>'+esc(s.nameEn||'')+'</td><td>'+esc(s.nameZh||'')+'</td><td class="mc mono">'+cell(s.meetTime)+'</td><td class="mc">'+cell(s.meetTeacher)+'</td><td class="mc">'+cell(s.meetRoom)+'</td><td><button class="btn gray mini" data-act="meet" data-k="'+esc(k)+'">'+esc(t('m.edit'))+'</button> <button class="btn warn mini" data-act="print" data-k="'+esc(k)+'">'+esc(t('c.print'))+'</button> <button class="btn bad mini" data-act="delstu" data-k="'+esc(k)+'">'+esc(t('c.delete'))+'</button></td></tr>').join('')
-    ||'<tr><td colspan="10" style="text-align:center">'+esc(t('c.noData'))+'</td></tr>';
+  const html=rows.slice(0,800).map(([k,s])=>'<tr>'
+    +'<td class="mono"><b>'+esc(s.studentId||'—')+'</b></td>'
+    +'<td class="mono">'+cell(s.cardId)+'</td>'
+    +'<td>'+esc(s.cls||'')+'</td>'
+    +'<td>'+esc(s.classNo||'')+'</td>'
+    +'<td>'+esc(s.nameEn||'')+'</td>'
+    +'<td>'+esc(s.nameZh||'')+'</td>'
+    +'<td class="mc mono">'+cell(s.meetTime)+'</td>'
+    +'<td class="mc">'+cell(s.meetTeacher)+'</td>'
+    +'<td class="mc">'+cell(s.meetRoom)+'</td>'
+    +'<td><button class="btn gray mini" data-act="meet" data-k="'+esc(k)+'">'+esc(t('m.edit'))+'</button> <button class="btn warn mini" data-act="print" data-k="'+esc(k)+'">'+esc(t('c.print'))+'</button> <button class="btn bad mini" data-act="delstu" data-k="'+esc(k)+'">'+esc(t('c.delete'))+'</button></td></tr>').join('');
+  paintTable('dbBody',STU_COLS,html);
 }
 const nk=s=>String(s==null?'':s).toLowerCase().replace(/[\s_\-()（）:：.\/]/g,'');
 const COLS={
@@ -472,7 +497,7 @@ async function runImport(file){
   const type=S.imp.type==='auto'?detectType(mapped.present):S.imp.type;
   const fields=(type==='meetings'?MEET_FIELDS:ID_FIELDS.concat(MEET_FIELDS)).filter(f=>mapped.present.includes(f));
   const det=$('impDetected');
-  if(det)det.textContent=t('imp.detected')+': '+t(type==='meetings'?'imp.meetings':'imp.students')+' · '+fields.join(', ');
+  if(det)det.textContent=t('imp.detected')+': '+t(type==='meetings'?'imp.meetings':'imp.students')+' · '+(fields.length?fields.join(', '):'—');
   let add=0,upd=0,skip=0;const unmatched=[];
   for(let i=0;i<mapped.rows.length;i++){
     const rec=mapped.rows[i];
@@ -506,38 +531,40 @@ async function runImport(file){
 }
 function mountImportUI(){
   const fileEl=$('xls');if(!fileEl)return;
-  const card=fileEl.closest('.card');if(!card||$('impType'))return;
-  const wrap=document.createElement('div');
-  wrap.innerHTML='<div class="g" style="margin:10px 0">'
-   +'<div><label data-i18n="imp.type"></label><select id="impType"><option value="auto" data-i18n="imp.auto"></option><option value="students" data-i18n="imp.students"></option><option value="meetings" data-i18n="imp.meetings"></option></select></div>'
-   +'</div>'
-   +'<label class="check" style="padding:0"><input type="checkbox" id="impBlank"><span data-i18n="imp.blank"></span></label>'
-   +'<p class="muted" style="margin-top:8px" data-i18n="imp.hint"></p>'
-   +'<p class="muted" data-i18n="imp.blankHint"></p>'
-   +'<p class="muted" id="impDetected"></p>'
-   +'<div class="row"><button class="btn gray sm" id="impUnmatched" hidden data-i18n="imp.download"></button></div>';
-  insertBeforeSafe(wrap,$('impMsg'),card);
-  I18N.apply(wrap);
-  $('impType').onchange=()=>{S.imp.type=$('impType').value;};
-  $('impBlank').onchange=()=>{S.imp.blank=$('impBlank').checked;};
-  $('impUnmatched').onclick=()=>{
-    if(!S.imp.unmatched.length)return toast(t('imp.none'));
-    if(typeof XLSX==='undefined'){download('unmatched.json',S.imp.unmatched);return;}
-    const ws=XLSX.utils.json_to_sheet(S.imp.unmatched),wb=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,ws,'Unmatched');XLSX.writeFile(wb,'unmatched-rows.xlsx');
-  };
+  const card=fileEl.closest('.card');if(!card)return;
+  if(!$('impType')){
+    const wrap=document.createElement('div');
+    wrap.innerHTML='<div class="g" style="margin:10px 0">'
+     +'<div><label data-i18n="imp.type"></label><select id="impType"><option value="auto" data-i18n="imp.auto"></option><option value="students" data-i18n="imp.students"></option><option value="meetings" data-i18n="imp.meetings"></option></select></div>'
+     +'</div>'
+     +'<label class="check" style="padding:0"><input type="checkbox" id="impBlank"><span data-i18n="imp.blank"></span></label>'
+     +'<p class="muted" style="margin-top:8px" data-i18n="imp.hint"></p>'
+     +'<p class="muted" data-i18n="imp.blankHint"></p>'
+     +'<p class="muted" id="impDetected"></p>'
+     +'<div class="row"><button class="btn gray sm" id="impUnmatched" hidden data-i18n="imp.download"></button></div>';
+    insertBeforeSafe(wrap,$('impMsg'),card);
+    I18N.apply(wrap);
+    $('impType').onchange=()=>{S.imp.type=$('impType').value;};
+    $('impBlank').onchange=()=>{S.imp.blank=$('impBlank').checked;};
+    $('impUnmatched').onclick=()=>{
+      if(!S.imp.unmatched.length)return toast(t('imp.none'));
+      if(typeof XLSX==='undefined'){download('unmatched.json',S.imp.unmatched);return;}
+      const ws=XLSX.utils.json_to_sheet(S.imp.unmatched),wb=XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb,ws,'Unmatched');XLSX.writeFile(wb,'unmatched-rows.xlsx');
+    };
+  }
   const cardEl=$('aCard');
-  if(cardEl){
+  if(cardEl&&!$('aSid')){
     const g=cardEl.closest('.g');
-    if(g&&!$('aSid')){
+    if(g){
       const d=document.createElement('div');d.innerHTML='<label data-i18n="sd.sid"></label><input id="aSid" data-ph="sd.sidPh">';
       g.insertBefore(d,g.firstChild);I18N.apply(d);
     }
   }
   const smCard=$('smCard');
-  if(smCard){
+  if(smCard&&!$('smSid')){
     const sg=smCard.closest('.g');
-    if(sg&&!$('smSid')){
+    if(sg){
       const d=document.createElement('div');d.innerHTML='<label data-i18n="sd.sid"></label><input id="smSid">';
       sg.insertBefore(d,sg.firstChild);I18N.apply(d);
       $('smSid').addEventListener('input',()=>{S.layout.sample.studentId=$('smSid').value;renderDesigner();});
@@ -555,12 +582,13 @@ function mergedUsers(){
   return m;
 }
 function renderUsers(){
-  const box=$('uBody');if(!box)return;
-  if(!S.isHead){box.innerHTML='<tr><td colspan="6" style="text-align:center">'+esc(t('audit.usersHeadOnly'))+'</td></tr>';return;}
+  if(!$('uBody'))return;
+  const cols=['c.name','c.email','c.role','c.status','c.requested','c.actions'];
+  if(!S.isHead){paintTable('uBody',cols,'',t('audit.usersHeadOnly'));return;}
   const map=mergedUsers(),rows=Object.entries(map).filter(([k,u])=>S.uFilter==='all'||u.status===S.uFilter).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
   $('uCount').textContent=rows.length+' '+t('c.users');
   const me=S.user?S.user.uid:'';
-  box.innerHTML=rows.map(([uid,u])=>{
+  const html=rows.map(([uid,u])=>{
     const self=uid===me,acts=[];
     if(!u._legacy&&u.status!=='approved')acts.push('<button class="btn ok mini" data-act="approve" data-k="'+esc(uid)+'">'+esc(t('u.approve'))+'</button>');
     if(!u._legacy&&u.status!=='rejected')acts.push('<button class="btn bad mini" data-act="reject" data-k="'+esc(uid)+'">'+esc(t('u.reject'))+'</button>');
@@ -568,7 +596,8 @@ function renderUsers(){
     const sub=[u.title,u.dept,u.phone].filter(Boolean).join(' · ');
     const mail=u.email?esc(u.email):'<span class="muted">'+esc(t('ud.noEmail'))+'</span><br><span class="uid">'+esc(uid)+'</span>';
     return '<tr><td><b>'+esc(u.name||'—')+'</b>'+(self?' <span class="muted">'+esc(t('c.you'))+'</span>':'')+(u._legacy?'<span class="legacy">'+esc(t('u.legacy'))+'</span>':'')+(sub?'<span class="ue-sub">'+esc(sub)+'</span>':'')+'</td><td>'+mail+'</td><td>'+esc(roleLabel(u.role))+'</td><td><span class="ust '+esc(u.status||'pending')+'">'+esc(t('c.'+(u.status||'pending')))+'</span></td><td class="mono">'+(u.createdAt?fmtD(u.createdAt):'—')+'</td><td>'+acts.join(' ')+'</td></tr>';
-  }).join('')||'<tr><td colspan="6" style="text-align:center">'+esc(t('u.none'))+'</td></tr>';
+  }).join('');
+  paintTable('uBody',cols,html,t('u.none'));
   renderOverview();
 }
 async function userSet(uid,patch){
@@ -623,7 +652,7 @@ function mountUserEdit(){
   $('ueDelete').onclick=()=>{const uid=S.ueUid;closeUserEdit();if(uid)openUd(uid);};
 }
 function renderUserEdit(){
-  const u=S.ueUid?mergedUsers()[S.ueUid]:null;if(!u)return;
+  const u=S.ueUid?mergedUsers()[S.ueUid]:null;if(!u||!$('ueModal'))return;
   const self=S.user&&S.ueUid===S.user.uid;
   $('ueWho').innerHTML='<span class="uid">'+esc(S.ueUid)+'</span>'+(u._legacy?' <span class="legacy">'+esc(t('u.legacy'))+'</span>':'');
   $('ueName').value=u.name||'';$('ueTitle').value=u.title||'';$('ueDept').value=u.dept||'';$('uePhone').value=u.phone||'';
@@ -659,10 +688,7 @@ async function saveUserEdit(){
   if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){msg.textContent=t('u.emailBad');msg.className='status err';return;}
   const role=self?(cur.role||'staff'):$('ueRole').value;
   const status=self?(cur.status||'approved'):$('ueStatus').value;
-  const rec={
-    name:name,email:email,title:$('ueTitle').value.trim(),dept:$('ueDept').value.trim(),
-    phone:$('uePhone').value.trim(),note:$('ueNote').value.trim(),role:role,status:status
-  };
+  const rec={name:name,email:email,title:$('ueTitle').value.trim(),dept:$('ueDept').value.trim(),phone:$('uePhone').value.trim(),note:$('ueNote').value.trim(),role:role,status:status};
   if(!self&&status==='approved'&&cur.status!=='approved'){rec.approvedAt=Date.now();rec.approvedBy=S.user.email||S.user.uid;}
   S.ueBusy=true;['ueSave','ueCancel','ueReset','ueDelete'].forEach(id=>$(id).disabled=true);
   msg.textContent=t('c.processing');msg.className='status';
