@@ -1,11 +1,12 @@
-/* js/i18n-audit.js — roles, Student ID, split-Excel merge, audit & telemetry strings.
-   Loaded automatically by js/auth.js. */
+/* js/i18n-audit.js — roles, Student ID, split-Excel merge, user management, audit strings.
+   Loaded automatically by js/auth.js. Overrides p.users / d.users so the page reads
+   「用戶管理 / User management」 instead of the old approval-only wording. */
 (function(){
 if(!window.I18N)return;
 I18N.extend({zh:{
 'role.head':'總管理員','role.admin':'營運管理員','role.staff':'操作員',
 'role.headD':'全部權限，並可檢視所有人員的使用記錄、登入 IP、停留時間及操作明細。',
-'role.adminD':'可管理學生、會面、站點、排版及考勤；不能檢視使用記錄或審批用戶。',
+'role.adminD':'可管理學生、會面、站點、排版及考勤；不能檢視使用記錄或管理用戶。',
 'role.staffD':'只可使用遙控終端及列印端點名與列印。',
 'role.setHead':'設為總管理員','role.setAdmin':'設為營運管理員','role.setStaff':'設為操作員',
 'au.notice':'本系統會記錄登入、操作及頁面停留時間，作保安及稽核用途。',
@@ -18,6 +19,24 @@ I18N.extend({zh:{
 'imp.matchBy':'配對方式','imp.bySid':'學生編號','imp.byCard':'卡號','imp.byClass':'班別＋班號','imp.byName':'姓名','imp.new':'新建',
 'imp.needSid':'會面檔建議包含 Student ID 欄，否則只能靠班別班號或姓名配對。',
 'imp.noStudent':'會面檔找不到對應學生，已列入未配對列，不會建立空白學生。',
+
+'p.users':'用戶管理',
+'d.users':'管理所有帳戶：編輯姓名、職銜、部門、聯絡電話及備註，設定角色與狀態，發送重設密碼電郵，或刪除帳戶。新帳戶一律待批准。只有總管理員可使用本頁。',
+'q.users':'編輯用戶資料、角色及審批',
+'u.pending':'待批','u.approved':'已批','u.rejected':'已拒','u.approve':'批准','u.reject':'拒絕','u.revoke':'停用',
+'u.makeAdmin':'設為營運管理員','u.makeStaff':'設為操作員','u.none':'此檢視沒有用戶','u.noSelf':'不能修改自己的角色或狀態',
+'u.rejectQ':'確定拒絕此帳戶？此帳戶將無法存取系統。','u.updated':'已更新帳戶','u.legacy':'Firebase 管理員',
+'u.foot':'按「編輯資料」可修改姓名、職銜、部門、電話、備註、角色及狀態，亦可發送重設密碼電郵或刪除帳戶。標示為「Firebase 管理員」的帳戶只在 admins 節點設定，首次編輯並儲存後會建立完整用戶記錄。',
+'u.edit':'編輯資料','u.editTitle':'編輯用戶資料','u.save':'儲存用戶資料','u.saved':'已儲存用戶資料',
+'u.title':'職銜','u.titlePh':'例如 副校長','u.dept':'部門／科組','u.deptPh':'例如 學務組','u.phone':'聯絡電話','u.phonePh':'例如 2345 6789',
+'u.note':'備註','u.notePh':'內部備註，只有總管理員可見',
+'u.emailWarn':'此欄只更新系統內的用戶記錄。實際登入電郵由 Firebase Authentication 管理，如需更改登入電郵，請到 Firebase Console → Authentication → Users 修改。',
+'u.reset':'發送重設密碼電郵','u.resetQ':'確定發送重設密碼電郵至 {email}？','u.resetSent':'已發送重設密碼電郵至 {email}',
+'u.resetNoEmail':'請先填寫電郵。','u.selfLock':'為免鎖定自己，不能修改自己的角色或狀態。',
+'u.meta':'建立於 {created} · 批准於 {approved}','u.metaBy':' · 批准者 {by}','u.neverApproved':'尚未批准',
+'u.nameReq':'請填寫姓名。','u.emailBad':'電郵格式不正確。',
+'audit.usersHeadOnly':'只有總管理員可管理用戶、編輯資料及設定角色。',
+
 'audit.nav':'使用記錄','audit.title':'使用記錄及稽核','audit.desc':'只有總管理員可檢視。系統記錄登入、IP、裝置、頁面停留時間、每次資料寫入及操作點擊。',
 'audit.live':'在線情況','audit.sessions':'登入記錄','audit.activity':'操作記錄','audit.byuser':'人員統計',
 'audit.user':'人員','audit.kind':'類型','audit.from':'由','audit.to':'至','audit.search':'搜尋路徑／內容',
@@ -30,12 +49,29 @@ I18N.extend({zh:{
 'audit.k.db':'資料寫入','audit.k.ui':'介面點擊','audit.k.auth':'登入／登出','audit.k.print':'列印','audit.k.error':'錯誤','audit.k.view':'頁面','audit.k.session':'工作階段','audit.k.all':'全部類型',
 'audit.refresh':'重新整理','audit.allUsers':'全部人員','audit.privacy':'所有操作人員均會看到「本系統會記錄活動」提示。IP 由外部服務查詢，如被封鎖會顯示 unknown。',
 'audit.ipUnknown':'unknown（無法取得）','audit.viewDetail':'檢視','audit.back':'返回','audit.sessionOf':'工作階段','audit.noSession':'找不到工作階段。',
-'audit.headOnly':'只有總管理員可檢視使用記錄。','audit.usersHeadOnly':'只有總管理員可審批用戶及設定角色。',
+'audit.headOnly':'只有總管理員可檢視使用記錄。',
+
+'ud.eyebrow':'永久刪除','ud.title':'刪除帳戶','ud.desc':'此操作會移除該用戶的系統設定檔及管理員權限，並即時撤銷所有存取權。',
+'ud.what':'將會移除','ud.r1':'用戶設定檔（users）','ud.r2':'管理員權限（admins）','ud.r3':'Firebase Authentication 登入紀錄',
+'ud.manual':'此系統為純前端應用，無法直接刪除其他用戶的 Firebase Authentication 登入紀錄。移除設定檔後，該用戶仍可登入，但會顯示為「帳戶尚未設定」，且無法讀取或寫入任何資料。如需徹底移除登入紀錄，請到 Firebase Console → Authentication → Users 刪除該用戶。',
+'ud.willDelete':'已設定刪除服務，登入紀錄會一併刪除。','ud.console':'開啟 Firebase Console — Authentication',
+'ud.typeEmail':'輸入該用戶的電郵以確認','ud.typeUid':'輸入該用戶的 UID 以確認','ud.noSelf':'不能刪除自己的帳戶',
+'ud.adminWarn':'注意：此帳戶擁有管理員權限。刪除前請確認系統仍有其他管理員。','ud.again':'如該用戶再次登入並提交申請，會重新出現在「待批」名單，需要再次審批。',
+'ud.done':'已移除設定檔及存取權；登入紀錄請到 Firebase Console 刪除。','ud.allDone':'已刪除帳戶及登入紀錄','ud.fail':'刪除帳戶失敗','ud.ok':'刪除帳戶','ud.noEmail':'（沒有電郵紀錄）','ud.uid':'用戶 ID',
+'di.title':'資料載入診斷','di.desc':'下表顯示每個資料節點的連線狀態。若出現 PERMISSION_DENIED，請發布最新 rules.json 並確認此帳戶已獲授權。',
+'di.path':'資料路徑','di.state':'狀態','di.rows':'筆數','di.copy':'複製診斷報告','di.copied':'已複製診斷報告','di.ok':'已載入','di.waiting':'等待中',
+'di.hint':'常見原因：1) 尚未發布最新規則；2) 帳戶未列入 admins 或 users；3) users 記錄缺少 status／role。此頁會逐項顯示錯誤，不會整頁空白。',
+'dg.zone':'危險操作','dg.zoneD':'永久刪除 Firebase 資料；預設先下載 JSON 備份。不會刪除用戶帳戶。','dg.delStu':'刪除所有學生','dg.delAll':'刪除所有資料',
+'dg.permanent':'永久刪除','dg.backupFirst':'先下載備份','dg.type':'輸入 {phrase} 以確認','dg.stuDesc':'只刪除學生資料庫。',
+'dg.allDesc':'刪除學生、站點、隊列、考勤及排版（不會刪除用戶帳戶）。','dg.stuBtn':'刪除學生','dg.allBtn':'刪除全部','dg.fail':'刪除失敗',
+'bn.title':'部分資料無法載入','bn.hint':'請發布最新 rules.json，並確認此帳戶已列入 admins/{uid} = true 或 users/{uid}.role = head。','bn.dismiss':'隱藏','bn.runtime':'頁面執行錯誤',
+'dn.title':'此帳戶沒有管理權限','dn.body':'此帳戶已批准但不是管理員，無法進入管理端。請使用管理員帳戶，或聯絡總管理員把角色設為 admin 或 head。',
+'dt.ok':'資料 {n}/{total}','dt.err':'資料錯誤 {n}','dt.wait':'資料載入中','dt.idle':'未連線',
 'vf.sid':'學生編號'
 },en:{
 'role.head':'Head Admin','role.admin':'Operational Admin','role.staff':'Operator',
 'role.headD':'Full access, plus every user’s usage records, login IP, dwell time and action detail.',
-'role.adminD':'Manages students, meetings, stations, layout and attendance; cannot view usage records or approve users.',
+'role.adminD':'Manages students, meetings, stations, layout and attendance; cannot view usage records or manage users.',
 'role.staffD':'May only mark attendance and print via Remote and Printer.',
 'role.setHead':'Make Head Admin','role.setAdmin':'Make Operational Admin','role.setStaff':'Make Operator',
 'au.notice':'This system records sign-ins, actions and page dwell time for security and audit.',
@@ -48,6 +84,24 @@ I18N.extend({zh:{
 'imp.matchBy':'Matched by','imp.bySid':'Student ID','imp.byCard':'Card ID','imp.byClass':'Class + No','imp.byName':'Name','imp.new':'New record',
 'imp.needSid':'Include a Student ID column in the meeting file; otherwise matching relies on class/class no or name.',
 'imp.noStudent':'No matching student for this meeting row. It is listed as unmatched; no blank student is created.',
+
+'p.users':'User management',
+'d.users':'Manage every account: edit name, title, department, phone and notes, set role and status, send a password-reset email, or delete the account. New accounts stay pending until approved. Head Admin only.',
+'q.users':'Edit user profiles, roles and approvals',
+'u.pending':'Pending','u.approved':'Approved','u.rejected':'Rejected','u.approve':'Approve','u.reject':'Reject','u.revoke':'Revoke',
+'u.makeAdmin':'Make Operational Admin','u.makeStaff':'Make Operator','u.none':'No users in this view','u.noSelf':'You cannot change your own role or status',
+'u.rejectQ':'Reject this account? It will lose access.','u.updated':'Account updated','u.legacy':'Firebase admin',
+'u.foot':'Press “Edit profile” to change name, title, department, phone, notes, role and status, send a password-reset email, or delete the account. Accounts marked “Firebase admin” exist only in the admins node; saving an edit creates their full user record.',
+'u.edit':'Edit profile','u.editTitle':'Edit user profile','u.save':'Save user','u.saved':'User profile saved',
+'u.title':'Title','u.titlePh':'e.g. Vice Principal','u.dept':'Department','u.deptPh':'e.g. Student Affairs','u.phone':'Phone','u.phonePh':'e.g. 2345 6789',
+'u.note':'Notes','u.notePh':'Internal note, visible to Head Admin only',
+'u.emailWarn':'This field only updates the record inside the system. The actual login email lives in Firebase Authentication; to change the login email use Firebase Console → Authentication → Users.',
+'u.reset':'Send password-reset email','u.resetQ':'Send a password-reset email to {email}?','u.resetSent':'Password-reset email sent to {email}',
+'u.resetNoEmail':'Enter an email first.','u.selfLock':'To avoid locking yourself out, you cannot change your own role or status.',
+'u.meta':'Created {created} · Approved {approved}','u.metaBy':' · by {by}','u.neverApproved':'not yet approved',
+'u.nameReq':'Enter a name.','u.emailBad':'Invalid email format.',
+'audit.usersHeadOnly':'Only the Head Admin can manage users, edit profiles and set roles.',
+
 'audit.nav':'Usage records','audit.title':'Usage records & audit','audit.desc':'Head Admin only. The system records sign-ins, IP, device, page dwell time, every data write and every action click.',
 'audit.live':'Live presence','audit.sessions':'Sessions','audit.activity':'Activity','audit.byuser':'Per user',
 'audit.user':'User','audit.kind':'Kind','audit.from':'From','audit.to':'To','audit.search':'Search path / content',
@@ -60,7 +114,24 @@ I18N.extend({zh:{
 'audit.k.db':'Data write','audit.k.ui':'UI click','audit.k.auth':'Sign in/out','audit.k.print':'Print','audit.k.error':'Error','audit.k.view':'Page view','audit.k.session':'Session','audit.k.all':'All kinds',
 'audit.refresh':'Refresh','audit.allUsers':'All users','audit.privacy':'Every operator sees a notice that activity is recorded. IP is resolved by an external service; if blocked it shows unknown.',
 'audit.ipUnknown':'unknown (unavailable)','audit.viewDetail':'View','audit.back':'Back','audit.sessionOf':'Session','audit.noSession':'Session not found.',
-'audit.headOnly':'Only the Head Admin can view usage records.','audit.usersHeadOnly':'Only the Head Admin can approve users and set roles.',
+'audit.headOnly':'Only the Head Admin can view usage records.',
+
+'ud.eyebrow':'Permanent deletion','ud.title':'Delete account','ud.desc':'This removes the user profile and admin rights, and revokes all access immediately.',
+'ud.what':'Will be removed','ud.r1':'User profile (users)','ud.r2':'Admin rights (admins)','ud.r3':'Firebase Authentication login record',
+'ud.manual':'This is a front-end only system and cannot delete another user’s Firebase Authentication record. After the profile is removed the user can still sign in, but will see “Account not provisioned” and cannot read or write data. To remove the login record completely, delete the user in Firebase Console → Authentication → Users.',
+'ud.willDelete':'A deletion service is configured, so the login record is removed as well.','ud.console':'Open Firebase Console — Authentication',
+'ud.typeEmail':'Type the user’s email to confirm','ud.typeUid':'Type the user’s UID to confirm','ud.noSelf':'You cannot delete your own account',
+'ud.adminWarn':'Warning: this account has admin rights. Make sure another administrator remains.','ud.again':'If the user signs in again and submits a request, they reappear in the Pending list.',
+'ud.done':'Profile and access removed. Delete the login record in Firebase Console.','ud.allDone':'Account and login record deleted','ud.fail':'Failed to delete account','ud.ok':'Delete account','ud.noEmail':'(no email on record)','ud.uid':'User ID',
+'di.title':'Data-load diagnostics','di.desc':'The table shows the connection state of every data node. If you see PERMISSION_DENIED, publish the latest rules.json and confirm this account is authorised.',
+'di.path':'Data path','di.state':'State','di.rows':'Rows','di.copy':'Copy diagnostics','di.copied':'Diagnostics copied','di.ok':'Loaded','di.waiting':'Waiting',
+'di.hint':'Common causes: 1) latest rules not published; 2) account not listed in admins or users; 3) the users record has no status/role. Each node reports its own error here, so the page never goes blank.',
+'dg.zone':'Danger zone','dg.zoneD':'Permanently delete Firebase data. A JSON backup is downloaded first. User accounts are not deleted.','dg.delStu':'Delete all students','dg.delAll':'Delete all data',
+'dg.permanent':'Permanent deletion','dg.backupFirst':'Download backup first','dg.type':'Type {phrase} to confirm','dg.stuDesc':'Deletes the student database only.',
+'dg.allDesc':'Deletes students, stations, queues, attendance and layout (not user accounts).','dg.stuBtn':'Delete students','dg.allBtn':'Delete everything','dg.fail':'Delete failed',
+'bn.title':'Some data could not be loaded','bn.hint':'Publish the latest rules.json and confirm this account is listed as admins/{uid} = true or users/{uid}.role = head.','bn.dismiss':'Dismiss','bn.runtime':'Page runtime error',
+'dn.title':'This account has no admin rights','dn.body':'The account is approved but is not an admin. Use an admin account or ask the Head Admin to set your role to admin or head.',
+'dt.ok':'Data {n}/{total}','dt.err':'Data error {n}','dt.wait':'Loading data','dt.idle':'Not connected',
 'vf.sid':'Student ID'
 }});
 try{document.dispatchEvent(new CustomEvent('langchange'));}catch(e){}
