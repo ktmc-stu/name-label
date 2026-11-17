@@ -1,6 +1,4 @@
-/* js/remote.js — handheld terminal for helpers.
-   Manual entry always requires verbal confirmation with the parent before
-   printing or marking attendance; the confirmation is stored in the audit trail. */
+/* js/remote.js — handheld terminal. Student ID is the identity shown to the parent. */
 (function(){
 const LS='plRemoteStation';
 const S={students:{},stations:{},queues:{},station:localStorage.getItem(LS)||null,att:{},attDay:'',attRef:null,busy:false};
@@ -23,17 +21,16 @@ function safe(fn,l){try{fn();}catch(e){console.error(l,e);}}
 function sess(m){const d=document.createElement('div');d.textContent='['+fmtT(Date.now())+'] '+m;const s=$('session');if(s.firstChild&&s.firstChild.textContent==='—')s.innerHTML='';s.prepend(d);while(s.children.length>14)s.lastChild.remove();}
 const attBadge=a=>a?(a.status==='present'?'<span class="ab p">'+esc(t('c.present'))+' <i>'+fmtT(a.time)+'</i></span>':'<span class="ab a">'+esc(t('c.absent'))+' <i>'+fmtT(a.time)+'</i></span>'):'<span class="ab">'+esc(t('c.unmarked'))+'</span>';
 
-/* ================= parent verification ================= */
 const Verify=(function(){
 const CSS=`
 .vf-scrim{position:fixed;inset:0;z-index:1500;background:rgba(15,35,64,.52);display:none;align-items:center;justify-content:center;padding:18px}
 .vf-scrim.on{display:flex}
-.vf-modal{width:min(580px,100%);max-height:calc(100vh - 36px);overflow:auto;background:var(--surface,#fff);border:1px solid var(--line,#dae6f4);border-radius:14px;box-shadow:0 26px 70px rgba(15,35,64,.32);padding:24px}
+.vf-modal{width:min(600px,100%);max-height:calc(100vh - 36px);overflow:auto;background:var(--surface,#fff);border:1px solid var(--line,#dae6f4);border-radius:14px;box-shadow:0 26px 70px rgba(15,35,64,.32);padding:24px}
 .vf-eyebrow{display:inline-block;font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--wn,#8f6410)}
 .vf-modal h3{font-size:19px;margin:6px 0 12px;font-weight:600}
 .vf-q{background:var(--wns,#fbf2dd);border:1px solid var(--wnl,#e8d6a8);border-radius:10px;padding:14px 16px;color:var(--wn,#8f6410);font-size:16.5px;line-height:1.75;font-weight:500}
 .vf-q2{margin-top:10px;font-size:14.5px;line-height:1.7}
-.vf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(136px,1fr));gap:10px;margin:14px 0}
+.vf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;margin:14px 0}
 .vf-cell{background:var(--panel,#f6faff);border:1px solid var(--line,#dae6f4);border-radius:8px;padding:9px 12px;min-width:0}
 .vf-cell span{display:block;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--faint,#8ba1bd);margin-bottom:2px}
 .vf-cell b{display:block;font-size:15px;font-weight:600;word-break:break-word}
@@ -53,8 +50,7 @@ function mount(){
   el.innerHTML='<div class="vf-modal" role="dialog" aria-modal="true" aria-labelledby="vfTitle">'
     +'<span class="vf-eyebrow" id="vfEye"></span><h3 id="vfTitle"></h3>'
     +'<div class="vf-q"><div id="vfQ1"></div><div class="vf-q2" id="vfQ2"></div></div>'
-    +'<div class="vf-grid" id="vfGrid"></div>'
-    +'<p class="vf-hint" id="vfHint"></p>'
+    +'<div class="vf-grid" id="vfGrid"></div><p class="vf-hint" id="vfHint"></p>'
     +'<div class="vf-row"><button class="btn bad" id="vfNo" type="button"></button><button class="btn" id="vfYes" type="button"></button></div></div>';
   document.body.appendChild(el);
   el.addEventListener('click',e=>{if(e.target===el)done(false);});
@@ -76,17 +72,16 @@ function done(v){
   el.classList.remove('on');el.setAttribute('aria-hidden','true');document.body.style.overflow='';
   const r=resolve;resolve=null;if(r)r(v);
 }
-function cell(label,value,big){return '<div class="vf-cell'+(big?' big':'')+'"><span>'+esc(label)+'</span><b>'+esc(value||'—')+'</b></div>';}
+const cell=(l,v,big)=>'<div class="vf-cell'+(big?' big':'')+'"><span>'+esc(l)+'</span><b>'+esc(v||'—')+'</b></div>';
 function fill(s){
   const nameEn=String(s.nameEn||''),nameZh=String(s.nameZh||''),cls=String(s.cls||''),no=String(s.classNo||'');
   document.getElementById('vfQ1').textContent=t('vf.ask',{nameEn:nameEn||'—',nameZh:nameZh||'—',cls:cls||'—',no:no||'—'});
-  const has=LL.meetLine(s);
-  document.getElementById('vfQ2').textContent=has
+  document.getElementById('vfQ2').textContent=LL.meetLine(s)
     ? t('vf.askMeet',{time:String(s.meetTime||'—'),teacher:String(s.meetTeacher||'—'),room:String(s.meetRoom||'—')})
     : t('vf.noMeet');
   document.getElementById('vfGrid').innerHTML=
      cell(t('c.zh'),nameZh,true)+cell(t('c.en'),nameEn)
-    +cell(t('c.class'),cls)+cell(t('c.no'),no)
+    +cell(t('sd.sid'),String(s.studentId||''))+cell(t('c.class'),cls)+cell(t('c.no'),no)
     +cell(t('c.card'),String(s.cardId||'')||t('vf.noCard'))
     +cell(t('m.time'),String(s.meetTime||'')||t('m.none'))
     +cell(t('m.teacher'),String(s.meetTeacher||'')||t('m.none'))
@@ -103,17 +98,14 @@ function ask(s){
 function banner(afterId){
   const host=document.getElementById(afterId);if(!host||!host.parentNode)return;
   mount();
-  const d=document.createElement('div');d.className='vf-banner';
-  d.innerHTML=ICON+'<span></span>';
-  host.parentNode.insertBefore(d,host.nextSibling);
-  banners.push(d);paint();
+  const d=document.createElement('div');d.className='vf-banner';d.innerHTML=ICON+'<span></span>';
+  host.parentNode.insertBefore(d,host.nextSibling);banners.push(d);paint();
 }
 function paint(){banners.forEach(b=>{const s=b.querySelector('span');if(s)s.textContent=t('vf.banner');});labels();}
-function open(){return !!el&&el.classList.contains('on');}
+const open=()=>!!el&&el.classList.contains('on');
 return {ask,banner,paint,open};
 })();
 
-/* ================= data ================= */
 function renderStats(){
   let p=0,a=0;Object.values(S.att).forEach(r=>r.status==='present'?p++:a++);
   const mc=Object.values(S.students).filter(s=>LL.meetLine(s)).length;
@@ -144,16 +136,14 @@ function attachAtt(day){
 }
 async function markAtt(k,status,by){
   const s=S.students[k];if(!s)return;
-  await db().ref('parents/attendance/'+S.attDay+'/'+k).set({status,time:Date.now(),by:by||'remote',cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',cardId:s.cardId||''});
+  await db().ref('parents/attendance/'+S.attDay+'/'+k).set({status,time:Date.now(),by:by||'remote',studentId:String(s.studentId||''),cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',cardId:s.cardId||''});
 }
 function doSearch(){
   const q=$('q').value.trim();
   if(!q){$('res').innerHTML='<p class="muted" style="margin-top:10px">'+esc(t('c.typeSearch'))+'</p>';return;}
   const hits=Object.entries(S.students).filter(([k,s])=>LL.searchMatch(s,q)).slice(0,30);
-  $('res').innerHTML=hits.map(([k,s])=>'<div class="stu-card"><div class="stu-head"><span class="stu-name">'+esc(s.nameEn||s.nameZh)+'</span><span class="stu-sub">'+esc(s.nameZh||'')+'</span><span class="stu-sub">'+esc(s.cls||'')+' '+esc(s.classNo||'')+'</span>'+attBadge(S.att[k])+'</div>'+meetHtml(s)+'<div class="act-row"><button class="btn lg" data-act="print" data-k="'+esc(k)+'">'+esc(t('rm.presentPrint'))+'</button><button class="btn lg ok" data-act="pres" data-k="'+esc(k)+'">'+esc(t('rm.presentOnly'))+'</button><button class="btn lg bad" data-act="abs" data-k="'+esc(k)+'">'+esc(t('rm.absentOnly'))+'</button></div></div>').join('')||'<p class="muted" style="margin-top:10px">'+esc(t('c.noMatch'))+'</p>';
+  $('res').innerHTML=hits.map(([k,s])=>'<div class="stu-card"><div class="stu-head"><span class="stu-name">'+esc(s.nameEn||s.nameZh)+'</span><span class="stu-sub">'+esc(s.nameZh||'')+'</span><span class="stu-sub">'+esc(t('sd.sid'))+' '+esc(s.studentId||'—')+' · '+esc(s.cls||'')+' '+esc(s.classNo||'')+'</span>'+attBadge(S.att[k])+'</div>'+meetHtml(s)+'<div class="act-row"><button class="btn lg" data-act="print" data-k="'+esc(k)+'">'+esc(t('rm.presentPrint'))+'</button><button class="btn lg ok" data-act="pres" data-k="'+esc(k)+'">'+esc(t('rm.presentOnly'))+'</button><button class="btn lg bad" data-act="abs" data-k="'+esc(k)+'">'+esc(t('rm.absentOnly'))+'</button></div></div>').join('')||'<p class="muted" style="margin-top:10px">'+esc(t('c.noMatch'))+'</p>';
 }
-
-/* ================= wiring ================= */
 function wire(){
   $('stBtn').onclick=()=>{renderStation();$('stModal').classList.add('on');};
   $('stClose').onclick=()=>$('stModal').classList.remove('on');
@@ -162,39 +152,32 @@ function wire(){
   $('stModal').addEventListener('click',e=>{if(e.target===$('stModal'))$('stModal').classList.remove('on');});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!Verify.open())$('stModal').classList.remove('on');});
   $('q').addEventListener('input',()=>safe(doSearch,'search'));
-
   $('res').onclick=async e=>{
     const b=e.target.closest('button[data-act]');if(!b||!needApproved())return;
     const k=b.dataset.k,s=S.students[k];if(!s)return;
     const a=b.dataset.act;
-    /* Mandatory: ask the parent to confirm the manually found student. */
-    const ok=await Verify.ask(s);
-    if(!ok){toast(t('vf.cancelled'));sess((s.nameEn||s.nameZh)+' — '+t('vf.cancel'));return;}
+    if(!await Verify.ask(s)){toast(t('vf.cancelled'));sess((s.nameEn||s.nameZh)+' — '+t('vf.cancel'));return;}
     const who=s.nameEn||s.nameZh;
     if(a==='print'){
       if(S.busy)return;S.busy=true;b.disabled=true;
       try{
         await markAtt(k,'present','remote-v');
         if(S.station&&S.stations[S.station]){
-          await new Promise(r=>setTimeout(r,1200));
-          await db().ref('parents/queues/'+S.station).push(Object.assign({type:'label',cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',cardId:s.cardId||''},meetOf(s),{copies:1,createdAt:Date.now(),done:false}));
+          await db().ref('parents/queues/'+S.station).push(Object.assign({type:'label',studentId:String(s.studentId||''),cls:s.cls||'',classNo:s.classNo||'',nameEn:s.nameEn||'',nameZh:s.nameZh||'',cardId:s.cardId||''},meetOf(s),{copies:1,createdAt:Date.now(),done:false}));
           toast(t('vf.verifiedToast')+' · '+t('rm.sentTo')+' '+S.stations[S.station].name);
           sess(who+' '+t('rm.sPrint')+' → '+S.stations[S.station].name+(LL.meetLine(s)?' · '+LL.meetLine(s):'')+' '+t('vf.logVerified'));
         }else{toast(t('vf.verifiedToast')+' · '+t('rm.noPrint'));sess(who+' '+t('rm.sNoPrint')+' '+t('vf.logVerified'));}
       }catch(x){werr(x);}finally{S.busy=false;b.disabled=false;}
     }else{
-      try{
-        await markAtt(k,a==='pres'?'present':'absent','remote-v');
+      try{await markAtt(k,a==='pres'?'present':'absent','remote-v');
         toast(t('vf.verifiedToast')+' · '+(a==='pres'?t('rm.markedPresent'):t('rm.markedAbsent'))+' '+who);
         sess(who+' '+t(a==='pres'?'rm.sPresent':'rm.sAbsent')+' '+t('vf.logVerified'));
       }catch(x){werr(x);}
     }
   };
-
   document.addEventListener('langchange',()=>{I18N.apply();Verify.paint();renderStats();renderStation();doSearch();});
   setInterval(()=>safe(renderStation,'station'),15000);
 }
-
 I18N.apply();I18N.mountToggle();
 renderStats();renderStation();doSearch();
 wire();
