@@ -1,15 +1,16 @@
 /* js/admin.js — Head Admin / Operational Admin console.
-   Tables paint their own <thead> from the same column list as the body, so headers
-   and cells can never drift. Notices anchor after a whole row, never inside a flex row. */
+   Teacher and room are pick-only everywhere: the free-text inputs are replaced with
+   selects backed by parents/directory, managed from the Meetings page. */
 (function(){
 const AUTH_DELETE_ENDPOINT='';
 const LS='plAdminStation';
-const PATHS=['students','stations','queues','labelLayout'];
+const PATHS=['students','directory','stations','queues','labelLayout'];
 const HEAD_PATHS=['users','admins','audit','sessions','presence'];
 const PAGES=['overview','operate','designer','attendance','meetings','stations','students','users','audit','settings'];
 const S={
   user:null,profile:null,role:'staff',canManage:false,isHead:false,started:false,
   students:{},bySid:{},byCard:{},byClass:{},byName:{},stations:{},queues:{},att:{},attDay:'',users:{},admins:{},
+  dir:{teachers:{},rooms:{}},dirEdit:null,
   audit:[],sessions:{},presence:{},auditView:'live',auditFilter:{uid:'',kind:'',from:'',to:'',q:''},auditSid:null,
   layout:LL.norm(null),selBox:null,zoom:1.4,drag:null,
   station:localStorage.getItem(LS)||null,unknown:null,sent:0,lastScan:'',
@@ -42,7 +43,7 @@ const SC={ready:['#e5f0fc','#084c9e'],wait:['#fbf2dd','#8f6410'],ok:['#e4f4ec','
 const setScan=(el,k)=>{el.style.background=SC[k][0];el.style.color=SC[k][1];};
 const db=()=>Auth.db;
 let toastTimer=null;
-function toast(m){const e=$('toast');if(!e)return;e.textContent=m;e.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.classList.remove('on'),3200);}
+function toast(m){const e=$('toast');if(!e)return;e.textContent=m;e.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.classList.remove('on'),3400);}
 function guard(){if(!S.canManage){toast(t('c.needAdmin'));return false;}return true;}
 function guardHead(){if(!S.isHead){toast(t('audit.headOnly'));return false;}return true;}
 function werr(e){const c=(e&&e.code)||'';toast(/PERMISSION_DENIED/i.test(c+e)?t('c.denied'):t('c.fail')+': '+(e&&e.message||e));}
@@ -54,7 +55,6 @@ function insertBeforeSafe(node,anchor,fallbackParent){
   if(anchor&&anchor.parentNode===parent)parent.insertBefore(node,anchor);
   else parent.appendChild(node);
 }
-/* header + body always come from one column list */
 function paintTable(bodyId,cols,html,emptyText){
   const body=$(bodyId);if(!body)return;
   const table=body.closest('table');
@@ -69,6 +69,31 @@ function download(name,obj,type){const b=new Blob([typeof obj==='string'?obj:JSO
 function roleLabel(r){return t(r==='head'?'role.head':r==='admin'?'role.admin':'role.staff');}
 function byLabel(v){const s=String(v||'');if(!s)return '—';const m={scan:'vf.byScan',admin:'vf.byAdmin',printer:'vf.byPrinter',remote:'vf.byRemote','admin-v':'vf.byAdminV','printer-v':'vf.byPrinterV','remote-v':'vf.byRemoteV'};return m[s]?t(m[s]):s;}
 window.addEventListener('error',ev=>{const m=String(ev.message||'error');if(!S.runtime.includes(m))S.runtime.push(m);safe(renderBanner,'banner');});
+
+/* ================= shared injected styles ================= */
+const EXTRA_CSS=`
+.dirgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}
+.dircol>label{display:block;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--faint,#8aa1bd);margin-bottom:6px}
+.diradd{display:flex;gap:8px}
+.diradd input{flex:1 1 auto;min-width:0}
+.diradd .btn{flex:none}
+.dirlist{margin-top:10px;display:grid;gap:6px;max-height:280px;overflow:auto;padding-right:2px}
+.dirrow{display:flex;align-items:center;gap:8px;background:var(--surface,#fff);border:1px solid var(--line,#d7e4f3);border-radius:8px;padding:7px 10px;transition:border-color .15s,box-shadow .15s}
+.dirrow:hover{border-color:var(--bluel,#b1cdf1);box-shadow:0 1px 2px rgba(13,31,56,.06)}
+.dirrow.editing{border-color:var(--blue,#0a5fd0);box-shadow:0 0 0 3px rgba(10,95,208,.14)}
+.dirrow .nm{font-size:13.5px;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dirrow .ct{margin-left:auto;font:11px var(--mono,monospace);color:var(--muted,#587291);background:var(--panel,#f6faff);border:1px solid var(--line2,#bed3e9);border-radius:999px;padding:1px 8px;flex:none}
+.dirrow .ct.zero{color:var(--faint,#8aa1bd)}
+.dirrow input{min-height:32px;padding:5px 9px;font-size:13px;flex:1 1 auto;min-width:0}
+.dirempty{font-size:12.5px;color:var(--faint,#8aa1bd);padding:10px 2px}
+.dirseed{margin:0 0 12px}
+.dirhint{font-size:12.5px;color:var(--muted,#587291);margin-top:8px}
+.selnote{font-size:12.5px;color:var(--muted,#587291);margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+`;
+function mountStyles(){
+  if(document.getElementById('adminExtraCss'))return;
+  const st=document.createElement('style');st.id='adminExtraCss';st.textContent=EXTRA_CSS;document.head.appendChild(st);
+}
 
 /* ================= parent verification ================= */
 const Verify=(function(){
@@ -152,7 +177,6 @@ function ask(s){
 function banner(afterId){
   const host=document.getElementById(afterId);if(!host)return;
   mount();
-  /* never inject inside a flex row — anchor after the whole row instead */
   const anchor=host.closest('.row')||host;
   const parent=anchor.parentNode;if(!parent)return;
   const d=document.createElement('div');d.className='vf-banner';d.innerHTML=ICON+'<span></span>';
@@ -162,6 +186,185 @@ function paint(){banners.forEach(b=>{const s=b.querySelector('span');if(s)s.text
 const open=()=>!!el&&el.classList.contains('on');
 return {ask,banner,paint,open,mount};
 })();
+
+/* ================= directory: teachers & rooms ================= */
+const FIELD={teachers:'meetTeacher',rooms:'meetRoom'};
+function dirNames(kind){
+  return Object.values(S.dir[kind]||{}).map(x=>String((x&&x.name)||'').trim()).filter(Boolean)
+    .sort((a,b)=>a.localeCompare(b,'zh-Hant-HK'));
+}
+function observed(kind){
+  const f=FIELD[kind],set={};
+  Object.values(S.students).forEach(s=>{const v=String(s[f]||'').trim();if(v)set[v]=1;});
+  return Object.keys(set).sort((a,b)=>a.localeCompare(b,'zh-Hant-HK'));
+}
+function usage(kind,name){
+  const f=FIELD[kind];let n=0;
+  Object.values(S.students).forEach(s=>{if(String(s[f]||'').trim()===name)n++;});
+  return n;
+}
+function pendingSeed(kind){
+  const have=dirNames(kind).map(x=>x.toLowerCase());
+  return observed(kind).filter(n=>have.indexOf(n.toLowerCase())<0);
+}
+function toSelect(id){
+  const el=$(id);if(!el)return null;
+  if(el.tagName==='SELECT')return el;
+  const sel=document.createElement('select');
+  sel.id=id;sel.className=el.className||'';
+  const st=el.getAttribute('style');if(st)sel.setAttribute('style',st);
+  el.parentNode.replaceChild(sel,el);
+  return sel;
+}
+function mountSelects(){
+  ['aTeacher','aRoom','mmTeacher','mmRoom'].forEach(toSelect);
+  fillSelects();
+  const note=(hostId,key)=>{
+    const host=$(hostId);if(!host)return;
+    const cell=host.closest('div');if(!cell||cell.querySelector('.selnote'))return;
+    const p=document.createElement('p');p.className='selnote';p.setAttribute('data-i18n',key);p.textContent=t(key);
+    cell.appendChild(p);
+  };
+  note('aTeacher','dir.hint');
+  note('mmTeacher','dir.hint');
+}
+function fillOne(id,kind){
+  const el=$(id);if(!el||el.tagName!=='SELECT')return;
+  const cur=el.value;
+  const list=dirNames(kind), extra=pendingSeed(kind);
+  let h;
+  if(!list.length&&!extra.length){h='<option value="">'+esc(t('dir.noneOpt'))+'</option>';}
+  else{
+    h='<option value="">'+esc(t('dir.pick'))+'</option>';
+    if(list.length)h+='<optgroup label="'+esc(t('dir.groupList'))+'">'+list.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('')+'</optgroup>';
+    if(extra.length)h+='<optgroup label="'+esc(t('dir.groupData'))+'">'+extra.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('')+'</optgroup>';
+  }
+  el.innerHTML=h;
+  el.value=(cur&&list.concat(extra).indexOf(cur)>=0)?cur:'';
+}
+function fillSelects(){
+  fillOne('aTeacher','teachers');fillOne('aRoom','rooms');
+  fillOne('mmTeacher','teachers');fillOne('mmRoom','rooms');
+}
+function mountDirectory(){
+  if($('dirCard'))return;
+  const page=$('pg-meetings');if(!page)return;
+  const card=document.createElement('div');card.className='card';card.id='dirCard';
+  card.innerHTML='<h3 data-i18n="dir.title"></h3><p class="muted" data-i18n="dir.desc"></p>'
+   +'<div class="row dirseed" id="dirSeedRow" hidden><button class="btn gray sm" id="dirSeed" type="button"></button></div>'
+   +'<div class="dirgrid">'
+   +'<div class="dircol"><label data-i18n="dir.teachers"></label>'
+   +'<div class="diradd"><input id="dirNewTeachers" data-ph="dir.newTeacher" autocomplete="off"><button class="btn sm" id="dirAddTeachers" type="button" data-i18n="dir.add"></button></div>'
+   +'<div class="dirlist" id="dirListTeachers"></div></div>'
+   +'<div class="dircol"><label data-i18n="dir.rooms"></label>'
+   +'<div class="diradd"><input id="dirNewRooms" data-ph="dir.newRoom" autocomplete="off"><button class="btn sm" id="dirAddRooms" type="button" data-i18n="dir.add"></button></div>'
+   +'<div class="dirlist" id="dirListRooms"></div></div>'
+   +'</div>';
+  page.insertBefore(card,page.firstChild.nextSibling||null);
+  I18N.apply(card);
+  ['teachers','rooms'].forEach(kind=>{
+    const K=kind==='teachers'?'Teachers':'Rooms';
+    $('dirAdd'+K).onclick=()=>dirAdd(kind);
+    $('dirNew'+K).addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();dirAdd(kind);}});
+    $('dirList'+K).addEventListener('click',e=>{
+      const b=e.target.closest('button[data-act]');if(!b)return;
+      const id=b.dataset.id,act=b.dataset.act;
+      if(act==='ren'){S.dirEdit={kind:kind,id:id};renderDirectory();const inp=$('dirInp');if(inp){inp.focus();inp.select();}}
+      if(act==='del')dirDelete(kind,id);
+      if(act==='save')dirCommitRename(kind,id);
+      if(act==='cancel'){S.dirEdit=null;renderDirectory();}
+    });
+    $('dirList'+K).addEventListener('keydown',e=>{
+      if(e.target.id!=='dirInp')return;
+      if(e.key==='Enter'){e.preventDefault();dirCommitRename(kind,S.dirEdit&&S.dirEdit.id);}
+      if(e.key==='Escape'){e.preventDefault();S.dirEdit=null;renderDirectory();}
+    });
+  });
+  $('dirSeed').onclick=dirSeedAll;
+}
+function renderDirectory(){
+  if(!$('dirCard'))return;
+  ['teachers','rooms'].forEach(kind=>{
+    const K=kind==='teachers'?'Teachers':'Rooms';
+    const box=$('dirList'+K);if(!box)return;
+    const entries=Object.entries(S.dir[kind]||{}).map(([id,v])=>({id:id,name:String((v&&v.name)||'')}))
+      .filter(e=>e.name).sort((a,b)=>a.name.localeCompare(b.name,'zh-Hant-HK'));
+    if(!entries.length){box.innerHTML='<div class="dirempty">'+esc(t('dir.empty'))+'</div>';}
+    else box.innerHTML=entries.map(e=>{
+      const n=usage(kind,e.name);
+      const editing=S.dirEdit&&S.dirEdit.kind===kind&&S.dirEdit.id===e.id;
+      if(editing)return '<div class="dirrow editing"><input id="dirInp" value="'+esc(e.name)+'">'+
+        '<button class="btn mini" data-act="save" data-id="'+esc(e.id)+'">'+esc(t('dir.save'))+'</button>'+
+        '<button class="btn ghost mini" data-act="cancel" data-id="'+esc(e.id)+'">'+esc(t('dir.cancel'))+'</button></div>';
+      return '<div class="dirrow"><span class="nm">'+esc(e.name)+'</span>'+
+        '<span class="ct'+(n?'':' zero')+'">'+esc(n?t('dir.inUse',{n:n}):t('dir.unused'))+'</span>'+
+        '<button class="btn gray mini" data-act="ren" data-id="'+esc(e.id)+'">'+esc(t('dir.rename'))+'</button>'+
+        '<button class="btn bad mini" data-act="del" data-id="'+esc(e.id)+'">'+esc(t('dir.del'))+'</button></div>';
+    }).join('');
+  });
+  const pt=pendingSeed('teachers').length, pr=pendingSeed('rooms').length;
+  const row=$('dirSeedRow');
+  if(row){row.hidden=!(pt||pr);$('dirSeed').textContent=t('dir.seed',{t:pt,r:pr});}
+}
+async function dirAdd(kind){
+  if(!guard())return;
+  const K=kind==='teachers'?'Teachers':'Rooms';
+  const inp=$('dirNew'+K),name=String(inp.value||'').trim();
+  if(!name)return toast(t('dir.needName'));
+  if(dirNames(kind).some(n=>n.toLowerCase()===name.toLowerCase()))return toast(t('dir.dup'));
+  try{
+    await db().ref('parents/directory/'+kind).push({name:name,createdAt:Date.now()});
+    inp.value='';toast(t('dir.added'));
+  }catch(e){werr(e);}
+}
+async function dirCommitRename(kind,id){
+  if(!guard()||!id)return;
+  const inp=$('dirInp');if(!inp)return;
+  const name=String(inp.value||'').trim();
+  const old=String(((S.dir[kind]||{})[id]||{}).name||'');
+  if(!name)return toast(t('dir.needName'));
+  if(name===old){S.dirEdit=null;renderDirectory();return;}
+  if(dirNames(kind).some(n=>n.toLowerCase()===name.toLowerCase()&&n!==old))return toast(t('dir.dup'));
+  const f=FIELD[kind],upd={};
+  upd['directory/'+kind+'/'+id+'/name']=name;
+  let n=0;
+  Object.entries(S.students).forEach(([k,s])=>{if(String(s[f]||'').trim()===old){upd['students/'+k+'/'+f]=name;n++;}});
+  try{
+    await db().ref('parents').update(upd);
+    S.dirEdit=null;toast(t('dir.renamed',{n:n}));
+  }catch(e){werr(e);}
+}
+async function dirDelete(kind,id){
+  if(!guard())return;
+  const e=(S.dir[kind]||{})[id];if(!e)return;
+  const name=String(e.name||''),n=usage(kind,name);
+  if(n>0)return toast(t('dir.blocked',{name:name,n:n}));
+  if(!confirm(t('dir.delQ',{name:name})))return;
+  try{await db().ref('parents/directory/'+kind+'/'+id).remove();toast(t('dir.deleted'));}catch(x){werr(x);}
+}
+async function ensureDir(kind,names){
+  const have=dirNames(kind).map(x=>x.toLowerCase());
+  const add=[];const seen={};
+  names.forEach(v=>{
+    const n=String(v||'').trim();if(!n)return;
+    const k=n.toLowerCase();
+    if(have.indexOf(k)>=0||seen[k])return;
+    seen[k]=1;add.push(n);
+  });
+  if(!add.length)return 0;
+  const upd={};
+  add.forEach(n=>{upd['directory/'+kind+'/'+db().ref('parents/directory/'+kind).push().key]={name:n,createdAt:Date.now()};});
+  await db().ref('parents').update(upd);
+  return add.length;
+}
+async function dirSeedAll(){
+  if(!guard())return;
+  try{
+    const a=await ensureDir('teachers',observed('teachers'));
+    const b=await ensureDir('rooms',observed('rooms'));
+    toast(t('dir.seeded',{t:a,r:b}));
+  }catch(e){werr(e);}
+}
 
 /* ---------- banner + diagnostics ---------- */
 function renderBanner(){
@@ -206,18 +409,18 @@ function renderPage(p){
   if(p==='operate'){safe(renderStation,'station');safe(renderScanReady,'scan');safe(renderSearch,'search');}
   if(p==='designer')safe(renderDesigner,'designer');
   if(p==='attendance')safe(renderAttendance,'attendance');
-  if(p==='meetings')safe(renderMeetings,'meetings');
+  if(p==='meetings'){safe(renderDirectory,'directory');safe(renderMeetings,'meetings');}
   if(p==='stations')safe(renderStations,'stations');
-  if(p==='students')safe(renderStudents,'students');
+  if(p==='students'){safe(fillSelects,'selects');safe(renderStudents,'students');}
   if(p==='users')safe(renderUsers,'users');
   if(p==='audit')safe(renderAudit,'audit');
   if(p==='settings')safe(renderDiag,'diag');
 }
 function renderEverything(){
   safe(renderOverview,'overview');safe(renderStation,'station');safe(renderScanReady,'scan');safe(renderScanTags,'scanTags');
-  safe(renderSearch,'search');safe(renderDesigner,'designer');safe(renderAttendance,'attendance');safe(renderMeetings,'meetings');
-  safe(renderStations,'stations');safe(renderStudents,'students');safe(renderUsers,'users');safe(renderAudit,'audit');
-  safe(renderDiag,'diag');safe(renderBanner,'banner');
+  safe(renderSearch,'search');safe(renderDesigner,'designer');safe(renderAttendance,'attendance');safe(renderDirectory,'directory');
+  safe(renderMeetings,'meetings');safe(renderStations,'stations');safe(renderStudents,'students');safe(renderUsers,'users');
+  safe(renderAudit,'audit');safe(renderDiag,'diag');safe(renderBanner,'banner');safe(fillSelects,'selects');
 }
 
 /* ---------- overview ---------- */
@@ -320,7 +523,7 @@ function renderCanvas(){
   const e=LL.eff(S.layout),z=dzScale();
   c.style.width=e.w*z+'px';c.style.height=e.h*z+'px';
   c.innerHTML=S.layout.boxes.map(b=>{const j=b.valign==='top'?'flex-start':b.valign==='bottom'?'flex-end':'center';
-    return '<div class="tb'+(b.id===S.selBox?' on':'')+'" data-id="'+esc(b.id)+'" style="left:'+b.x*z+'px;top:'+b.y*z+'px;width:'+b.w*z+'px;height:'+b.h*z+'px;font-size:'+b.size*S.zoom+'px;font-weight:'+b.weight+';text-align:'+b.align+';color:'+b.color+';line-height:'+b.lineHeight+';justify-content:'+j+'">'+esc(LL.fill(b.text,S.layout.sample)).replace(/\n/g,'<br>')+'<span class="hd"></span></div>';}).join('');
+    return '<div class="tb'+(b.id===S.selBox?' on':'')+'" data-id="'+esc(b.id)+'" style="left:'+b.x*z+'px;top:'+b.y*z+'px;width:'+b.w*z+'px;height:'+b.h*z+'px;font-size:'+b.size*z+'px;font-weight:'+b.weight+';text-align:'+b.align+';color:'+b.color+';line-height:'+b.lineHeight+';justify-content:'+j+'">'+esc(LL.fill(b.text,S.layout.sample)).replace(/\n/g,'<br>')+'<span class="hd"></span></div>';}).join('');
 }
 function renderPreview(){const p=$('preview');if(!p)return;const e=LL.eff(S.layout);p.style.width=e.w+'mm';p.style.height=e.h+'mm';p.innerHTML=LL.stageHTML(S.layout,S.layout.sample,false);const i=$('effInfo');if(i)i.textContent=effText();}
 function renderDesigner(){renderChips();renderCanvas();renderPreview();syncBoxProps();}
@@ -383,8 +586,12 @@ function renderMeetPreview(){
 function openMeet(k){
   if(!guard())return;const s=S.students[k];if(!s)return;
   S.mmUid=k;S.mmBusy=false;
+  mountSelects();
   $('mmWho').innerHTML='<b>'+esc(s.nameEn||'')+'</b> '+esc(s.nameZh||'')+' · '+esc(t('sd.sid'))+' '+esc(s.studentId||'—')+' · '+esc(s.cls||'')+' '+esc(s.classNo||'')+' · '+esc(t('c.card'))+' '+esc(s.cardId||'—');
-  $('mmTime').value=s.meetTime||'';$('mmTeacher').value=s.meetTeacher||'';$('mmRoom').value=s.meetRoom||'';
+  $('mmTime').value=s.meetTime||'';
+  fillOne('mmTeacher','teachers');fillOne('mmRoom','rooms');
+  $('mmTeacher').value=String(s.meetTeacher||'');
+  $('mmRoom').value=String(s.meetRoom||'');
   $('mmStatus').textContent='';$('mmStatus').className='status';
   $('mmSave').disabled=false;$('mmClear').disabled=false;$('mmCancel').disabled=false;
   I18N.apply($('mtModal'));renderMeetPreview();
@@ -422,13 +629,9 @@ function renderStudents(){
   const html=rows.slice(0,800).map(([k,s])=>'<tr>'
     +'<td class="mono"><b>'+esc(s.studentId||'—')+'</b></td>'
     +'<td class="mono">'+cell(s.cardId)+'</td>'
-    +'<td>'+esc(s.cls||'')+'</td>'
-    +'<td>'+esc(s.classNo||'')+'</td>'
-    +'<td>'+esc(s.nameEn||'')+'</td>'
-    +'<td>'+esc(s.nameZh||'')+'</td>'
-    +'<td class="mc mono">'+cell(s.meetTime)+'</td>'
-    +'<td class="mc">'+cell(s.meetTeacher)+'</td>'
-    +'<td class="mc">'+cell(s.meetRoom)+'</td>'
+    +'<td>'+esc(s.cls||'')+'</td><td>'+esc(s.classNo||'')+'</td>'
+    +'<td>'+esc(s.nameEn||'')+'</td><td>'+esc(s.nameZh||'')+'</td>'
+    +'<td class="mc mono">'+cell(s.meetTime)+'</td><td class="mc">'+cell(s.meetTeacher)+'</td><td class="mc">'+cell(s.meetRoom)+'</td>'
     +'<td><button class="btn gray mini" data-act="meet" data-k="'+esc(k)+'">'+esc(t('m.edit'))+'</button> <button class="btn warn mini" data-act="print" data-k="'+esc(k)+'">'+esc(t('c.print'))+'</button> <button class="btn bad mini" data-act="delstu" data-k="'+esc(k)+'">'+esc(t('c.delete'))+'</button></td></tr>').join('');
   paintTable('dbBody',STU_COLS,html);
 }
@@ -524,9 +727,15 @@ async function runImport(file){
     }catch(e){unmatched.push(Object.assign({reason:String(e&&e.code||e.message||e)},rec));skip++;}
     if(i%12===0)msg.textContent=t('c.processing')+' '+(i+1)+' / '+mapped.rows.length;
   }
+  let dt=0,dr=0;
+  try{
+    if(fields.includes('meetTeacher'))dt=await ensureDir('teachers',mapped.rows.map(r=>r.meetTeacher));
+    if(fields.includes('meetRoom'))dr=await ensureDir('rooms',mapped.rows.map(r=>r.meetRoom));
+  }catch(e){}
   S.imp.unmatched=unmatched;
-  msg.textContent=t('imp.summary',{add,upd,unmatched:unmatched.length,skip});
+  msg.textContent=t('imp.summary',{add,upd,unmatched:unmatched.length,skip})+((dt||dr)?' '+t('imp.dirAdded',{t:dt,r:dr}):'');
   const ub=$('impUnmatched');if(ub)ub.hidden=!unmatched.length;
+  safe(fillSelects,'selects');safe(renderDirectory,'directory');
   safe(renderStudents,'students');safe(renderMeetings,'meetings');safe(renderAttendance,'attendance');safe(renderOverview,'overview');
 }
 function mountImportUI(){
@@ -556,10 +765,7 @@ function mountImportUI(){
   const cardEl=$('aCard');
   if(cardEl&&!$('aSid')){
     const g=cardEl.closest('.g');
-    if(g){
-      const d=document.createElement('div');d.innerHTML='<label data-i18n="sd.sid"></label><input id="aSid" data-ph="sd.sidPh">';
-      g.insertBefore(d,g.firstChild);I18N.apply(d);
-    }
+    if(g){const d=document.createElement('div');d.innerHTML='<label data-i18n="sd.sid"></label><input id="aSid" data-ph="sd.sidPh">';g.insertBefore(d,g.firstChild);I18N.apply(d);}
   }
   const smCard=$('smCard');
   if(smCard&&!$('smSid')){
@@ -570,9 +776,16 @@ function mountImportUI(){
       $('smSid').addEventListener('input',()=>{S.layout.sample.studentId=$('smSid').value;renderDesigner();});
     }
   }
+  const jumpHost=$('stuAdd');
+  if(jumpHost&&!$('dirJump')){
+    const row=jumpHost.closest('.row')||jumpHost.parentNode;
+    const b=document.createElement('button');b.className='btn ghost';b.id='dirJump';b.type='button';b.setAttribute('data-i18n','dir.manage');b.textContent=t('dir.manage');
+    b.onclick=()=>{showPage('meetings');const c=$('dirCard');if(c)c.scrollIntoView({behavior:'smooth',block:'start'});};
+    row.appendChild(b);
+  }
 }
 
-/* ---------- user management (Head Admin only) ---------- */
+/* ---------- user management ---------- */
 function mergedUsers(){
   const m={};
   Object.entries(S.users).forEach(([uid,u])=>{m[uid]=Object.assign({},u,{_legacy:false});});
@@ -710,10 +923,8 @@ async function sendUserReset(){
   if(!email){msg.textContent=t('u.resetNoEmail');msg.className='status err';return;}
   if(!confirm(t('u.resetQ',{email:email})))return;
   msg.textContent=t('c.processing');msg.className='status';
-  try{
-    await Auth.auth.sendPasswordResetEmail(email);
-    msg.textContent=t('u.resetSent',{email:email});msg.className='status';
-  }catch(e){msg.textContent=t('c.fail')+': '+(e&&e.code||e.message||e);msg.className='status err';}
+  try{await Auth.auth.sendPasswordResetEmail(email);msg.textContent=t('u.resetSent',{email:email});msg.className='status';}
+  catch(e){msg.textContent=t('c.fail')+': '+(e&&e.code||e.message||e);msg.className='status err';}
 }
 const udRec=()=>S.udUid?mergedUsers()[S.udUid]:null;
 const udToken=u=>(u&&u.email?String(u.email):String(S.udUid||''));
@@ -741,7 +952,7 @@ function openUd(uid){
 }
 function closeUd(){if(S.udBusy)return;$('udModal').classList.remove('on');document.body.style.overflow='';S.udUid=null;}
 
-/* ---------- audit (Head Admin only) ---------- */
+/* ---------- audit ---------- */
 function mountAuditPage(){
   if($('pg-audit'))return;
   const rail=$('rail');
@@ -930,7 +1141,12 @@ function attachAll(){
       safe(renderDiag,'diag');safe(renderBanner,'banner');safe(renderOverview,'overview');
     },err=>{S.errors[path]=err.code||String(err.message||err);safe(renderDiag,'diag');safe(renderBanner,'banner');});
   };
-  bind('students',v=>{S.students=v;reindex();safe(renderStudents,'students');safe(renderAttendance,'attendance');safe(renderMeetings,'meetings');safe(renderSearch,'search');});
+  bind('directory',v=>{
+    S.dir={teachers:v.teachers||{},rooms:v.rooms||{}};
+    S.counts.directory=Object.keys(S.dir.teachers).length+Object.keys(S.dir.rooms).length;
+    safe(fillSelects,'selects');safe(renderDirectory,'directory');
+  });
+  bind('students',v=>{S.students=v;reindex();safe(fillSelects,'selects');safe(renderDirectory,'directory');safe(renderStudents,'students');safe(renderAttendance,'attendance');safe(renderMeetings,'meetings');safe(renderSearch,'search');});
   bind('stations',v=>{S.stations=v;if(S.station&&!v[S.station]){S.station=null;localStorage.removeItem(LS);}safe(renderStation,'station');safe(renderStations,'stations');});
   bind('queues',v=>{S.queues=v;safe(renderStation,'station');safe(renderStations,'stations');});
   bind('labelLayout',(v,snap)=>{
@@ -1081,13 +1297,21 @@ function wire(){
     rows.forEach(([k,s])=>aoa.push([s.studentId||'',s.cls||'',s.classNo||'',s.nameEn||'',s.nameZh||'',s.cardId||'',s.meetTime||'',s.meetTeacher||'',s.meetRoom||'']));
     const ws=XLSX.utils.aoa_to_sheet(aoa),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Meetings');XLSX.writeFile(wb,'meetings.xlsx');toast(t('c.exported'));
   };
-  ['mmTime','mmTeacher','mmRoom'].forEach(id=>$(id).addEventListener('input',()=>safe(renderMeetPreview,'meetPreview')));
+  ['mmTime','mmTeacher','mmRoom'].forEach(id=>{
+    const el=$(id);if(!el)return;
+    const h=()=>safe(renderMeetPreview,'meetPreview');
+    el.addEventListener('input',h);el.addEventListener('change',h);
+  });
   $('mmCancel').onclick=closeMeet;
   $('mtModal').addEventListener('click',e=>{if(e.target===$('mtModal'))closeMeet();});
   $('mmSave').onclick=async()=>{
     if(!guard()||!S.mmUid||S.mmBusy)return;S.mmBusy=true;$('mmSave').disabled=true;$('mmClear').disabled=true;$('mmCancel').disabled=true;
-    try{await db().ref('parents/students/'+S.mmUid).update({meetTime:$('mmTime').value.trim(),meetTeacher:$('mmTeacher').value.trim(),meetRoom:$('mmRoom').value.trim(),updatedAt:Date.now(),updatedBy:S.user.email||S.user.uid});S.mmBusy=false;closeMeet();toast(t('m.saved'));}
-    catch(x){S.mmBusy=false;$('mmSave').disabled=false;$('mmClear').disabled=false;$('mmCancel').disabled=false;$('mmStatus').textContent=t('c.fail')+': '+(x.message||x);$('mmStatus').className='status err';}
+    try{
+      const teacher=$('mmTeacher').value,room=$('mmRoom').value;
+      await db().ref('parents/students/'+S.mmUid).update({meetTime:$('mmTime').value.trim(),meetTeacher:teacher,meetRoom:room,updatedAt:Date.now(),updatedBy:S.user.email||S.user.uid});
+      try{await ensureDir('teachers',[teacher]);await ensureDir('rooms',[room]);}catch(e){}
+      S.mmBusy=false;closeMeet();toast(t('m.saved'));
+    }catch(x){S.mmBusy=false;$('mmSave').disabled=false;$('mmClear').disabled=false;$('mmCancel').disabled=false;$('mmStatus').textContent=t('c.fail')+': '+(x.message||x);$('mmStatus').className='status err';}
   };
   $('mmClear').onclick=async()=>{
     if(!guard()||!S.mmUid||S.mmBusy)return;if(!confirm(t('m.clearQ')))return;
@@ -1132,14 +1356,16 @@ function wire(){
   $('stuAdd').onclick=async()=>{
     if(!guard())return;
     const sidEl=$('aSid'),sid=sidEl?normSid(sidEl.value):'';
-    const rec={studentId:sid,cardId:$('aCard').value.trim(),cls:$('aCls').value.trim().toUpperCase(),classNo:$('aNo').value.trim(),nameEn:$('aEn').value.trim(),nameZh:$('aZh').value.trim(),meetTime:$('aTime').value.trim(),meetTeacher:$('aTeacher').value.trim(),meetRoom:$('aRoom').value.trim(),updatedAt:Date.now(),updatedBy:S.user.email||S.user.uid};
+    const teacher=$('aTeacher').value,room=$('aRoom').value;
+    const rec={studentId:sid,cardId:$('aCard').value.trim(),cls:$('aCls').value.trim().toUpperCase(),classNo:$('aNo').value.trim(),nameEn:$('aEn').value.trim(),nameZh:$('aZh').value.trim(),meetTime:$('aTime').value.trim(),meetTeacher:teacher,meetRoom:room,updatedAt:Date.now(),updatedBy:S.user.email||S.user.uid};
     if(!rec.studentId&&!rec.nameEn&&!rec.nameZh)return toast(t('sd.needName'));
     const hit=resolveKey(rec);
     try{
       if(hit)await db().ref('parents/students/'+hit.key).update(rec);
       else if(sid)await db().ref('parents/students/'+sidKey(sid)).set(rec);
       else await db().ref('parents/students').push(rec);
-      ['aCard','aCls','aNo','aEn','aZh','aTime','aTeacher','aRoom'].forEach(id=>$(id).value='');
+      try{await ensureDir('teachers',[teacher]);await ensureDir('rooms',[room]);}catch(e){}
+      ['aCard','aCls','aNo','aEn','aZh','aTime','aTeacher','aRoom'].forEach(id=>{const el=$(id);if(el)el.value='';});
       if(sidEl)sidEl.value='';
       toast(t('c.saved'));
     }catch(x){werr(x);}
@@ -1253,8 +1479,10 @@ function start(user,profile){
   if(!S.canManage){$('console').style.display='none';$('denied').style.display='block';safe(renderDiag,'diag');return;}
   $('console').style.display='';$('denied').style.display='none';
   safe(mountImportUI,'mountImportUI');
+  safe(mountDirectory,'mountDirectory');
   safe(mountAuditPage,'mountAuditPage');
   safe(mountUserEdit,'mountUserEdit');
+  safe(mountSelects,'mountSelects');
   safe(applyRoleGates,'gates');
   S.started=true;
   safe(attachAll,'attachAll');
@@ -1270,13 +1498,16 @@ document.addEventListener('auth-profile',e=>{
   if(!S.canManage){$('console').style.display='none';$('denied').style.display='block';}
   else{$('console').style.display='';$('denied').style.display='none';if(!S.started)start(S.user,p);else safe(attachAll,'attachAll');}
 });
+safe(mountStyles,'styles');
+safe(mountSelects,'mountSelects');
 safe(()=>{setMode(S.layout.mode);syncDesignerInputs();},'designer-init');
 safe(renderScanReady,'scan');safe(renderScanTags,'scanTags');
 safe(renderEverything,'initial-render');
-safe(wire,'wire');
 safe(mountImportUI,'mountImportUI');
+safe(mountDirectory,'mountDirectory');
 safe(mountAuditPage,'mountAuditPage');
 safe(mountUserEdit,'mountUserEdit');
+safe(wire,'wire');
 safe(()=>{Verify.banner('q');Verify.banner('dbQ');},'banners');
 safe(applyRoleGates,'gates');
 safe(()=>showPage(location.hash.slice(1)||'overview'),'route');
