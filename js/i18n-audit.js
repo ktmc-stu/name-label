@@ -1,6 +1,5 @@
-/* js/i18n-audit.js — roles, Student ID, split-Excel merge, user management, audit strings.
-   Loaded automatically by js/auth.js. Overrides p.users / d.users so the page reads
-   「用戶管理 / User management」 instead of the old approval-only wording. */
+/* js/i18n-audit.js — roles, Student ID, split-Excel merge, teacher/room directory,
+   user management, audit strings. Loaded automatically by js/auth.js. */
 (function(){
 if(!window.I18N)return;
 I18N.extend({zh:{
@@ -19,6 +18,22 @@ I18N.extend({zh:{
 'imp.matchBy':'配對方式','imp.bySid':'學生編號','imp.byCard':'卡號','imp.byClass':'班別＋班號','imp.byName':'姓名','imp.new':'新建',
 'imp.needSid':'會面檔建議包含 Student ID 欄，否則只能靠班別班號或姓名配對。',
 'imp.noStudent':'會面檔找不到對應學生，已列入未配對列，不會建立空白學生。',
+'imp.dirAdded':'已自動加入名單：老師 {t} 位，課室 {r} 個。',
+
+'dir.title':'老師及課室名單','dir.desc':'新增學生或編輯會面時，老師與課室只可從此名單選擇，不能自行輸入文字。改名會一併更新所有使用該名稱的學生記錄。',
+'dir.teachers':'老師名單','dir.rooms':'課室名單',
+'dir.newTeacher':'輸入老師姓名後按新增','dir.newRoom':'輸入課室名稱後按新增',
+'dir.add':'新增','dir.seed':'從現有學生資料建立名單（老師 {t} · 課室 {r}）','dir.seeded':'已建立名單：老師 {t} 位，課室 {r} 個。',
+'dir.empty':'名單尚未有項目。','dir.inUse':'{n} 位學生使用','dir.unused':'未使用',
+'dir.rename':'改名','dir.del':'刪除','dir.save':'儲存','dir.cancel':'取消',
+'dir.dup':'此名稱已存在。','dir.needName':'請輸入名稱。',
+'dir.blocked':'仍有 {n} 位學生使用「{name}」，請先改名或清除該批記錄，再刪除名單項目。',
+'dir.renamed':'已改名，並更新 {n} 位學生記錄。','dir.added':'已加入名單。','dir.deleted':'已從名單刪除。',
+'dir.pick':'— 請選擇 —','dir.noneOpt':'— 名單尚未建立 —',
+'dir.groupList':'名單','dir.groupData':'現有資料（未列入名單）',
+'dir.hint':'老師及課室只可選擇。如需新增或改名，請到「會面安排」頁頂的名單管理。',
+'dir.manage':'管理名單','dir.countT':'老師 {n} 位','dir.countR':'課室 {n} 個',
+'dir.delQ':'確定從名單刪除「{name}」？',
 
 'p.users':'用戶管理',
 'd.users':'管理所有帳戶：編輯姓名、職銜、部門、聯絡電話及備註，設定角色與狀態，發送重設密碼電郵，或刪除帳戶。新帳戶一律待批准。只有總管理員可使用本頁。',
@@ -26,7 +41,7 @@ I18N.extend({zh:{
 'u.pending':'待批','u.approved':'已批','u.rejected':'已拒','u.approve':'批准','u.reject':'拒絕','u.revoke':'停用',
 'u.makeAdmin':'設為營運管理員','u.makeStaff':'設為操作員','u.none':'此檢視沒有用戶','u.noSelf':'不能修改自己的角色或狀態',
 'u.rejectQ':'確定拒絕此帳戶？此帳戶將無法存取系統。','u.updated':'已更新帳戶','u.legacy':'Firebase 管理員',
-'u.foot':'按「編輯資料」可修改姓名、職銜、部門、電話、備註、角色及狀態，亦可發送重設密碼電郵或刪除帳戶。標示為「Firebase 管理員」的帳戶只在 admins 節點設定，首次編輯並儲存後會建立完整用戶記錄。',
+'u.foot':'按「編輯資料」可修改姓名、職銜、部門、電話、備註、角色及狀態，亦可發送重設密碼電郵或刪除帳戶。',
 'u.edit':'編輯資料','u.editTitle':'編輯用戶資料','u.save':'儲存用戶資料','u.saved':'已儲存用戶資料',
 'u.title':'職銜','u.titlePh':'例如 副校長','u.dept':'部門／科組','u.deptPh':'例如 學務組','u.phone':'聯絡電話','u.phonePh':'例如 2345 6789',
 'u.note':'備註','u.notePh':'內部備註，只有總管理員可見',
@@ -84,6 +99,22 @@ I18N.extend({zh:{
 'imp.matchBy':'Matched by','imp.bySid':'Student ID','imp.byCard':'Card ID','imp.byClass':'Class + No','imp.byName':'Name','imp.new':'New record',
 'imp.needSid':'Include a Student ID column in the meeting file; otherwise matching relies on class/class no or name.',
 'imp.noStudent':'No matching student for this meeting row. It is listed as unmatched; no blank student is created.',
+'imp.dirAdded':'Added to the pick-lists automatically: {t} teachers, {r} rooms.',
+
+'dir.title':'Teacher & room lists','dir.desc':'When adding a student or editing a meeting, teacher and room can only be picked from these lists — no free typing. Renaming an entry updates every student record that uses it.',
+'dir.teachers':'Teachers','dir.rooms':'Rooms',
+'dir.newTeacher':'Type a teacher name, then Add','dir.newRoom':'Type a room name, then Add',
+'dir.add':'Add','dir.seed':'Build lists from existing student data ({t} teachers · {r} rooms)','dir.seeded':'Lists created: {t} teachers, {r} rooms.',
+'dir.empty':'No entries yet.','dir.inUse':'used by {n}','dir.unused':'unused',
+'dir.rename':'Rename','dir.del':'Delete','dir.save':'Save','dir.cancel':'Cancel',
+'dir.dup':'That name already exists.','dir.needName':'Enter a name.',
+'dir.blocked':'“{name}” is still used by {n} students. Rename it or clear those records before deleting the entry.',
+'dir.renamed':'Renamed and updated {n} student records.','dir.added':'Added to the list.','dir.deleted':'Removed from the list.',
+'dir.pick':'— Select —','dir.noneOpt':'— List not built yet —',
+'dir.groupList':'List','dir.groupData':'Existing data (not listed)',
+'dir.hint':'Teacher and room are pick-only. To add or rename entries, use the lists at the top of the Meetings page.',
+'dir.manage':'Manage lists','dir.countT':'{n} teachers','dir.countR':'{n} rooms',
+'dir.delQ':'Remove “{name}” from the list?',
 
 'p.users':'User management',
 'd.users':'Manage every account: edit name, title, department, phone and notes, set role and status, send a password-reset email, or delete the account. New accounts stay pending until approved. Head Admin only.',
@@ -91,11 +122,11 @@ I18N.extend({zh:{
 'u.pending':'Pending','u.approved':'Approved','u.rejected':'Rejected','u.approve':'Approve','u.reject':'Reject','u.revoke':'Revoke',
 'u.makeAdmin':'Make Operational Admin','u.makeStaff':'Make Operator','u.none':'No users in this view','u.noSelf':'You cannot change your own role or status',
 'u.rejectQ':'Reject this account? It will lose access.','u.updated':'Account updated','u.legacy':'Firebase admin',
-'u.foot':'Press “Edit profile” to change name, title, department, phone, notes, role and status, send a password-reset email, or delete the account. Accounts marked “Firebase admin” exist only in the admins node; saving an edit creates their full user record.',
+'u.foot':'Press “Edit profile” to change name, title, department, phone, notes, role and status, send a password-reset email, or delete the account.',
 'u.edit':'Edit profile','u.editTitle':'Edit user profile','u.save':'Save user','u.saved':'User profile saved',
 'u.title':'Title','u.titlePh':'e.g. Vice Principal','u.dept':'Department','u.deptPh':'e.g. Student Affairs','u.phone':'Phone','u.phonePh':'e.g. 2345 6789',
 'u.note':'Notes','u.notePh':'Internal note, visible to Head Admin only',
-'u.emailWarn':'This field only updates the record inside the system. The actual login email lives in Firebase Authentication; to change the login email use Firebase Console → Authentication → Users.',
+'u.emailWarn':'This field only updates the record inside the system. The actual login email lives in Firebase Authentication; to change it use Firebase Console → Authentication → Users.',
 'u.reset':'Send password-reset email','u.resetQ':'Send a password-reset email to {email}?','u.resetSent':'Password-reset email sent to {email}',
 'u.resetNoEmail':'Enter an email first.','u.selfLock':'To avoid locking yourself out, you cannot change your own role or status.',
 'u.meta':'Created {created} · Approved {approved}','u.metaBy':' · by {by}','u.neverApproved':'not yet approved',
